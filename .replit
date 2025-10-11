@@ -22,18 +22,14 @@ args = "ACS Server"
 name = "ACS Server"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "php artisan serve --host=0.0.0.0 --port=5000"
-waitForPort = 5000
-
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pkill -9 php 2>/dev/null || true; sleep 1; php artisan serve --host=0.0.0.0 --port=5000"
+waitForPort = 5000
 
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 44239
-externalPort = 3000
