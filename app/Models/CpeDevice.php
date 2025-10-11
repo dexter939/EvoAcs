@@ -135,6 +135,17 @@ class CpeDevice extends Model
     }
 
     /**
+     * Relazione con sottoscrizioni USP (TR-369)
+     * Relationship with USP subscriptions (TR-369)
+     * 
+     * @return HasMany
+     */
+    public function uspSubscriptions(): HasMany
+    {
+        return $this->hasMany(UspSubscription::class);
+    }
+
+    /**
      * Scope per filtrare dispositivi TR-069
      * Scope to filter TR-069 devices
      */
