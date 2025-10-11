@@ -181,4 +181,27 @@ class UspMqttService
         $binary = $this->uspMessageService->serializeRecord($record);
         return $this->publishToDevice($device, $binary);
     }
+
+    /**
+     * Send USP SUBSCRIPTION request to device via MQTT
+     * 
+     * Creates a subscription on Device.LocalAgent.Subscription.{i}. path
+     * 
+     * @param CpeDevice $device Target device
+     * @param string $subscriptionPath Path (es: Device.LocalAgent.Subscription.1.)
+     * @param array $subscriptionParams Parameters (Enable, Recipient, NotifType, ReferenceList, etc.)
+     * @return bool
+     */
+    public function sendSubscriptionRequest(CpeDevice $device, string $subscriptionPath, array $subscriptionParams): bool
+    {
+        $subscriptionRequest = $this->uspMessageService->createSubscriptionMessage($subscriptionPath, $subscriptionParams);
+        $record = $this->uspMessageService->wrapInRecord(
+            $subscriptionRequest,
+            config('usp.controller_endpoint_id', 'proto::acs-controller'),
+            $device->usp_endpoint_id
+        );
+        
+        $binary = $this->uspMessageService->serializeRecord($record);
+        return $this->publishToDevice($device, $binary);
+    }
 }

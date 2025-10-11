@@ -254,6 +254,66 @@ class UspMessageService
     }
 
     /**
+     * Crea un messaggio USP per configurare una subscription
+     * Create USP message to configure a subscription
+     * 
+     * @param string $subscriptionPath Path to subscription (es: Device.LocalAgent.Subscription.1.)
+     * @param array $subscriptionParams Parametri subscription (Enable, Recipient, NotifType, ReferenceList, etc.)
+     * @param string|null $msgId Message ID personalizzato
+     * @return Msg
+     */
+    public function createSubscriptionMessage(string $subscriptionPath, array $subscriptionParams, ?string $msgId = null): Msg
+    {
+        $msgId = $msgId ?? $this->generateMessageId();
+
+        $header = new Header();
+        $header->setMsgId($msgId);
+        $header->setMsgType(Header\MsgType::ADD);
+
+        $add = new Add();
+        $add->setAllowPartial(false);
+
+        $createObj = new Add\CreateObject();
+        $createObj->setObjPath($subscriptionPath);
+
+        $paramSettings = [];
+        foreach ($subscriptionParams as $paramName => $paramValue) {
+            $paramSetting = new Add\CreateParamSetting();
+            $paramSetting->setParam($paramName);
+            
+            // Format parameter value according to TR-369 requirements
+            if (is_bool($paramValue)) {
+                // Booleans must be "true" or "false" strings
+                $paramSetting->setValue($paramValue ? 'true' : 'false');
+            } elseif (is_array($paramValue)) {
+                // Arrays (like ReferenceList) must be comma-separated strings
+                $paramSetting->setValue(implode(',', $paramValue));
+            } else {
+                // Scalars as-is
+                $paramSetting->setValue((string) $paramValue);
+            }
+            
+            $paramSetting->setRequired(false);
+            $paramSettings[] = $paramSetting;
+        }
+        $createObj->setParamSettings($paramSettings);
+
+        $add->setCreateObjs([$createObj]);
+
+        $request = new Request();
+        $request->setAdd($add);
+
+        $body = new Body();
+        $body->setRequest($request);
+
+        $msg = new Msg();
+        $msg->setHeader($header);
+        $msg->setBody($body);
+
+        return $msg;
+    }
+
+    /**
      * Serializza un messaggio USP in formato binario
      * Serialize USP message to binary format
      * 
