@@ -63,14 +63,23 @@ Tutte le API sono accessibili tramite `/api/v1/` con autenticazione API Key:
 - `POST /firmware` - Upload nuova versione firmware
 - `POST /firmware/{id}/deploy` - Deploy firmware su dispositivi selezionati
 
-### 4. Dashboard Amministrativa
-- **Endpoint**: `/dashboard`
-- **Statistiche in tempo reale**:
-  - Conteggio dispositivi per stato (online, offline, provisioning, error)
-  - Task di provisioning (pending, processing, completed, failed)
-  - Deployment firmware (scheduled, downloading, installing, completed, failed)
-  - Ultimi 10 dispositivi attivi
-  - Ultimi 10 task di provisioning
+### 6. Interfaccia Web Professionale ✅
+- **Template**: Soft UI Dashboard Laravel integrato
+- **Endpoints Web**: Disponibili sotto `/acs/*`
+- **Pagine Implementate**:
+  - `/acs/dashboard` - Dashboard principale con statistiche real-time (dispositivi, task, firmware)
+  - `/acs/devices` - Gestione dispositivi CPE con tabella paginata e filtri
+  - `/acs/provisioning` - Interfaccia provisioning con form e lista task
+  - `/acs/firmware` - Gestione firmware con upload e deployment
+  - `/acs/tasks` - Monitoraggio coda task Horizon
+  - `/acs/profiles` - Gestione profili configurazione TR-181
+- **Caratteristiche UI**:
+  - Design responsive e moderno
+  - Sidebar navigazione con sezioni organizzate (Gestione CPE, Sistema, TR-069)
+  - Card statistiche con contatori real-time
+  - Tabelle con paginazione e gestione casi vuoti
+  - Badge colorati per stati (online/offline, completed/failed, ecc.)
+  - Footer con link API, TR-069 Endpoint e Documentazione
 
 ## Architettura
 
@@ -90,7 +99,8 @@ Tutte le API sono accessibili tramite `/api/v1/` con autenticazione API Key:
 - `Api/DeviceController`: CRUD dispositivi
 - `Api/ProvisioningController`: Provisioning e gestione task
 - `Api/FirmwareController`: Gestione firmware
-- `DashboardController`: Dashboard statistiche
+- `DashboardController`: Dashboard statistiche JSON (legacy API)
+- `AcsController`: Interfaccia web con views Blade per dashboard, dispositivi, provisioning, firmware, tasks, profili
 
 ## Protocolli Supportati
 
