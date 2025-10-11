@@ -12,7 +12,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->validateCsrfTokens(except: [
+            'usp',      // USP endpoint receives binary protobuf data
+            'tr069',    // TR-069 endpoint (SOAP)
+            'tr069/*'
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

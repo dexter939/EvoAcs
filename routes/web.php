@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TR069Controller;
+use App\Http\Controllers\UspController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AcsController;
 
@@ -16,6 +17,9 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard
 // TR-069 Endpoints (Public)
 Route::post('/tr069', [TR069Controller::class, 'handleInform'])->name('tr069.inform');
 Route::post('/tr069/empty', [TR069Controller::class, 'handleEmpty'])->name('tr069.empty');
+
+// TR-369 USP Endpoints (Public)
+Route::post('/usp', [UspController::class, 'handleUspMessage'])->name('usp.message');
 
 // ACS Web Dashboard
 Route::prefix('acs')->name('acs.')->group(function () {

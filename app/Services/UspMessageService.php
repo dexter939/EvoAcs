@@ -430,4 +430,230 @@ class UspMessageService
 
         return $msg;
     }
+
+    /**
+     * Crea un messaggio di risposta SET completo
+     * Create complete SET response message
+     * 
+     * @param string $msgId Message ID della request originale
+     * @param array $updatedParams Array di parametri aggiornati [path => value]
+     * @return Msg
+     */
+    public function createSetResponseMessage(string $msgId, array $updatedParams = []): Msg
+    {
+        $header = new Header();
+        $header->setMsgId($msgId);
+        $header->setMsgType(Header\MsgType::SET_RESP);
+
+        $setResp = new SetResp();
+        
+        // Create UpdatedObjectResult
+        $updatedResults = [];
+        $updatedResult = new SetResp\UpdatedObjectResult();
+        $updatedResult->setRequestedPath('Device.');
+        
+        // Create OperationSuccess with UpdatedInstanceResult
+        $instanceResult = new SetResp\UpdatedInstanceResult();
+        $instanceResult->setAffectedPath('Device.');
+        
+        // Preserve keys when casting values to string
+        $stringParams = [];
+        foreach ($updatedParams as $key => $value) {
+            $stringParams[$key] = (string) $value;
+        }
+        $instanceResult->setUpdatedParams($stringParams);
+        
+        $operSuccess = new SetResp\UpdatedObjectResult\OperationStatus\OperationSuccess();
+        $operSuccess->setUpdatedInstResults([$instanceResult]);
+        
+        $operStatus = new SetResp\UpdatedObjectResult\OperationStatus();
+        $operStatus->setOperSuccess($operSuccess);
+        
+        $updatedResult->setOperStatus($operStatus);
+        $updatedResults[] = $updatedResult;
+        
+        $setResp->setUpdatedObjResults($updatedResults);
+
+        $response = new Response();
+        $response->setSetResp($setResp);
+
+        $body = new Body();
+        $body->setResponse($response);
+
+        $msg = new Msg();
+        $msg->setHeader($header);
+        $msg->setBody($body);
+
+        return $msg;
+    }
+
+    /**
+     * Crea un messaggio di risposta OPERATE completo
+     * Create complete OPERATE response message
+     * 
+     * @param string $msgId Message ID della request originale
+     * @param string $command Comando eseguito
+     * @param array $outputArgs Argomenti di output del comando
+     * @return Msg
+     */
+    public function createOperateResponseMessage(string $msgId, string $command, array $outputArgs = []): Msg
+    {
+        $header = new Header();
+        $header->setMsgId($msgId);
+        $header->setMsgType(Header\MsgType::OPERATE_RESP);
+
+        $operateResp = new OperateResp();
+        
+        // Create OperationResult
+        $operationResult = new OperateResp\OperationResult();
+        $operationResult->setExecutedCommand($command);
+        $operationResult->setReqObjPath('Device.');
+        
+        // Create OutputArgs with output parameters
+        // Preserve keys when casting values to string
+        $stringOutputArgs = [];
+        foreach ($outputArgs as $key => $value) {
+            $stringOutputArgs[$key] = (string) $value;
+        }
+        $outputArgsObj = new OperateResp\OperationResult\OutputArgs();
+        $outputArgsObj->setOutputArgs($stringOutputArgs);
+        
+        $operationResult->setReqOutputArgs($outputArgsObj);
+        
+        $operateResp->setOperationResults([$operationResult]);
+
+        $response = new Response();
+        $response->setOperateResp($operateResp);
+
+        $body = new Body();
+        $body->setResponse($response);
+
+        $msg = new Msg();
+        $msg->setHeader($header);
+        $msg->setBody($body);
+
+        return $msg;
+    }
+
+    /**
+     * Crea un messaggio di risposta ADD completo
+     * Create complete ADD response message
+     * 
+     * @param string $msgId Message ID della request originale
+     * @param array $createdObjs Array di oggetti creati [path => instance]
+     * @return Msg
+     */
+    public function createAddResponseMessage(string $msgId, array $createdObjs = []): Msg
+    {
+        $header = new Header();
+        $header->setMsgId($msgId);
+        $header->setMsgType(Header\MsgType::ADD_RESP);
+
+        $addResp = new AddResp();
+        
+        // Create CreatedObjectResult for each object
+        $createdResults = [];
+        foreach ($createdObjs as $path => $instance) {
+            $createdResult = new AddResp\CreatedObjectResult();
+            $createdResult->setRequestedPath($path);
+            $createdResult->setOperatedObjPath($path);
+            
+            $instanceResult = new AddResp\CreatedObjectResult\OperationSuccess\CreatedInstance();
+            $instanceResult->setInstantiatedPath($instance);
+            
+            $opSuccess = new AddResp\CreatedObjectResult\OperationSuccess();
+            $opSuccess->setCreatedInstResults([$instanceResult]);
+            
+            $createdResult->setOperSucc($opSuccess);
+            $createdResults[] = $createdResult;
+        }
+        
+        $addResp->setCreatedObjResults($createdResults);
+
+        $response = new Response();
+        $response->setAddResp($addResp);
+
+        $body = new Body();
+        $body->setResponse($response);
+
+        $msg = new Msg();
+        $msg->setHeader($header);
+        $msg->setBody($body);
+
+        return $msg;
+    }
+
+    /**
+     * Crea un messaggio di risposta DELETE completo
+     * Create complete DELETE response message
+     * 
+     * @param string $msgId Message ID della request originale
+     * @param array $deletedPaths Array di path eliminati
+     * @return Msg
+     */
+    public function createDeleteResponseMessage(string $msgId, array $deletedPaths = []): Msg
+    {
+        $header = new Header();
+        $header->setMsgId($msgId);
+        $header->setMsgType(Header\MsgType::DELETE_RESP);
+
+        $deleteResp = new DeleteResp();
+        
+        // Create DeletedObjectResult for each path
+        $deletedResults = [];
+        foreach ($deletedPaths as $path) {
+            $deletedResult = new DeleteResp\DeletedObjectResult();
+            $deletedResult->setRequestedPath($path);
+            $deletedResult->setOperatedObjPath($path);
+            
+            $opSuccess = new DeleteResp\DeletedObjectResult\OperationSuccess();
+            $opSuccess->setAffectedPaths([$path]);
+            
+            $deletedResult->setOperSucc($opSuccess);
+            $deletedResults[] = $deletedResult;
+        }
+        
+        $deleteResp->setDeletedObjResults($deletedResults);
+
+        $response = new Response();
+        $response->setDeleteResp($deleteResp);
+
+        $body = new Body();
+        $body->setResponse($response);
+
+        $msg = new Msg();
+        $msg->setHeader($header);
+        $msg->setBody($body);
+
+        return $msg;
+    }
+
+    /**
+     * Crea un messaggio di errore USP generico
+     * Create generic USP error message
+     * 
+     * @param string $msgId Message ID della request originale
+     * @param int $errorCode Codice errore USP
+     * @param string $errorMessage Messaggio di errore
+     * @return Msg
+     */
+    public function createErrorMessage(string $msgId, int $errorCode = 7000, string $errorMessage = 'Internal Error'): Msg
+    {
+        $header = new Header();
+        $header->setMsgId($msgId);
+        $header->setMsgType(Header\MsgType::ERROR);
+
+        $error = new \Usp\Error();
+        $error->setErrCode((string) $errorCode);
+        $error->setErrMsg($errorMessage);
+
+        $body = new Body();
+        $body->setError($error);
+
+        $msg = new Msg();
+        $msg->setHeader($header);
+        $msg->setBody($body);
+
+        return $msg;
+    }
 }
