@@ -68,17 +68,27 @@ Tutte le API sono accessibili tramite `/api/v1/` con autenticazione API Key:
 - **Endpoints Web**: Disponibili sotto `/acs/*`
 - **Pagine Implementate**:
   - `/acs/dashboard` - Dashboard principale con statistiche real-time (dispositivi, task, firmware)
-  - `/acs/devices` - Gestione dispositivi CPE con tabella paginata e filtri
+  - `/acs/devices` - Gestione dispositivi CPE con tabella paginata, bottoni azioni (View/Provision/Reboot)
+  - `/acs/devices/{id}` - Pagina dettaglio dispositivo con info complete, parametri TR-181, task recenti
   - `/acs/provisioning` - Interfaccia provisioning con form e lista task
-  - `/acs/firmware` - Gestione firmware con upload e deployment
+  - `/acs/firmware` - Upload firmware con validazione file/URL, deploy con selezione dispositivi multipli
   - `/acs/tasks` - Monitoraggio coda task Horizon
-  - `/acs/profiles` - Gestione profili configurazione TR-181
+  - `/acs/profiles` - CRUD completo profili configurazione (create/edit/delete con modal)
+  
+- **Funzionalità CRUD Complete**:
+  - **Profili Configurazione**: Form creazione con nome/descrizione/parametri JSON, modal modifica, modal eliminazione con conferma
+  - **Firmware Management**: Form upload con manufacturer/model/version, upload file o URL download (validato), checkbox versione stabile, modal deploy con selezione dispositivi multipli
+  - **Azioni Dispositivi**: Modal provisioning con selezione profilo, modal reboot con conferma, bottoni azioni su ogni dispositivo
+  - **Dettaglio Dispositivo**: Pagina completa con info dispositivo, parametri TR-181, task recenti con badge stato
+  
 - **Caratteristiche UI**:
-  - Design responsive e moderno
+  - Design responsive e moderno con Soft UI Dashboard
   - Sidebar navigazione con sezioni organizzate (Gestione CPE, Sistema, TR-069)
   - Card statistiche con contatori real-time
-  - Tabelle con paginazione e gestione casi vuoti
-  - Badge colorati per stati (online/offline, completed/failed, ecc.)
+  - Tabelle con paginazione Laravel e gestione empty states
+  - Badge colorati per stati (online/offline, completed/failed, stable/beta)
+  - Modal Bootstrap per azioni (create/edit/delete/deploy/provision/reboot)
+  - Validazione server-side con messaggi errore e success flash
   - Footer con link API, TR-069 Endpoint e Documentazione
 
 ## Architettura
@@ -96,11 +106,11 @@ Tutte le API sono accessibili tramite `/api/v1/` con autenticazione API Key:
 
 ### Controllers
 - `TR069Controller`: Gestione protocollo TR-069 CWMP
-- `Api/DeviceController`: CRUD dispositivi
-- `Api/ProvisioningController`: Provisioning e gestione task
-- `Api/FirmwareController`: Gestione firmware
+- `Api/DeviceController`: CRUD dispositivi via API
+- `Api/ProvisioningController`: Provisioning e gestione task via API
+- `Api/FirmwareController`: Gestione firmware via API
 - `DashboardController`: Dashboard statistiche JSON (legacy API)
-- `AcsController`: Interfaccia web con views Blade per dashboard, dispositivi, provisioning, firmware, tasks, profili
+- `AcsController`: Interfaccia web completa con CRUD per profili, firmware, dispositivi (provision/reboot/dettaglio)
 
 ## Protocolli Supportati
 
@@ -156,6 +166,8 @@ Il sistema utilizza le seguenti variabili d'ambiente (già configurate):
 - API RESTful protette con API Key authentication
 - Zero-touch provisioning con risoluzione parametri da ConfigurationProfile
 - Firmware deployment con task asincrone
+- Interfaccia web completa con CRUD profili, firmware upload/deploy, azioni dispositivi
+- Validazione firmware upload: richiede file o URL download per prevenire deploy vuoti
 
 ### Limitazioni Note (da completare in Fase 2)
 - **TransferComplete Handling**: Firmware deployment segna "completed" dopo invio Download SOAP, senza aspettare TransferComplete dal CPE. Richiede implementazione callback e session management TR-069.
