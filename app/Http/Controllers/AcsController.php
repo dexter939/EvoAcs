@@ -314,6 +314,102 @@ class AcsController extends Controller
 
         return response()->json($result, $statusCode);
     }
+
+    /**
+     * Esegue test diagnostico TR-143 su dispositivo
+     * Run TR-143 diagnostic test on device
+     * 
+     * @param int $id Device ID
+     * @param string $type Test type: ping, traceroute, download, upload
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function runDiagnostic($id, $type, Request $request)
+    {
+        $device = CpeDevice::findOrFail($id);
+        
+        $validationRules = $this->getDiagnosticValidationRules($type);
+        if (!$validationRules) {
+            return response()->json(['success' => false, 'message' => 'Tipo diagnostico non valido'], 400);
+        }
+        
+        $validated = $request->validate($validationRules);
+        
+        try {
+            [$diagnostic, $task] = \DB::transaction(function () use ($device, $type, $validated) {
+                $diagnostic = \App\Models\DiagnosticTest::create([
+                    'cpe_device_id' => $device->id,
+                    'diagnostic_type' => $type,
+                    'status' => 'pending',
+                    'parameters' => $validated,
+                    'command_key' => ucfirst($type) . '_' . time()
+                ]);
+
+                $task = \App\Models\ProvisioningTask::create([
+                    'cpe_device_id' => $device->id,
+                    'task_type' => 'diagnostic_' . $type,
+                    'status' => 'pending',
+                    'parameters' => array_merge(['diagnostic_id' => $diagnostic->id], $validated)
+                ]);
+
+                return [$diagnostic, $task];
+            });
+
+            \App\Jobs\ProcessProvisioningTask::dispatch($task);
+
+            return response()->json(['success' => true, 'message' => ucfirst($type) . ' test started', 'diagnostic' => $diagnostic, 'task' => $task], 201);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Failed: ' . $e->getMessage()], 500);
+        }
+    }
+
+    private function getDiagnosticValidationRules($type)
+    {
+        $rules = [
+            'ping' => ['host' => 'required|string|max:255', 'packets' => 'integer|min:1|max:100', 'timeout' => 'integer|min:100|max:10000', 'size' => 'integer|min:32|max:1500'],
+            'traceroute' => ['host' => 'required|string|max:255', 'tries' => 'integer|min:1|max:10', 'timeout' => 'integer|min:100|max:30000', 'max_hops' => 'integer|min:1|max:64'],
+            'download' => ['url' => 'required|url|max:500', 'file_size' => 'integer|min:0'],
+            'upload' => ['url' => 'required|url|max:500', 'file_size' => 'integer|min:0|max:104857600']
+        ];
+        return $rules[$type] ?? null;
+    }
+
+    /**
+     * Ottiene risultati test diagnostico per polling real-time
+     * Get diagnostic test results for real-time polling
+     * 
+     * NOTE: ACS Web Dashboard è trusted admin environment senza auth layer.
+     * Device scoping implementato come best practice ma non sostituisce authorization.
+     * TODO: Aggiungere auth middleware + user→devices relationship per multi-tenant.
+     * 
+     * @param int $id Diagnostic test ID
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getDiagnosticResults($id, Request $request)
+    {
+        $deviceId = $request->query('device_id');
+        if (!$deviceId) {
+            abort(400, 'Device ID required for scoping');
+        }
+        
+        $device = CpeDevice::findOrFail($deviceId);
+        
+        $diagnostic = $device->diagnosticTests()
+            ->where('id', $id)
+            ->firstOrFail();
+        
+        return response()->json([
+            'diagnostic' => [
+                'id' => $diagnostic->id,
+                'diagnostic_type' => $diagnostic->diagnostic_type,
+                'status' => $diagnostic->status,
+                'error_message' => $diagnostic->error_message
+            ],
+            'summary' => $diagnostic->getResultsSummary(),
+            'duration_seconds' => $diagnostic->duration
+        ]);
+    }
     
     public function showDevice($id)
     {

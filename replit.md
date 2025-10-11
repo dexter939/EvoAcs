@@ -16,9 +16,9 @@ The web interface utilizes the Soft UI Dashboard Laravel template, offering a mo
 - **Database**: PostgreSQL is used for high-performance data storage, optimized with indexes for managing over 100K devices. Key tables include `cpe_devices`, `configuration_profiles`, `firmware_versions`, `device_parameters`, `provisioning_tasks`, and `firmware_deployments`.
 - **Asynchronous Queue System**: Laravel Horizon is configured with Redis queues to handle asynchronous tasks such as `ProcessProvisioningTask`, `ProcessFirmwareDeployment`, and `SendTR069Request`. Tasks include retry logic and timeouts for robustness.
 - **API Security**: All API v1 endpoints are protected using API Key authentication via a custom middleware, requiring an `X-API-Key` header or `api_key` query parameter.
-- **RESTful API (v1)**: Provides authenticated endpoints for managing devices (CRUD), provisioning (get/set parameters, reboot), and firmware (upload, deploy).
+- **RESTful API (v1)**: Provides authenticated endpoints for managing devices (CRUD), provisioning (get/set parameters, reboot), firmware (upload, deploy), and remote diagnostics (ping, traceroute, download/upload speed tests).
 - **Web Interface**: A comprehensive web interface is accessible via `/acs/*`, offering a dashboard, device management, provisioning tools, firmware management, and configuration profile CRUD functionalities.
-- **Eloquent Models**: Core models include `CpeDevice`, `ConfigurationProfile`, `FirmwareVersion`, `DeviceParameter`, `ProvisioningTask`, and `FirmwareDeployment`.
+- **Eloquent Models**: Core models include `CpeDevice`, `ConfigurationProfile`, `FirmwareVersion`, `DeviceParameter`, `ProvisioningTask`, `FirmwareDeployment`, and `DiagnosticTest`.
 - **Services**: A `TR069Service` handles the generation of TR-069 SOAP requests.
 - **Controllers**: `TR069Controller` manages the TR-069 protocol, `Api` controllers handle RESTful interactions for devices, provisioning, and firmware, and `AcsController` manages the web interface.
 - **Scalability**: Database optimizations include composite indexes and soft deletes. The queue system is designed for high throughput and reliability.
@@ -30,6 +30,7 @@ The web interface utilizes the Soft UI Dashboard Laravel template, offering a mo
 - **Firmware Management**: Supports uploading, versioning, and deploying firmware to selected devices.
 - **TR-181 Data Model**: Parameters are stored with type and path, tracking writable/readonly status and last updates.
 - **Connection Request**: The system can initiate connection requests to devices using HTTP Digest/Basic Auth with retry mechanisms.
+- **Remote Diagnostics (TR-143)**: Full implementation of TR-143 diagnostic tests including IPPing (ping test with packet loss/latency metrics), TraceRoute (network path analysis with hop-by-hop timing), DownloadDiagnostics (download speed measurement), and UploadDiagnostics (upload speed measurement). API endpoints use atomic transactions (DB::transaction) to ensure data consistency between DiagnosticTest and ProvisioningTask creation. The `DiagnosticTest` model includes scopes for filtering by type and status, plus a `getResultsSummary()` method for formatted results. All tests are executed asynchronously via queue jobs with results stored in structured JSON format.
 
 ## External Dependencies
 - **PostgreSQL**: Primary database for data storage.

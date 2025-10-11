@@ -60,6 +60,9 @@
                                     <button class="btn btn-link text-warning px-2 mb-0" onclick="rebootDevice({{ $device->id }}, '{{ $device->serial_number }}')">
                                         <i class="fas fa-sync text-xs"></i>
                                     </button>
+                                    <button class="btn btn-link text-danger px-2 mb-0" onclick="diagnosticDevice({{ $device->id }}, '{{ $device->serial_number }}')" title="Diagnostica TR-143">
+                                        <i class="fas fa-stethoscope text-xs"></i>
+                                    </button>
                                 </td>
                             </tr>
                             @empty
@@ -166,6 +169,125 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Diagnostica TR-143 -->
+<div class="modal fade" id="diagnosticModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Test Diagnostici TR-143</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-router me-2"></i>Dispositivo: <strong id="diag_device_sn"></strong>
+                </div>
+                
+                <ul class="nav nav-pills mb-3" id="diagnosticTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="ping-tab" data-bs-toggle="pill" data-bs-target="#ping" type="button">Ping</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="traceroute-tab" data-bs-toggle="pill" data-bs-target="#traceroute" type="button">Traceroute</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="download-tab" data-bs-toggle="pill" data-bs-target="#download" type="button">Download Test</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="upload-tab" data-bs-toggle="pill" data-bs-target="#upload" type="button">Upload Test</button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content" id="diagnosticTabContent">
+                    <!-- Ping Tab -->
+                    <div class="tab-pane fade show active" id="ping" role="tabpanel">
+                        <form id="pingForm">
+                            <div class="mb-3">
+                                <label class="form-label">Host/IP *</label>
+                                <input type="text" class="form-control" name="host" value="8.8.8.8" required>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Pacchetti</label>
+                                    <input type="number" class="form-control" name="packets" value="4" min="1" max="100">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Timeout (ms)</label>
+                                    <input type="number" class="form-control" name="timeout" value="1000" min="100" max="10000">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Packet Size (bytes)</label>
+                                    <input type="number" class="form-control" name="size" value="64" min="32" max="1500">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Avvia Ping Test</button>
+                        </form>
+                    </div>
+                    
+                    <!-- Traceroute Tab -->
+                    <div class="tab-pane fade" id="traceroute" role="tabpanel">
+                        <form id="tracerouteForm">
+                            <div class="mb-3">
+                                <label class="form-label">Host/IP *</label>
+                                <input type="text" class="form-control" name="host" value="google.com" required>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Tentativi</label>
+                                    <input type="number" class="form-control" name="tries" value="3" min="1" max="10">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Timeout (ms)</label>
+                                    <input type="number" class="form-control" name="timeout" value="5000" min="100" max="30000">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Max Hops</label>
+                                    <input type="number" class="form-control" name="max_hops" value="30" min="1" max="64">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Avvia Traceroute</button>
+                        </form>
+                    </div>
+                    
+                    <!-- Download Test Tab -->
+                    <div class="tab-pane fade" id="download" role="tabpanel">
+                        <form id="downloadForm">
+                            <div class="mb-3">
+                                <label class="form-label">URL File Download *</label>
+                                <input type="url" class="form-control" name="url" value="http://speedtest.ftp.otenet.gr/files/test1Mb.db" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">File Size (bytes, opzionale)</label>
+                                <input type="number" class="form-control" name="file_size" value="1048576">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Avvia Download Test</button>
+                        </form>
+                    </div>
+                    
+                    <!-- Upload Test Tab -->
+                    <div class="tab-pane fade" id="upload" role="tabpanel">
+                        <form id="uploadForm">
+                            <div class="mb-3">
+                                <label class="form-label">URL Server Upload *</label>
+                                <input type="url" class="form-control" name="url" value="http://httpbin.org/post" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">File Size (bytes)</label>
+                                <input type="number" class="form-control" name="file_size" value="1048576" min="0" max="104857600">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Avvia Upload Test</button>
+                        </form>
+                    </div>
+                </div>
+                
+                <div id="diagnostic_result" class="mt-3" style="display: none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -239,6 +361,84 @@ function sendConnectionRequest() {
         resultDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times-circle me-2"></i>Errore di rete: ' + error.message + '</div>';
         resultDiv.style.display = 'block';
     });
+}
+
+let currentDiagDeviceId = null;
+
+function diagnosticDevice(id, sn) {
+    currentDiagDeviceId = id;
+    document.getElementById('diag_device_sn').textContent = sn;
+    document.getElementById('diagnostic_result').style.display = 'none';
+    new bootstrap.Modal(document.getElementById('diagnosticModal')).show();
+}
+
+function handleDiagnosticForm(formId, testType) {
+    const form = document.getElementById(formId);
+    const resultDiv = document.getElementById('diagnostic_result');
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        
+        resultDiv.innerHTML = '<div class="alert alert-info"><span class="spinner-border spinner-border-sm me-2"></span>Test in corso...</div>';
+        resultDiv.style.display = 'block';
+        
+        fetch(`/acs/devices/${currentDiagDeviceId}/diagnostics/${testType}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                resultDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin me-2"></i>Test avviato. Attendi risultati...<br><small class="text-muted">Test ID: ' + data.diagnostic.id + '</small></div>';
+                pollDiagnosticResults(data.diagnostic.id);
+            } else {
+                resultDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times-circle me-2"></i>' + data.message + '</div>';
+            }
+        })
+        .catch(error => {
+            resultDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times-circle me-2"></i>Errore: ' + error.message + '</div>';
+        });
+    });
+}
+
+handleDiagnosticForm('pingForm', 'ping');
+handleDiagnosticForm('tracerouteForm', 'traceroute');
+handleDiagnosticForm('downloadForm', 'download');
+handleDiagnosticForm('uploadForm', 'upload');
+
+function pollDiagnosticResults(diagnosticId) {
+    const resultDiv = document.getElementById('diagnostic_result');
+    let pollInterval = setInterval(() => {
+        fetch(`/acs/diagnostics/${diagnosticId}/results?device_id=${currentDiagDeviceId}`, {
+            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.diagnostic.status === 'completed') {
+                clearInterval(pollInterval);
+                let resultsHtml = '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>Test completato!<br>';
+                if (data.summary) {
+                    Object.keys(data.summary).forEach(key => {
+                        const value = typeof data.summary[key] === 'object' ? JSON.stringify(data.summary[key], null, 2) : data.summary[key];
+                        resultsHtml += `<small><strong>${key}:</strong> ${value}</small><br>`;
+                    });
+                }
+                resultsHtml += `<small class="text-muted">Durata: ${data.duration_seconds || 0}s</small></div>`;
+                resultDiv.innerHTML = resultsHtml;
+            } else if (data.diagnostic.status === 'failed') {
+                clearInterval(pollInterval);
+                resultDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times-circle me-2"></i>Test fallito: ' + (data.diagnostic.error_message || 'Errore sconosciuto') + '</div>';
+            }
+        })
+        .catch(() => clearInterval(pollInterval));
+    }, 2000);
 }
 </script>
 @endpush
