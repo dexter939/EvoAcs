@@ -530,9 +530,11 @@ class UspController extends Controller
         try {
             $msgId = 'api-subscribe-' . Str::random(10);
             $subscriptionId = (string) Str::uuid();
+            $uspService = $this->uspService;
+            $mqttService = $this->mqttService;
             
             // Use transaction to ensure atomicity
-            return DB::transaction(function () use ($device, $validated, $msgId, $subscriptionId) {
+            return DB::transaction(function () use ($device, $validated, $msgId, $subscriptionId, $uspService, $mqttService) {
                 // Create subscription record
                 $subscription = UspSubscription::create([
                     'cpe_device_id' => $device->id,
@@ -545,13 +547,19 @@ class UspController extends Controller
                 
                 // Send via appropriate MTP
                 if ($device->mtp_type === 'mqtt') {
-                    $this->uspService->sendSubscriptionRequest(
+                    // Build subscription params for USP Subscribe message
+                    $subscriptionParams = [
+                        'ID' => $subscriptionId,
+                        'Enable' => 'true',
+                        'NotifType' => 'ValueChange',  // Default to ValueChange
+                        'ReferenceList' => $validated['reference_list'] ?? [],
+                        'NotifRetry' => $validated['notification_retry'] ?? true
+                    ];
+                    
+                    $mqttService->sendSubscriptionRequest(
                         $device,
                         $validated['event_path'],
-                        $subscriptionId,
-                        $validated['reference_list'] ?? [],
-                        $validated['notification_retry'] ?? true,
-                        $msgId
+                        $subscriptionParams
                     );
                     
                     return response()->json([
@@ -565,7 +573,7 @@ class UspController extends Controller
                     ], 201);
                 } else {
                     // For HTTP MTP, store request
-                    $subscribeMessage = $this->uspService->createSubscribeMessage(
+                    $subscribeMessage = $uspService->createSubscribeMessage(
                         $validated['event_path'],
                         $subscriptionId,
                         $validated['reference_list'] ?? [],
@@ -650,18 +658,23 @@ class UspController extends Controller
         try {
             $msgId = 'api-unsubscribe-' . Str::random(10);
             $objectPath = "Device.LocalAgent.Subscription.{$subscription->subscription_id}.";
+            $mqttService = $this->mqttService;
+            $uspService = $this->uspService;
+            $storePendingRequest = function($device, $msgId, $operationType, $message) {
+                return $this->storePendingRequest($device, $msgId, $operationType, $message);
+            };
             
             // Use transaction to ensure atomicity
-            return DB::transaction(function () use ($device, $subscription, $msgId, $objectPath) {
+            return DB::transaction(function () use ($device, $subscription, $msgId, $objectPath, $mqttService, $uspService, $storePendingRequest) {
                 // Mark as inactive immediately
                 $subscription->update(['is_active' => false]);
                 
                 // Send DELETE message via appropriate MTP
                 if ($device->mtp_type === 'mqtt') {
-                    $this->mqttService->sendDeleteRequest($device, [$objectPath], $msgId);
+                    $mqttService->sendDeleteRequest($device, [$objectPath], $msgId);
                     
                     return response()->json([
-                        'message' => 'USP Delete request sent via MQTT',
+                        'message' => 'Subscription deleted successfully, USP Delete request sent via MQTT',
                         'msg_id' => $msgId,
                         'subscription_id' => $subscription->subscription_id,
                         'device' => $device->serial_number,
@@ -669,11 +682,11 @@ class UspController extends Controller
                     ]);
                 } else {
                     // For HTTP MTP, store request (fix: add allowPartial parameter)
-                    $deleteMessage = $this->uspService->createDeleteMessage([$objectPath], false, $msgId);
-                    $pendingRequest = $this->storePendingRequest($device, $msgId, 'delete', $deleteMessage);
+                    $deleteMessage = $uspService->createDeleteMessage([$objectPath], false, $msgId);
+                    $pendingRequest = $storePendingRequest($device, $msgId, 'delete', $deleteMessage);
                     
                     return response()->json([
-                        'message' => 'USP Delete request stored for HTTP polling',
+                        'message' => 'Subscription deleted successfully, USP Delete request stored for HTTP polling',
                         'msg_id' => $msgId,
                         'subscription_id' => $subscription->subscription_id,
                         'device' => $device->serial_number,

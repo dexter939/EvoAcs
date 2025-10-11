@@ -204,4 +204,27 @@ class UspMqttService
         $binary = $this->uspMessageService->serializeRecord($record);
         return $this->publishToDevice($device, $binary);
     }
+
+    /**
+     * Send USP DELETE request to device via MQTT
+     * 
+     * Deletes objects from device (e.g., subscriptions)
+     * 
+     * @param CpeDevice $device Target device
+     * @param array $objectPaths Array of object paths to delete
+     * @param string $msgId Message ID
+     * @return bool
+     */
+    public function sendDeleteRequest(CpeDevice $device, array $objectPaths, string $msgId): bool
+    {
+        $deleteRequest = $this->uspMessageService->createDeleteMessage($objectPaths, false, $msgId);
+        $record = $this->uspMessageService->wrapInRecord(
+            $deleteRequest,
+            config('usp.controller_endpoint_id', 'proto::acs-controller'),
+            $device->usp_endpoint_id
+        );
+        
+        $binary = $this->uspMessageService->serializeRecord($record);
+        return $this->publishToDevice($device, $binary);
+    }
 }
