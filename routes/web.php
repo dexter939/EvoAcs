@@ -20,9 +20,27 @@ Route::post('/tr069/empty', [TR069Controller::class, 'handleEmpty'])->name('tr06
 // ACS Web Dashboard
 Route::prefix('acs')->name('acs.')->group(function () {
     Route::get('/dashboard', [AcsController::class, 'dashboard'])->name('dashboard');
+    
+    // Dispositivi
     Route::get('/devices', [AcsController::class, 'devices'])->name('devices');
+    Route::get('/devices/{id}', [AcsController::class, 'showDevice'])->name('devices.show');
+    Route::post('/devices/{id}/provision', [AcsController::class, 'provisionDevice'])->name('devices.provision');
+    Route::post('/devices/{id}/reboot', [AcsController::class, 'rebootDevice'])->name('devices.reboot');
+    
+    // Provisioning
     Route::get('/provisioning', [AcsController::class, 'provisioning'])->name('provisioning');
+    
+    // Firmware
     Route::get('/firmware', [AcsController::class, 'firmware'])->name('firmware');
+    Route::post('/firmware/upload', [AcsController::class, 'uploadFirmware'])->name('firmware.upload');
+    Route::post('/firmware/{id}/deploy', [AcsController::class, 'deployFirmware'])->name('firmware.deploy');
+    
+    // Task Queue
     Route::get('/tasks', [AcsController::class, 'tasks'])->name('tasks');
+    
+    // Profili Configurazione CRUD
     Route::get('/profiles', [AcsController::class, 'profiles'])->name('profiles');
+    Route::post('/profiles', [AcsController::class, 'storeProfile'])->name('profiles.store');
+    Route::put('/profiles/{id}', [AcsController::class, 'updateProfile'])->name('profiles.update');
+    Route::delete('/profiles/{id}', [AcsController::class, 'destroyProfile'])->name('profiles.destroy');
 });

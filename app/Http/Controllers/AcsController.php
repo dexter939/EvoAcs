@@ -121,4 +121,165 @@ class AcsController extends Controller
         
         return view('acs.profiles', compact('profiles'));
     }
+    
+    /**
+     * Crea nuovo profilo configurazione
+     * Create new configuration profile
+     */
+    public function storeProfile(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'parameters' => 'required|json',
+            'is_active' => 'nullable|boolean',
+        ]);
+        
+        $validated['parameters'] = json_decode($validated['parameters'], true);
+        $validated['is_active'] = $request->has('is_active');
+        
+        ConfigurationProfile::create($validated);
+        
+        return redirect()->route('acs.profiles')->with('success', 'Profilo creato con successo');
+    }
+    
+    /**
+     * Aggiorna profilo configurazione
+     * Update configuration profile
+     */
+    public function updateProfile(Request $request, $id)
+    {
+        $profile = ConfigurationProfile::findOrFail($id);
+        
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'parameters' => 'required|json',
+            'is_active' => 'nullable|boolean',
+        ]);
+        
+        $validated['parameters'] = json_decode($validated['parameters'], true);
+        $validated['is_active'] = $request->has('is_active');
+        
+        $profile->update($validated);
+        
+        return redirect()->route('acs.profiles')->with('success', 'Profilo aggiornato con successo');
+    }
+    
+    /**
+     * Elimina profilo configurazione
+     * Delete configuration profile
+     */
+    public function destroyProfile($id)
+    {
+        $profile = ConfigurationProfile::findOrFail($id);
+        $profile->delete();
+        
+        return redirect()->route('acs.profiles')->with('success', 'Profilo eliminato con successo');
+    }
+    
+    public function uploadFirmware(Request $request)
+    {
+        $validated = $request->validate([
+            'manufacturer' => 'required|string',
+            'model' => 'required|string',
+            'version' => 'required|string',
+            'firmware_file' => 'nullable|file',
+            'download_url' => 'nullable|url',
+            'is_stable' => 'nullable|boolean',
+        ]);
+        
+        if (!$request->hasFile('firmware_file') && empty($validated['download_url'])) {
+            return redirect()->back()->withErrors([
+                'firmware_file' => 'Devi fornire almeno un file firmware o un URL di download.'
+            ])->withInput();
+        }
+        
+        $filename = null;
+        $file_hash = null;
+        
+        if ($request->hasFile('firmware_file')) {
+            $file = $request->file('firmware_file');
+            $filename = $file->getClientOriginalName();
+            $file_hash = hash_file('sha256', $file->path());
+            $file->storeAs('firmware', $filename, 'public');
+        }
+        
+        FirmwareVersion::create([
+            'manufacturer' => $validated['manufacturer'],
+            'model' => $validated['model'],
+            'version' => $validated['version'],
+            'filename' => $filename,
+            'file_hash' => $file_hash,
+            'download_url' => $validated['download_url'] ?? null,
+            'is_stable' => $request->has('is_stable'),
+            'is_active' => true,
+        ]);
+        
+        return redirect()->route('acs.firmware')->with('success', 'Firmware caricato con successo');
+    }
+    
+    public function deployFirmware(Request $request, $id)
+    {
+        $firmware = FirmwareVersion::findOrFail($id);
+        
+        $validated = $request->validate([
+            'device_ids' => 'required|array',
+            'device_ids.*' => 'exists:cpe_devices,id',
+            'scheduled_at' => 'nullable|date',
+        ]);
+        
+        foreach ($validated['device_ids'] as $deviceId) {
+            FirmwareDeployment::create([
+                'firmware_version_id' => $firmware->id,
+                'cpe_device_id' => $deviceId,
+                'status' => 'scheduled',
+                'scheduled_at' => $validated['scheduled_at'] ?? now(),
+            ]);
+        }
+        
+        return redirect()->route('acs.firmware')->with('success', 'Deploy firmware avviato per ' . count($validated['device_ids']) . ' dispositivi');
+    }
+    
+    public function provisionDevice(Request $request, $id)
+    {
+        $device = CpeDevice::findOrFail($id);
+        
+        $validated = $request->validate([
+            'profile_id' => 'required|exists:configuration_profiles,id',
+        ]);
+        
+        ProvisioningTask::create([
+            'cpe_device_id' => $device->id,
+            'task_type' => 'set_parameters',
+            'parameters' => ['profile_id' => $validated['profile_id']],
+            'status' => 'pending',
+            'max_retries' => 3,
+        ]);
+        
+        return redirect()->route('acs.devices')->with('success', 'Task di provisioning creato per ' . $device->serial_number);
+    }
+    
+    public function rebootDevice($id)
+    {
+        $device = CpeDevice::findOrFail($id);
+        
+        ProvisioningTask::create([
+            'cpe_device_id' => $device->id,
+            'task_type' => 'reboot',
+            'parameters' => [],
+            'status' => 'pending',
+            'max_retries' => 3,
+        ]);
+        
+        return redirect()->route('acs.devices')->with('success', 'Comando di reboot inviato a ' . $device->serial_number);
+    }
+    
+    public function showDevice($id)
+    {
+        $device = CpeDevice::with(['configurationProfile', 'deviceParameters', 'provisioningTasks', 'firmwareDeployments.firmwareVersion'])
+            ->findOrFail($id);
+        
+        return view('acs.device-detail', compact('device'));
+    }
 }
