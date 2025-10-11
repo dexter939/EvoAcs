@@ -4,7 +4,7 @@ expertMode = true
 
 [nix]
 channel = "stable-25_05"
-packages = ["php83", "php83Packages.composer", "php83Extensions.pdo_mysql", "php83Extensions.soap", "php83Extensions.redis"]
+packages = ["php83", "php83Packages.composer", "php83Extensions.pdo_mysql", "php83Extensions.soap", "php83Extensions.redis", "protobuf"]
 
 [workflows]
 runButton = "Project"
