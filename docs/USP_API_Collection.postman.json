@@ -1,0 +1,174 @@
+{
+  "info": {
+    "name": "ACS USP TR-369 API",
+    "description": "RESTful API endpoints for TR-369 USP device management",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "value",
+        "value": "{{API_KEY}}",
+        "type": "string"
+      },
+      {
+        "key": "key",
+        "value": "X-API-Key",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "http://localhost:5000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "API_KEY",
+      "value": "acs-secret-key-change-in-production",
+      "type": "string"
+    },
+    {
+      "key": "DEVICE_ID",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "USP Operations",
+      "item": [
+        {
+          "name": "Get Parameters",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paths\": [\n    \"Device.DeviceInfo.ModelName\",\n    \"Device.DeviceInfo.SoftwareVersion\",\n    \"Device.DeviceInfo.HardwareVersion\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/usp/devices/{{DEVICE_ID}}/get-params",
+              "host": ["{{BASE_URL}}"],
+              "path": ["usp", "devices", "{{DEVICE_ID}}", "get-params"]
+            },
+            "description": "Sends a USP Get message to retrieve parameter values from the device"
+          }
+        },
+        {
+          "name": "Set Parameters",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parameters\": {\n    \"Device.ManagementServer.PeriodicInformInterval\": \"300\",\n    \"Device.ManagementServer.ConnectionRequestUsername\": \"admin\"\n  },\n  \"allow_partial\": true\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/usp/devices/{{DEVICE_ID}}/set-params",
+              "host": ["{{BASE_URL}}"],
+              "path": ["usp", "devices", "{{DEVICE_ID}}", "set-params"]
+            },
+            "description": "Sends a USP Set message to modify parameter values on the device"
+          }
+        },
+        {
+          "name": "Operate Command",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"command\": \"Device.SelfTest()\",\n  \"params\": {}\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/usp/devices/{{DEVICE_ID}}/operate",
+              "host": ["{{BASE_URL}}"],
+              "path": ["usp", "devices", "{{DEVICE_ID}}", "operate"]
+            },
+            "description": "Sends a USP Operate message to execute a command on the device"
+          }
+        },
+        {
+          "name": "Add Object Instance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"object_path\": \"Device.WiFi.AccessPoint.\",\n  \"params\": {\n    \"Enable\": \"true\",\n    \"SSIDReference\": \"Device.WiFi.SSID.1\",\n    \"SSIDAdvertisementEnabled\": \"true\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/usp/devices/{{DEVICE_ID}}/add-object",
+              "host": ["{{BASE_URL}}"],
+              "path": ["usp", "devices", "{{DEVICE_ID}}", "add-object"]
+            },
+            "description": "Sends a USP Add message to create a new object instance on the device"
+          }
+        },
+        {
+          "name": "Delete Object Instance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"object_paths\": [\n    \"Device.WiFi.AccessPoint.5.\",\n    \"Device.WiFi.AccessPoint.6.\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/usp/devices/{{DEVICE_ID}}/delete-object",
+              "host": ["{{BASE_URL}}"],
+              "path": ["usp", "devices", "{{DEVICE_ID}}", "delete-object"]
+            },
+            "description": "Sends a USP Delete message to remove object instances from the device"
+          }
+        },
+        {
+          "name": "Reboot Device",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/usp/devices/{{DEVICE_ID}}/reboot",
+              "host": ["{{BASE_URL}}"],
+              "path": ["usp", "devices", "{{DEVICE_ID}}", "reboot"]
+            },
+            "description": "Sends a USP Operate message with Device.Reboot() command to reboot the device"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -19,7 +19,7 @@ Route::post('/tr069', [TR069Controller::class, 'handleInform'])->name('tr069.inf
 Route::post('/tr069/empty', [TR069Controller::class, 'handleEmpty'])->name('tr069.empty');
 
 // TR-369 USP Endpoints (Public)
-Route::post('/usp', [UspController::class, 'handleUspMessage'])->name('usp.message');
+Route::match(['get', 'post'], '/usp', [UspController::class, 'handleUspMessage'])->name('usp.message');
 
 // ACS Web Dashboard
 Route::prefix('acs')->name('acs.')->group(function () {

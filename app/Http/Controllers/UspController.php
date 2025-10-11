@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use App\Services\UspMessageService;
 use App\Models\CpeDevice;
 use App\Models\DeviceParameter;
+use App\Models\UspPendingRequest;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -26,8 +27,8 @@ class UspController extends Controller
     }
 
     /**
-     * Endpoint principale USP - Riceve USP Records
-     * Main USP endpoint - Receives USP Records
+     * Endpoint principale USP - Riceve USP Records o gestisce polling HTTP
+     * Main USP endpoint - Receives USP Records or handles HTTP polling
      * 
      * @param Request $request
      * @return Response|JsonResponse
@@ -35,6 +36,12 @@ class UspController extends Controller
     public function handleUspMessage(Request $request): Response|JsonResponse
     {
         try {
+            // Handle HTTP polling (GET request)
+            if ($request->isMethod('GET')) {
+                return $this->handleHttpPolling($request);
+            }
+            
+            // Handle USP message (POST request)
             // Get binary payload from request body
             $binaryPayload = $request->getContent();
 
@@ -344,6 +351,54 @@ class UspController extends Controller
         return $this->uspService->createErrorMessage($msgId, $errorCode, $errorMsg);
     }
 
+    /**
+     * Gestisce polling HTTP per dispositivi HTTP MTP
+     * Handles HTTP polling for HTTP MTP devices
+     * 
+     * @param Request $request
+     * @return Response
+     */
+    protected function handleHttpPolling(Request $request): Response
+    {
+        // Get device endpoint ID from header or query parameter
+        $endpointId = $request->header('USP-Endpoint-ID') ?? $request->query('endpoint_id');
+        
+        if (!$endpointId) {
+            return response('', 204); // No content if no endpoint ID
+        }
+        
+        // Find device
+        $device = CpeDevice::where('usp_endpoint_id', $endpointId)->first();
+        
+        if (!$device) {
+            return response('', 404); // Device not found
+        }
+        
+        // Get oldest pending request for this device
+        $pendingRequest = UspPendingRequest::where('cpe_device_id', $device->id)
+            ->pending()
+            ->oldest()
+            ->first();
+        
+        if (!$pendingRequest) {
+            return response('', 204); // No pending requests
+        }
+        
+        // Mark as delivered
+        $pendingRequest->markAsDelivered();
+        
+        Log::info('HTTP polling delivered pending request', [
+            'device_id' => $device->id,
+            'msg_id' => $pendingRequest->msg_id,
+            'message_type' => $pendingRequest->message_type
+        ]);
+        
+        // Return binary payload
+        return response($pendingRequest->request_payload, 200)
+            ->header('Content-Type', 'application/octet-stream')
+            ->header('USP-Message-ID', $pendingRequest->msg_id);
+    }
+    
     /**
      * Risposta HTTP di errore
      * HTTP error response
