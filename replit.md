@@ -5,12 +5,19 @@ Sistema ACS carrier-grade sviluppato in Laravel 11 per la gestione di oltre 100.
 
 ## Caratteristiche Implementate
 
-### 1. Server TR-069 (CWMP) ✅
+### 1. Server TR-069 (CWMP) con Session Management ✅
 - **Endpoint SOAP**: `/tr069` per gestione richieste Inform dai dispositivi
 - **Protocollo TR-069**: Supporto completo per comunicazione SOAP/HTTP
 - **Auto-registrazione dispositivi**: Identificazione automatica tramite Serial Number, OUI, Product Class
 - **Gestione Inform**: Parsing e gestione eventi dai dispositivi CPE
-- **Task Processing**: Quando un dispositivo fa Inform, il sistema automaticamente processa le task in coda
+- **Session Management Stateful**: Sistema completo di gestione sessioni TR-069
+  - Tabella `tr069_sessions` per tracking sessioni SOAP attive
+  - Cookie HTTP per session tracking (standard TR-069)
+  - Queue comandi SOAP con JSON array in database
+  - Message ID incrementale per correlazione richiesta/risposta
+  - Timeout automatico sessioni (30 secondi default)
+  - Chiusura sessione su empty request
+- **Task Processing**: Quando un dispositivo fa Inform, il sistema automaticamente accoda le task nella sessione e le invia sequenzialmente
 - **CWMP Operations**: GetParameterValues, SetParameterValues, Reboot, Download implementati e funzionanti
 
 ### 2. Database Ottimizzato
