@@ -164,6 +164,11 @@ Il sistema utilizza le seguenti variabili d'ambiente (già configurate):
 - Endpoint principale: `http://0.0.0.0:5000`
 - TR-069 endpoint: `http://0.0.0.0:5000/tr069`
 
+### Asset Management
+- Gli assets (CSS, JavaScript, immagini) usano **percorsi relativi** (`/assets/*`) invece di `asset()` helper
+- Questo garantisce compatibilità con l'app mobile Replit e qualsiasi dominio/proxy
+- Workflow configurato con auto-kill processi zombie PHP prima dell'avvio per evitare conflitti porta 5000
+
 ## Note sull'Implementazione MVP
 
 ### Funzionalità Complete ✅
