@@ -17,6 +17,8 @@ use Usp\Delete;
 use Usp\DeleteResp;
 use Usp\Operate;
 use Usp\OperateResp;
+use Usp\Notify;
+use Usp\NotifyResp;
 use Usp_record\Record;
 use Usp_record\NoSessionContextRecord;
 
@@ -677,6 +679,36 @@ class UspMessageService
 
         $response = new Response();
         $response->setDeleteResp($deleteResp);
+
+        $body = new Body();
+        $body->setResponse($response);
+
+        $msg = new Msg();
+        $msg->setHeader($header);
+        $msg->setBody($body);
+
+        return $msg;
+    }
+
+    /**
+     * Crea un messaggio di risposta NOTIFY completo
+     * Create complete NOTIFY response message
+     * 
+     * @param string $msgId Message ID della request originale
+     * @param string $subscriptionId Subscription ID from NOTIFY message
+     * @return Msg
+     */
+    public function createNotifyResponseMessage(string $msgId, string $subscriptionId): Msg
+    {
+        $header = new Header();
+        $header->setMsgId($msgId);
+        $header->setMsgType(Header\MsgType::NOTIFY_RESP);
+
+        $notifyResp = new NotifyResp();
+        $notifyResp->setSubscriptionId($subscriptionId);
+
+        $response = new Response();
+        $response->setNotifyResp($notifyResp);
 
         $body = new Body();
         $body->setResponse($response);

@@ -9,6 +9,7 @@ use App\Services\UspMessageService;
 use App\Models\CpeDevice;
 use App\Models\DeviceParameter;
 use App\Models\UspPendingRequest;
+use App\Models\UspSubscription;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -92,6 +93,16 @@ class UspController extends Controller
                     $this->handleResponse($msg, $device),
                 default => $this->createErrorMessage($msgId, 9000, "Unsupported message type: {$msgType}")
             };
+
+            // If no response message (e.g., NOTIFY with send_resp=false), return 204 No Content
+            if ($responseMsg === null) {
+                Log::info('No USP response required', [
+                    'from' => $fromId,
+                    'type' => $msgType
+                ]);
+                
+                return response('', 204);
+            }
 
             // Wrap response in Record
             $responseRecord = $this->uspService->wrapInRecord(
@@ -312,14 +323,101 @@ class UspController extends Controller
     protected function handleNotify($msg, CpeDevice $device)
     {
         $msgId = $msg->getHeader()->getMsgId();
+        $notify = $msg->getBody()->getRequest()->getNotify();
+        
+        $subscriptionId = $notify->getSubscriptionId();
+        $sendResp = $notify->getSendResp();
+        
+        // Find subscription in database
+        $subscription = UspSubscription::where('cpe_device_id', $device->id)
+            ->where('subscription_id', $subscriptionId)
+            ->active()
+            ->first();
+        
+        // Extract notification type and data
+        $notifType = null;
+        $notifData = [];
+        
+        if ($notify->hasEvent()) {
+            $notifType = 'Event';
+            $event = $notify->getEvent();
+            
+            $params = [];
+            if ($event->getParams()) {
+                foreach ($event->getParams() as $key => $value) {
+                    $params[$key] = $value;
+                }
+            }
+            
+            $notifData = [
+                'obj_path' => $event->getObjPath(),
+                'event_name' => $event->getEventName(),
+                'params' => $params
+            ];
+        } elseif ($notify->hasValueChange()) {
+            $notifType = 'ValueChange';
+            $valueChange = $notify->getValueChange();
+            $notifData = [
+                'param_path' => $valueChange->getParamPath(),
+                'param_value' => $valueChange->getParamValue()
+            ];
+        } elseif ($notify->hasObjCreation()) {
+            $notifType = 'ObjectCreation';
+            $objCreation = $notify->getObjCreation();
+            $notifData = [
+                'obj_path' => $objCreation->getObjPath()
+            ];
+        } elseif ($notify->hasObjDeletion()) {
+            $notifType = 'ObjectDeletion';
+            $objDeletion = $notify->getObjDeletion();
+            $notifData = [
+                'obj_path' => $objDeletion->getObjPath()
+            ];
+        } elseif ($notify->hasOperComplete()) {
+            $notifType = 'OperationComplete';
+            $operComplete = $notify->getOperComplete();
+            $notifData = [
+                'command' => $operComplete->getCommand(),
+                'obj_path' => $operComplete->getObjPath()
+            ];
+        } elseif ($notify->hasOnBoardReq()) {
+            $notifType = 'OnBoardRequest';
+            $onBoardReq = $notify->getOnBoardReq();
+            $notifData = [
+                'oui' => $onBoardReq->getOui(),
+                'product_class' => $onBoardReq->getProductClass(),
+                'serial_number' => $onBoardReq->getSerialNumber()
+            ];
+        }
         
         Log::info('Processing NOTIFY', [
-            'device_id' => $device->id
+            'device_id' => $device->id,
+            'subscription_id' => $subscriptionId,
+            'notif_type' => $notifType,
+            'send_resp' => $sendResp,
+            'subscription_found' => $subscription ? 'yes' : 'no'
         ]);
-
-        // NOTIFY messages don't require a response in most cases
-        // Return GET_RESP as acknowledgment for now
-        return $this->uspService->createGetResponseMessage($msgId, ['Status' => 'Received']);
+        
+        // Update subscription if found
+        if ($subscription) {
+            $subscription->recordNotification();
+            
+            Log::info('Subscription notification recorded', [
+                'subscription_id' => $subscription->id,
+                'notification_count' => $subscription->notification_count,
+                'event_path' => $subscription->event_path,
+                'notif_type' => $notifType,
+                'notif_data' => $notifData
+            ]);
+        }
+        
+        // Return NOTIFY_RESP only if send_resp is true
+        if ($sendResp) {
+            return $this->uspService->createNotifyResponseMessage($msgId, $subscriptionId);
+        }
+        
+        // No response required - return null
+        return null;
     }
 
     /**
