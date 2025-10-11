@@ -76,8 +76,19 @@
 <script>
 // Update online devices count
 function updateOnlineCount() {
-    fetch('/dashboard')
-        .then(response => response.json())
+    fetch('/dashboard', {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        },
+        credentials: 'same-origin'
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status);
+            }
+            return response.json();
+        })
         .then(data => {
             document.getElementById('online-devices-count').textContent = data.devices.online || 0;
         })
