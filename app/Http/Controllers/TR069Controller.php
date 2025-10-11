@@ -24,6 +24,24 @@ class TR069Controller extends Controller
         $xml->registerXPathNamespace('cwmp', 'urn:dslforum-org:cwmp-1-0');
         
         $deviceId = $xml->xpath('//cwmp:DeviceId')[0] ?? null;
+        $paramList = $xml->xpath('//cwmp:ParameterValueStruct') ?? [];
+        
+        $connectionRequestUrl = null;
+        $connectionRequestUsername = null;
+        $connectionRequestPassword = null;
+        
+        foreach ($paramList as $param) {
+            $name = (string)($param->Name ?? '');
+            $value = (string)($param->Value ?? '');
+            
+            if (str_contains($name, 'ConnectionRequestURL')) {
+                $connectionRequestUrl = $value;
+            } elseif (str_contains($name, 'ConnectionRequestUsername')) {
+                $connectionRequestUsername = $value;
+            } elseif (str_contains($name, 'ConnectionRequestPassword')) {
+                $connectionRequestPassword = $value;
+            }
+        }
         
         if ($deviceId) {
             $serialNumber = (string)($deviceId->SerialNumber ?? '');
@@ -31,20 +49,42 @@ class TR069Controller extends Controller
             $productClass = (string)($deviceId->ProductClass ?? '');
             $manufacturer = (string)($deviceId->Manufacturer ?? '');
             
+            $deviceData = [
+                'oui' => $oui,
+                'product_class' => $productClass,
+                'manufacturer' => $manufacturer,
+                'ip_address' => $request->ip(),
+                'last_inform' => Carbon::now(),
+                'last_contact' => Carbon::now(),
+                'status' => 'online'
+            ];
+            
+            if ($connectionRequestUrl) {
+                $deviceData['connection_request_url'] = $connectionRequestUrl;
+            }
+            if ($connectionRequestUsername) {
+                $deviceData['connection_request_username'] = $connectionRequestUsername;
+            }
+            if ($connectionRequestPassword) {
+                $deviceData['connection_request_password'] = $connectionRequestPassword;
+            }
+            
             $device = CpeDevice::updateOrCreate(
                 ['serial_number' => $serialNumber],
-                [
-                    'oui' => $oui,
-                    'product_class' => $productClass,
-                    'manufacturer' => $manufacturer,
-                    'ip_address' => $request->ip(),
-                    'last_inform' => Carbon::now(),
-                    'last_contact' => Carbon::now(),
-                    'status' => 'online'
-                ]
+                $deviceData
             );
             
             \Log::info('Device registered/updated', ['serial' => $serialNumber, 'id' => $device->id]);
+            
+            $pendingTask = ProvisioningTask::where('cpe_device_id', $device->id)
+                ->where('status', 'pending')
+                ->orderBy('scheduled_at', 'asc')
+                ->first();
+            
+            if ($pendingTask) {
+                \App\Jobs\ProcessProvisioningTask::dispatch($pendingTask);
+                \Log::info('Pending task dispatched for device', ['device_id' => $device->id, 'task_id' => $pendingTask->id]);
+            }
         }
         
         $response = $this->generateInformResponse();
