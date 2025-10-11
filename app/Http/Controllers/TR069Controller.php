@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\CpeDevice;
 use App\Models\ProvisioningTask;
+use App\Services\TR069SessionManager;
+use App\Services\TR069Service;
 use Carbon\Carbon;
 
 /**
@@ -17,27 +19,25 @@ use Carbon\Carbon;
 class TR069Controller extends Controller
 {
     /**
-     * Gestisce le richieste Inform dai dispositivi CPE
-     * Handles Inform requests from CPE devices
+     * Gestisce le richieste SOAP dai dispositivi CPE (Inform + Responses)
+     * Handles SOAP requests from CPE devices (Inform + Responses)
      * 
-     * Questo metodo:
-     * - Riceve e parsa il messaggio SOAP Inform dal dispositivo
-     * - Estrae le informazioni del dispositivo (DeviceId)
-     * - Estrae ConnectionRequestURL per comunicazione bidirezionale
-     * - Registra o aggiorna il dispositivo nel database
-     * - Dispatcha eventuali task di provisioning in coda
-     * - Restituisce InformResponse secondo protocollo TR-069
+     * Handler generico che gestisce:
+     * - Inform: Registrazione dispositivo e inizio sessione
+     * - GetParameterValuesResponse: Risposta a GetParameterValues
+     * - SetParameterValuesResponse: Risposta a SetParameterValues
+     * - RebootResponse: Conferma reboot
+     * - TransferComplete: Conferma download firmware completato
      * 
-     * This method:
-     * - Receives and parses SOAP Inform message from device
-     * - Extracts device information (DeviceId)
-     * - Extracts ConnectionRequestURL for bidirectional communication
-     * - Registers or updates device in database
-     * - Dispatches any pending provisioning tasks
-     * - Returns InformResponse according to TR-069 protocol
+     * Generic handler that processes:
+     * - Inform: Device registration and session start
+     * - GetParameterValuesResponse: Response to GetParameterValues
+     * - SetParameterValuesResponse: Response to SetParameterValues
+     * - RebootResponse: Reboot confirmation
+     * - TransferComplete: Firmware download completion
      * 
      * @param Request $request Richiesta HTTP con body SOAP XML / HTTP request with SOAP XML body
-     * @return \Illuminate\Http\Response Risposta SOAP InformResponse / SOAP InformResponse response
+     * @return \Illuminate\Http\Response Risposta SOAP / SOAP response
      */
     public function handleInform(Request $request)
     {
@@ -87,6 +87,7 @@ class TR069Controller extends Controller
         
         // Registra o aggiorna il dispositivo CPE nel database
         // Register or update CPE device in database
+        $device = null;
         if ($deviceId) {
             // Estrae identificatori dispositivo
             // Extract device identifiers
@@ -127,29 +128,49 @@ class TR069Controller extends Controller
             );
             
             \Log::info('Device registered/updated', ['serial' => $serialNumber, 'id' => $device->id]);
+        }
+        
+        // SESSION MANAGEMENT: Gestisce sessione TR-069
+        // SESSION MANAGEMENT: Handle TR-069 session
+        $sessionManager = new TR069SessionManager();
+        $cookieValue = $request->cookie('TR069SessionID');
+        $session = null;
+        
+        if ($device) {
+            // Ottiene o crea sessione per il dispositivo
+            // Get or create session for device
+            $session = $sessionManager->getOrCreateSession($device, $cookieValue, $request->ip());
             
             // Cerca task di provisioning in coda per questo dispositivo
             // Search for pending provisioning tasks for this device
-            $pendingTask = ProvisioningTask::where('cpe_device_id', $device->id)
+            $pendingTasks = ProvisioningTask::where('cpe_device_id', $device->id)
                 ->where('status', 'pending')
                 ->orderBy('scheduled_at', 'asc')
-                ->first();
+                ->get();
             
-            // Se esiste una task pending, la dispatcha per elaborazione asincrona
-            // If pending task exists, dispatch it for async processing
-            if ($pendingTask) {
-                \App\Jobs\ProcessProvisioningTask::dispatch($pendingTask);
-                \Log::info('Pending task dispatched for device', ['device_id' => $device->id, 'task_id' => $pendingTask->id]);
+            // Accoda comandi SOAP per ogni task pending nella sessione
+            // Queue SOAP commands for each pending task in session
+            foreach ($pendingTasks as $task) {
+                $this->queueTaskCommands($session, $task);
+                $task->update(['status' => 'processing']);
             }
         }
         
-        // Genera e restituisce InformResponse secondo protocollo TR-069
-        // Generate and return InformResponse according to TR-069 protocol
-        $response = $this->generateInformResponse();
+        // Genera risposta SOAP
+        // Generate SOAP response
+        $response = $this->generateSessionResponse($session);
         
-        return response($response, 200)
+        // Restituisce risposta con cookie di sessione
+        // Return response with session cookie
+        $httpResponse = response($response, 200)
             ->header('Content-Type', 'text/xml; charset=utf-8')
             ->header('SOAPAction', '');
+        
+        if ($session) {
+            $httpResponse->cookie('TR069SessionID', $session->cookie, 5); // 5 minuti
+        }
+        
+        return $httpResponse;
     }
     
     /**
@@ -174,8 +195,111 @@ class TR069Controller extends Controller
     }
     
     /**
+     * Accoda comandi SOAP per una task di provisioning nella sessione
+     * Queue SOAP commands for provisioning task in session
+     * 
+     * @param \App\Models\Tr069Session $session Sessione TR-069
+     * @param \App\Models\ProvisioningTask $task Task di provisioning
+     * @return void
+     */
+    private function queueTaskCommands($session, $task): void
+    {
+        $sessionManager = new TR069SessionManager();
+        
+        switch ($task->task_type) {
+            case 'set_parameters':
+                $params = $task->task_params['parameters'] ?? [];
+                $sessionManager->queueCommand($session, 'SetParameterValues', $params, $task->id);
+                break;
+                
+            case 'get_parameters':
+                $params = $task->task_params['parameters'] ?? [];
+                $sessionManager->queueCommand($session, 'GetParameterValues', ['parameters' => $params], $task->id);
+                break;
+                
+            case 'reboot':
+                $sessionManager->queueCommand($session, 'Reboot', [], $task->id);
+                break;
+                
+            case 'download':
+                $params = $task->task_params ?? [];
+                $sessionManager->queueCommand($session, 'Download', $params, $task->id);
+                break;
+        }
+    }
+    
+    /**
+     * Genera risposta SOAP basata sulla sessione (comando o InformResponse)
+     * Generate SOAP response based on session (command or InformResponse)
+     * 
+     * @param \App\Models\Tr069Session|null $session Sessione TR-069 (opzionale)
+     * @return string Messaggio SOAP XML
+     */
+    private function generateSessionResponse($session): string
+    {
+        if (!$session) {
+            return $this->generateInformResponse();
+        }
+        
+        $sessionManager = new TR069SessionManager();
+        
+        // Se ci sono comandi pendenti, invia il prossimo comando
+        // If there are pending commands, send next command
+        if ($sessionManager->hasPendingCommands($session)) {
+            $command = $sessionManager->getNextCommand($session);
+            
+            if ($command) {
+                \Log::info('TR-069 sending command to device', [
+                    'session_id' => $session->session_id,
+                    'command_type' => $command['type'],
+                    'task_id' => $command['task_id'] ?? null
+                ]);
+                
+                $tr069Service = new TR069Service();
+                $messageId = $session->getNextMessageId();
+                
+                switch ($command['type']) {
+                    case 'GetParameterValues':
+                        return $tr069Service->generateGetParameterValues(
+                            $command['params']['parameters'] ?? [],
+                            $messageId
+                        );
+                        
+                    case 'SetParameterValues':
+                        return $tr069Service->generateSetParameterValues(
+                            $command['params'],
+                            $messageId
+                        );
+                        
+                    case 'Reboot':
+                        return $tr069Service->generateReboot($messageId);
+                        
+                    case 'Download':
+                        return $tr069Service->generateDownload(
+                            $command['params']['url'] ?? '',
+                            $command['params']['file_type'] ?? '1 Firmware Upgrade Image',
+                            $command['params']['file_size'] ?? 0,
+                            $messageId
+                        );
+                        
+                    default:
+                        \Log::warning('TR-069 unknown command type', ['type' => $command['type']]);
+                        return $this->generateInformResponse();
+                }
+            }
+        }
+        
+        // Nessun comando pendente, restituisce InformResponse
+        // No pending commands, return InformResponse
+        return $this->generateInformResponse();
+    }
+    
+    /**
      * Gestisce richieste vuote dal dispositivo (empty POST)
      * Handles empty requests from device (empty POST)
+     * 
+     * Richiesta vuota indica la fine della sessione TR-069.
+     * Empty request indicates end of TR-069 session.
      * 
      * @param Request $request Richiesta HTTP / HTTP request
      * @return \Illuminate\Http\Response Envelope SOAP vuoto / Empty SOAP envelope
@@ -184,7 +308,19 @@ class TR069Controller extends Controller
     {
         \Log::info('TR-069 Empty request received');
         
-        return response('<?xml version="1.0" encoding="UTF-8"?><soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"></soap:Envelope>', 200)
+        // Chiude la sessione se esiste
+        // Close session if exists
+        $cookieValue = $request->cookie('TR069SessionID');
+        if ($cookieValue) {
+            $sessionManager = new TR069SessionManager();
+            $session = $sessionManager->getSessionByCookie($cookieValue);
+            
+            if ($session) {
+                $sessionManager->closeSession($session);
+            }
+        }
+        
+        return response('<?xml version="1.0" encoding="UTF-8"?><soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body></soap:Body></soap:Envelope>', 200)
             ->header('Content-Type', 'text/xml; charset=utf-8');
     }
 }
