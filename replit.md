@@ -92,6 +92,7 @@ Tutte le API sono accessibili tramite `/api/v1/` con autenticazione API Key:
   - Design responsive e moderno con Soft UI Dashboard
   - Sidebar navigazione con sezioni organizzate (Gestione CPE, Sistema, TR-069)
   - Card statistiche con contatori real-time
+  - Navbar con contatore dispositivi online (aggiornamento AJAX ogni 30s)
   - Tabelle con paginazione Laravel e gestione empty states
   - Badge colorati per stati (online/offline, completed/failed, stable/beta)
   - Modal Bootstrap per azioni (create/edit/delete/deploy/provision/reboot)
