@@ -25,7 +25,7 @@
                     <div class="d-flex align-items-center">
                         <span class="badge badge-sm bg-gradient-success">
                             <i class="fas fa-circle text-white me-1" style="font-size: 0.5rem;"></i>
-                            <span id="online-devices-count">-</span> Online
+                            <span id="online-devices-count">0</span> Online
                         </span>
                     </div>
                 </li>
@@ -74,7 +74,9 @@
 </nav>
 
 <script>
-// Update online devices count
+// Update online devices count - Disabled to prevent cache issues in mobile app
+// Will be re-enabled after proper cache busting implementation
+/*
 function updateOnlineCount() {
     fetch('/dashboard', {
         headers: {
@@ -99,4 +101,5 @@ function updateOnlineCount() {
 setInterval(updateOnlineCount, 30000);
 // Initial load
 updateOnlineCount();
+*/
 </script>
