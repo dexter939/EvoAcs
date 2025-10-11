@@ -102,6 +102,17 @@ class CpeDevice extends Model
     }
 
     /**
+     * Relazione con test diagnostici TR-143
+     * Relationship with TR-143 diagnostic tests
+     * 
+     * @return HasMany
+     */
+    public function diagnosticTests(): HasMany
+    {
+        return $this->hasMany(DiagnosticTest::class);
+    }
+
+    /**
      * Relazione con deployment firmware
      * Relationship with firmware deployments
      * 
