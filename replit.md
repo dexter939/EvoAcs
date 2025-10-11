@@ -22,8 +22,9 @@ The system now supports next-generation TR-369 User Services Platform alongside 
 
 - ✅ **Web Interface TR-369 Support**: Dashboard statistics cards (TR-069 CWMP count, TR-369 USP count, USP via MQTT, USP via HTTP), device management page with protocol/MTP/status filters, protocol column with differentiated badges (TR-369 green, TR-069 blue), MTP type badges (MQTT orange, HTTP cyan), device icons (satellite-dish for USP, router for CWMP)
 
+- ✅ **RESTful API for USP Operations**: Complete API v1 implementation at `/api/v1/usp/devices/{device}/*` with 6 authenticated endpoints (get-params, set-params, operate, add-object, delete-object, reboot). Dual MTP support: MQTT for immediate device communication, HTTP for polling-based devices. HTTP MTP uses `usp_pending_requests` table for request storage with 1-hour expiration, devices poll via GET /usp endpoint with auto-delivery tracking. Parameter format conversion (flat API -> grouped USP). Full Postman collection and markdown documentation included.
+
 **Pending Features:**
-- 🔄 RESTful API for USP operations
 - 🔄 USP Event/Notification Subscribe/Notify pattern
 
 ## System Architecture
