@@ -49,6 +49,11 @@
                     <button class="btn btn-warning btn-sm w-100 mb-2" onclick="rebootDevice({{ $device->id }}, '{{ $device->serial_number }}')">
                         <i class="fas fa-sync me-2"></i>Reboot
                     </button>
+                    @if($device->protocol_type === 'tr369')
+                    <a href="{{ route('acs.devices.subscriptions', $device->id) }}" class="btn btn-info btn-sm w-100 mb-2">
+                        <i class="fas fa-bell me-2"></i>Sottoscrizioni Eventi
+                    </a>
+                    @endif
                     <a href="{{ route('acs.devices') }}" class="btn btn-secondary btn-sm w-100">
                         <i class="fas fa-arrow-left me-2"></i>Torna alla Lista
                     </a>

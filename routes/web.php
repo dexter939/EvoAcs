@@ -34,6 +34,11 @@ Route::prefix('acs')->name('acs.')->group(function () {
     Route::post('/devices/{id}/diagnostics/{type}', [AcsController::class, 'runDiagnostic'])->name('devices.diagnostic');
     Route::get('/diagnostics/{id}/results', [AcsController::class, 'getDiagnosticResults'])->name('diagnostics.results');
     
+    // USP Event Subscriptions
+    Route::get('/devices/{id}/subscriptions', [AcsController::class, 'subscriptions'])->name('devices.subscriptions');
+    Route::post('/devices/{id}/subscriptions', [AcsController::class, 'storeSubscription'])->name('devices.subscriptions.store');
+    Route::delete('/devices/{id}/subscriptions/{subscriptionId}', [AcsController::class, 'destroySubscription'])->name('devices.subscriptions.destroy');
+    
     // Provisioning
     Route::get('/provisioning', [AcsController::class, 'provisioning'])->name('provisioning');
     

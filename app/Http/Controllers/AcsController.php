@@ -8,7 +8,11 @@ use App\Models\ProvisioningTask;
 use App\Models\FirmwareDeployment;
 use App\Models\FirmwareVersion;
 use App\Models\ConfigurationProfile;
+use App\Models\UspSubscription;
 use App\Services\ConnectionRequestService;
+use App\Services\UspMessageService;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * AcsController - Controller per interfaccia web dashboard ACS
@@ -457,5 +461,136 @@ class AcsController extends Controller
             ->findOrFail($id);
         
         return view('acs.device-detail', compact('device'));
+    }
+    
+    /**
+     * Mostra sottoscrizioni eventi per dispositivo USP
+     * Show event subscriptions for USP device
+     */
+    public function subscriptions($id)
+    {
+        $device = CpeDevice::findOrFail($id);
+        
+        // Only allow for TR-369 devices
+        if ($device->protocol_type !== 'tr369') {
+            return redirect()->route('acs.device', $device->id)
+                ->with('error', 'Event subscriptions are only available for TR-369 USP devices');
+        }
+        
+        $subscriptions = $device->uspSubscriptions()
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        return view('acs.subscriptions', compact('device', 'subscriptions'));
+    }
+    
+    /**
+     * Crea nuova sottoscrizione evento
+     * Create new event subscription
+     */
+    public function storeSubscription(Request $request, $id, UspMessageService $uspService)
+    {
+        $device = CpeDevice::findOrFail($id);
+        
+        // Validate TR-369 device
+        if ($device->protocol_type !== 'tr369') {
+            return back()->with('error', 'Event subscriptions are only available for TR-369 USP devices');
+        }
+        
+        $validated = $request->validate([
+            'event_path' => 'required|string',
+            'reference_list' => 'nullable|string'
+        ]);
+        
+        // Get notification_retry as boolean (checkbox: checked=1, unchecked=null->false)
+        $notificationRetry = $request->boolean('notification_retry', true);
+        
+        try {
+            $msgId = 'web-subscribe-' . Str::random(10);
+            $subscriptionId = (string) Str::uuid();
+            
+            // Parse reference_list from textarea (one path per line)
+            $referenceList = [];
+            if (!empty($validated['reference_list'])) {
+                $referenceList = array_filter(
+                    array_map('trim', explode("\n", $validated['reference_list'])),
+                    fn($path) => !empty($path)
+                );
+            }
+            
+            // Use transaction
+            DB::transaction(function () use ($device, $validated, $referenceList, $notificationRetry, $subscriptionId, $msgId, $uspService) {
+                // Create subscription record
+                $subscription = UspSubscription::create([
+                    'cpe_device_id' => $device->id,
+                    'subscription_id' => $subscriptionId,
+                    'event_path' => $validated['event_path'],
+                    'reference_list' => $referenceList,
+                    'notification_retry' => $notificationRetry,
+                    'is_active' => true
+                ]);
+                
+                // Send subscribe message
+                $uspService->sendSubscriptionRequest(
+                    $device,
+                    $validated['event_path'],
+                    $subscriptionId,
+                    $referenceList,
+                    $notificationRetry,
+                    $msgId
+                );
+            });
+            
+            return back()->with('success', "Event subscription created successfully (ID: {$subscriptionId})");
+            
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to create subscription: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Elimina sottoscrizione evento
+     * Delete event subscription
+     */
+    public function destroySubscription($deviceId, $subscriptionId, UspMessageService $uspService)
+    {
+        $device = CpeDevice::findOrFail($deviceId);
+        $subscription = UspSubscription::where('cpe_device_id', $device->id)
+            ->where('id', $subscriptionId)
+            ->firstOrFail();
+        
+        try {
+            $msgId = 'web-unsubscribe-' . Str::random(10);
+            $objectPath = "Device.LocalAgent.Subscription.{$subscription->subscription_id}.";
+            
+            // Use transaction
+            DB::transaction(function () use ($subscription, $device, $objectPath, $msgId, $uspService) {
+                // Mark as inactive
+                $subscription->update(['is_active' => false]);
+                
+                // Send delete message
+                $deleteMsg = $uspService->createDeleteMessage([$objectPath], false, $msgId);
+                
+                // Send via MQTT if available
+                if ($device->mtp_type === 'mqtt') {
+                    $record = $uspService->wrapInRecord(
+                        $deleteMsg,
+                        $device->usp_endpoint_id,
+                        config('usp.controller_endpoint_id'),
+                        '1.3'
+                    );
+                    
+                    $binaryPayload = $uspService->serializeRecord($record);
+                    $topic = "usp/agent/{$device->usp_endpoint_id}/request";
+                    
+                    app(\App\Services\UspMqttService::class)->publish($topic, $binaryPayload);
+                }
+            });
+            
+            return back()->with('success', 'Event subscription deleted successfully');
+            
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to delete subscription: ' . $e->getMessage());
+        }
     }
 }
