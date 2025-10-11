@@ -54,6 +54,9 @@
                                     <button class="btn btn-link text-success px-2 mb-0" onclick="provisionDevice({{ $device->id }}, '{{ $device->serial_number }}')">
                                         <i class="fas fa-cog text-xs"></i>
                                     </button>
+                                    <button class="btn btn-link text-primary px-2 mb-0" onclick="connectionRequest({{ $device->id }}, '{{ $device->serial_number }}', {{ $device->connection_request_url ? 'true' : 'false' }})" title="Connection Request">
+                                        <i class="fas fa-bell text-xs"></i>
+                                    </button>
                                     <button class="btn btn-link text-warning px-2 mb-0" onclick="rebootDevice({{ $device->id }}, '{{ $device->serial_number }}')">
                                         <i class="fas fa-sync text-xs"></i>
                                     </button>
@@ -137,6 +140,32 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Connection Request -->
+<div class="modal fade" id="connectionRequestModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Connection Request TR-069</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-router me-2"></i>Dispositivo: <strong id="connreq_device_sn"></strong>
+                </div>
+                <p>Invia richiesta HTTP al dispositivo per iniziare una nuova sessione TR-069.</p>
+                <p class="text-sm text-secondary">Il dispositivo riceverà la richiesta e risponderà con un nuovo Inform all'ACS.</p>
+                <div id="connreq_result" class="mt-3" style="display: none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+                <button type="button" class="btn btn-primary" id="sendConnectionRequestBtn" onclick="sendConnectionRequest()">
+                    <i class="fas fa-bell me-2"></i>Invia Connection Request
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -155,6 +184,61 @@ function rebootDevice(id, sn) {
     document.getElementById('rebootForm').action = '/acs/devices/' + id + '/reboot';
     document.getElementById('reboot_device_sn').textContent = sn;
     new bootstrap.Modal(document.getElementById('rebootModal')).show();
+}
+
+let currentDeviceId = null;
+
+function connectionRequest(id, sn, hasUrl) {
+    currentDeviceId = id;
+    document.getElementById('connreq_device_sn').textContent = sn;
+    document.getElementById('connreq_result').style.display = 'none';
+    document.getElementById('sendConnectionRequestBtn').disabled = false;
+    
+    if (!hasUrl) {
+        document.getElementById('connreq_result').innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>Dispositivo non ha ConnectionRequestURL configurata</div>';
+        document.getElementById('connreq_result').style.display = 'block';
+        document.getElementById('sendConnectionRequestBtn').disabled = true;
+    }
+    
+    new bootstrap.Modal(document.getElementById('connectionRequestModal')).show();
+}
+
+function sendConnectionRequest() {
+    const btn = document.getElementById('sendConnectionRequestBtn');
+    const resultDiv = document.getElementById('connreq_result');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Invio in corso...';
+    
+    fetch('/acs/devices/' + currentDeviceId + '/connection-request', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        btn.innerHTML = '<i class="fas fa-bell me-2"></i>Invia Connection Request';
+        
+        if (data.success) {
+            resultDiv.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>' + data.message + '<br><small class="text-muted">Metodo: ' + (data.auth_method || 'N/A') + ' | HTTP: ' + (data.http_status || 'N/A') + '</small></div>';
+        } else {
+            resultDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times-circle me-2"></i>' + data.message + '<br><small class="text-muted">Errore: ' + (data.error_code || 'N/A') + '</small></div>';
+        }
+        
+        resultDiv.style.display = 'block';
+        
+        setTimeout(() => {
+            btn.disabled = false;
+        }, 2000);
+    })
+    .catch(error => {
+        btn.innerHTML = '<i class="fas fa-bell me-2"></i>Invia Connection Request';
+        btn.disabled = false;
+        resultDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times-circle me-2"></i>Errore di rete: ' + error.message + '</div>';
+        resultDiv.style.display = 'block';
+    });
 }
 </script>
 @endpush

@@ -8,6 +8,7 @@ use App\Models\ProvisioningTask;
 use App\Models\FirmwareDeployment;
 use App\Models\FirmwareVersion;
 use App\Models\ConfigurationProfile;
+use App\Services\ConnectionRequestService;
 
 /**
  * AcsController - Controller per interfaccia web dashboard ACS
@@ -273,6 +274,45 @@ class AcsController extends Controller
         ]);
         
         return redirect()->route('acs.devices')->with('success', 'Comando di reboot inviato a ' . $device->serial_number);
+    }
+
+    /**
+     * Connection Request - Sveglia dispositivo per iniziare sessione TR-069
+     * Connection Request - Wake up device to start TR-069 session
+     * 
+     * Invia richiesta HTTP alla ConnectionRequestURL del dispositivo.
+     * Usato dall'interfaccia web per comunicazione bidirezionale ACS→CPE.
+     * 
+     * Sends HTTP request to device's ConnectionRequestURL.
+     * Used by web interface for bidirectional ACS→CPE communication.
+     * 
+     * @param int $id ID dispositivo / Device ID
+     * @param ConnectionRequestService $service Servizio Connection Request / Connection Request service
+     * @return \Illuminate\Http\JsonResponse Risultato JSON / JSON result
+     */
+    public function connectionRequest($id, ConnectionRequestService $service)
+    {
+        $device = CpeDevice::findOrFail($id);
+
+        // Verifica se dispositivo supporta Connection Request
+        // Check if device supports Connection Request
+        if (!$service->isConnectionRequestSupported($device)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Dispositivo non ha ConnectionRequestURL configurata',
+                'error_code' => 'NOT_SUPPORTED'
+            ], 400);
+        }
+
+        // Invia Connection Request con test POST fallback
+        // Send Connection Request with POST fallback test
+        $result = $service->testConnectionRequest($device);
+
+        // Ritorna risultato JSON per AJAX
+        // Return JSON result for AJAX
+        $statusCode = $result['success'] ? 200 : 500;
+
+        return response()->json($result, $statusCode);
     }
     
     public function showDevice($id)

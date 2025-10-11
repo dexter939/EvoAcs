@@ -26,6 +26,7 @@ Route::prefix('acs')->name('acs.')->group(function () {
     Route::get('/devices/{id}', [AcsController::class, 'showDevice'])->name('devices.show');
     Route::post('/devices/{id}/provision', [AcsController::class, 'provisionDevice'])->name('devices.provision');
     Route::post('/devices/{id}/reboot', [AcsController::class, 'rebootDevice'])->name('devices.reboot');
+    Route::post('/devices/{id}/connection-request', [AcsController::class, 'connectionRequest'])->name('devices.connection-request');
     
     // Provisioning
     Route::get('/provisioning', [AcsController::class, 'provisioning'])->name('provisioning');
