@@ -47,6 +47,21 @@ class AcsController extends Controller
             ],
             'recent_devices' => CpeDevice::orderBy('last_inform', 'desc')->limit(10)->get(),
             'recent_tasks' => ProvisioningTask::with('cpeDevice')->orderBy('created_at', 'desc')->limit(10)->get(),
+            'diagnostics' => [
+                'total' => \App\Models\DiagnosticTest::count(),
+                'completed' => \App\Models\DiagnosticTest::where('status', 'completed')->count(),
+                'pending' => \App\Models\DiagnosticTest::where('status', 'pending')->count(),
+                'failed' => \App\Models\DiagnosticTest::where('status', 'failed')->count(),
+                'by_type' => [
+                    'ping' => \App\Models\DiagnosticTest::where('diagnostic_type', 'ping')->count(),
+                    'traceroute' => \App\Models\DiagnosticTest::where('diagnostic_type', 'traceroute')->count(),
+                    'download' => \App\Models\DiagnosticTest::where('diagnostic_type', 'download')->count(),
+                    'upload' => \App\Models\DiagnosticTest::where('diagnostic_type', 'upload')->count(),
+                ],
+            ],
+            'profiles_active' => \App\Models\ConfigurationProfile::where('is_active', true)->count(),
+            'firmware_versions' => \App\Models\FirmwareVersion::count(),
+            'unique_parameters' => \App\Models\DeviceParameter::select('parameter_path')->distinct()->count(),
         ];
         
         return view('acs.dashboard', compact('stats'));
