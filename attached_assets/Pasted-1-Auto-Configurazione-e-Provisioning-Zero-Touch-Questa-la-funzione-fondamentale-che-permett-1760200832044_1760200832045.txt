@@ -1,0 +1,44 @@
+1. Auto-Configurazione e Provisioning (Zero-Touch) ⚙️
+Questa è la funzione fondamentale, che permette di configurare automaticamente i dispositivi appena connessi.
+
+Provisioning Dinamico: Un nuovo dispositivo CPE si connette e l'ACS lo identifica (tramite numero seriale o altri parametri), applicando istantaneamente il profilo di configurazione corretto (ad esempio, impostazioni Wi-Fi, parametri VoIP, credenziali di accesso al servizio).
+
+Configurazione di Massa: Possibilità di configurare, aggiornare o modificare i parametri su intere flotte di dispositivi contemporaneamente (es. applicare una nuova password Wi-Fi predefinita o modificare le impostazioni di DNS).
+
+Gestione Parametri: L'ACS può leggere, scrivere e cancellare qualsiasi parametro di configurazione supportato dal dispositivo CPE tramite il protocollo TR-069 (o il suo successore USP/TR-369).
+
+2. Gestione Firmware e Software (Software/Firmware Management) 💻
+Mantiene i dispositivi aggiornati, fondamentale per la sicurezza e l'introduzione di nuove funzionalità.
+
+Aggiornamenti Centralizzati: L'ACS gestisce l'intero ciclo di vita dell'aggiornamento del firmware, pianificando e distribuendo in remoto gli aggiornamenti a gruppi specifici di dispositivi.
+
+Campagne di Upgrade: Possibilità di eseguire campagne di aggiornamento di massa con tracciamento completo, politiche di riprova in caso di fallimento e limitazioni orarie per minimizzare le interruzioni di servizio.
+
+Gestione Pacchetti Software (TR-157): Consente l'installazione, l'aggiornamento o la rimozione remota di pacchetti software sui dispositivi CPE.
+
+3. Diagnostica e Monitoraggio (Fault & Performance Management) 🩺
+Fornisce agli operatori visibilità in tempo reale sulla salute della rete e dei dispositivi.
+
+Monitoraggio Stato: Raccolta di statistiche, dati sulle prestazioni e informazioni sullo stato operativo del dispositivo (es. velocità di banda, latenza, interferenza del segnale Wi-Fi).
+
+Diagnostica Remota: L'ACS può avviare test diagnostici sul CPE, come il ping su un indirizzo IP, e ricevere i risultati per la risoluzione dei problemi in tempo reale (funzione cruciale per il Call Center).
+
+Alerting e Notifiche: Generazione di avvisi automatici quando un dispositivo segnala un malfunzionamento o prestazioni degradate.
+
+Raccolta Log: Accesso e raccolta dei log del dispositivo per analisi dettagliate.
+
+4. Supporto Tecnico e Assistenza (Customer Service) 📞
+L'ACS è lo strumento principale utilizzato dagli operatori del Call Center per il supporto.
+
+Risoluzione al Primo Contatto: L'automazione e la diagnostica remota consentono agli operatori di risolvere la maggior parte dei problemi senza inviare un tecnico sul campo.
+
+Restore Configurazione: Possibilità di eseguire il backup e il ripristino delle impostazioni del cliente (ad esempio, dopo un factory reset accidentale).
+
+Controllo Servizi: Abilitazione/disabilitazione remota di servizi specifici per il cliente (es. VoIP, IPTV).
+
+5. Sicurezza e Scalabilità 🛡️
+Sicurezza delle Transazioni: Il protocollo TR-069 utilizza HTTPS/SSL/TLS per garantire la riservatezza e l'integrità delle comunicazioni tra il CPE e l'ACS. L'autenticazione è essenziale per prevenire frodi o manomissioni.
+
+Scalabilità Carrier-Grade: La maggior parte dei software ACS in commercio sono progettati per gestire in modo flessibile e affidabile milioni di dispositivi su larga scala.
+
+Integrazione OSS/BSS (NorthBound Interface): Capacità di integrarsi con i sistemi aziendali di gestione e fatturazione (OSS/BSS) dell'operatore, consentendo la sincronizzazione automatica delle informazioni tra la rete e i sistemi amministrativi.
