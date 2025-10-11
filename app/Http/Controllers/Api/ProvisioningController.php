@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\CpeDevice;
 use App\Models\ProvisioningTask;
+use App\Services\ConnectionRequestService;
 use Illuminate\Http\Request;
 
 /**
@@ -159,6 +160,45 @@ class ProvisioningController extends Controller
         \App\Jobs\ProcessProvisioningTask::dispatch($task);
         
         return response()->json(['message' => 'Reboot task created and queued', 'task' => $task]);
+    }
+
+    /**
+     * Connection Request - Sveglia dispositivo CPE per iniziare sessione TR-069
+     * Connection Request - Wake up CPE device to start TR-069 session
+     * 
+     * Invia richiesta HTTP alla ConnectionRequestURL del dispositivo.
+     * Il CPE risponde con un nuovo Inform all'ACS, permettendo comunicazione bidirezionale.
+     * 
+     * Sends HTTP request to device's ConnectionRequestURL.
+     * CPE responds with a new Inform to the ACS, enabling bidirectional communication.
+     * 
+     * Standard TR-069: ACS→CPE connection initiation (sezione 3.2.1)
+     * 
+     * @param CpeDevice $device Dispositivo da svegliare / Device to wake up
+     * @param ConnectionRequestService $service Servizio Connection Request / Connection Request service
+     * @return \Illuminate\Http\JsonResponse Risultato richiesta / Request result
+     */
+    public function connectionRequest(CpeDevice $device, ConnectionRequestService $service)
+    {
+        // Verifica se dispositivo supporta Connection Request
+        // Check if device supports Connection Request
+        if (!$service->isConnectionRequestSupported($device)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Device does not have a ConnectionRequestURL configured',
+                'error_code' => 'NOT_SUPPORTED'
+            ], 400);
+        }
+
+        // Invia Connection Request con test POST fallback
+        // Send Connection Request with POST fallback test
+        $result = $service->testConnectionRequest($device);
+
+        // Ritorna risultato con status HTTP appropriato
+        // Return result with appropriate HTTP status
+        $statusCode = $result['success'] ? 200 : ($result['error_code'] === 'CONNECTION_ERROR' ? 503 : 400);
+
+        return response()->json($result, $statusCode);
     }
     
     /**
