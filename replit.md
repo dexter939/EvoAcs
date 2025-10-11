@@ -136,14 +136,32 @@ Il sistema utilizza le seguenti variabili d'ambiente (già configurate):
 - Endpoint principale: `http://0.0.0.0:5000`
 - TR-069 endpoint: `http://0.0.0.0:5000/tr069`
 
+## Note sull'Implementazione MVP
+
+### Funzionalità Complete ✅
+- TR-069 Inform handling con auto-registrazione dispositivi
+- Estrazione e salvataggio ConnectionRequestURL per comunicazione bidirezionale
+- Queue Jobs asincroni con Horizon (ProcessProvisioningTask, ProcessFirmwareDeployment)
+- SOAP operations (GetParameterValues, SetParameterValues, Reboot, Download)
+- API RESTful protette con API Key authentication
+- Zero-touch provisioning con risoluzione parametri da ConfigurationProfile
+- Firmware deployment con task asincrone
+
+### Limitazioni Note (da completare in Fase 2)
+- **TransferComplete Handling**: Firmware deployment segna "completed" dopo invio Download SOAP, senza aspettare TransferComplete dal CPE. Richiede implementazione callback e session management TR-069.
+- **Session Management**: Non implementata gestione sessioni TR-069 multiple con lo stesso dispositivo
+- **Response Parsing**: Le risposte SOAP dai dispositivi vengono loggiate ma non parsate completamente
+- **Horizon Dashboard**: Horizon installato ma dashboard non esposta (può essere aggiunta con route dedicata)
+
 ## Prossimi Sviluppi (Fase 2)
 
 ### Alta Priorità
-1. **Protocollo USP/TR-369**: Implementazione MQTT/WebSocket
-2. **Sistema di Code Redis**: Attivazione Horizon per processing asincrono
-3. **Diagnostica Avanzata**: Test remoti (ping, traceroute, speed test)
-4. **Monitoraggio Real-time**: Metriche prestazioni e alerting
-5. **Load Balancing**: Configurazione HAProxy/Nginx per architettura distribuita
+1. **TransferComplete & Callbacks**: Gestione eventi asincroni da dispositivi (TransferComplete, Diagnostics Complete)
+2. **TR-069 Session Management**: Gestione transazioni multiple e session state
+3. **Protocollo USP/TR-369**: Implementazione MQTT/WebSocket
+4. **Diagnostica Avanzata**: Test remoti (ping, traceroute, speed test)
+5. **Monitoraggio Real-time**: Metriche prestazioni e alerting
+6. **Load Balancing**: Configurazione HAProxy/Nginx per architettura distribuita
 
 ### Media Priorità
 6. **Backup/Restore Configurazioni**: Versionamento configurazioni dispositivi
