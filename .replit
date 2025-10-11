@@ -1,0 +1,7 @@
+modules = ["php-8.3"]
+[agent]
+expertMode = true
+
+[nix]
+channel = "stable-25_05"
+packages = ["php83", "php83Packages.composer", "php83Extensions.pdo_mysql", "php83Extensions.soap", "php83Extensions.redis"]
