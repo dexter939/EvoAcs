@@ -95,7 +95,7 @@
     
     <div class="sidenav-footer mx-3 mt-auto mb-2">
         <div class="card card-background shadow-none card-background-mask-secondary" id="sidenavCard">
-            <div class="full-background" style="background-image: url('{{ asset('assets/img/curved-images/white-curved.jpeg') }}')"></div>
+            <div class="full-background" style="background-image: url('/assets/img/curved-images/white-curved.jpeg')"></div>
             <div class="card-body text-start p-3 w-100">
                 <div class="docs-info">
                     <h6 class="text-white up mb-0">TR-069 Server</h6>
