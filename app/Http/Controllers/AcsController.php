@@ -29,6 +29,10 @@ class AcsController extends Controller
                 'offline' => CpeDevice::where('status', 'offline')->count(),
                 'provisioning' => CpeDevice::where('status', 'provisioning')->count(),
                 'error' => CpeDevice::where('status', 'error')->count(),
+                'tr069' => CpeDevice::tr069()->count(),
+                'tr369' => CpeDevice::tr369()->count(),
+                'tr369_mqtt' => CpeDevice::uspMqtt()->count(),
+                'tr369_http' => CpeDevice::tr369()->where('mtp_type', 'http')->count(),
             ],
             'tasks' => [
                 'total' => ProvisioningTask::count(),
@@ -71,11 +75,32 @@ class AcsController extends Controller
      * Pagina gestione dispositivi CPE
      * CPE devices management page
      */
-    public function devices()
+    public function devices(Request $request)
     {
-        $devices = CpeDevice::with('configurationProfile')
-            ->orderBy('last_inform', 'desc')
-            ->paginate(25);
+        $query = CpeDevice::with('configurationProfile');
+        
+        // Filter by protocol type
+        if ($request->has('protocol') && $request->protocol !== 'all') {
+            if ($request->protocol === 'tr069') {
+                $query->tr069();
+            } elseif ($request->protocol === 'tr369') {
+                $query->tr369();
+            }
+        }
+        
+        // Filter by MTP type (for TR-369 devices)
+        if ($request->has('mtp_type') && $request->mtp_type !== 'all') {
+            $query->where('mtp_type', $request->mtp_type);
+        }
+        
+        // Filter by status
+        if ($request->has('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+        
+        $devices = $query->orderBy('last_contact_at', 'desc')
+            ->paginate(25)
+            ->appends($request->all());
         
         return view('acs.devices', compact('devices'));
     }

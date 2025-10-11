@@ -4,11 +4,59 @@
 @section('page-title', 'Gestione Dispositivi')
 
 @section('content')
+<!-- Filters Row -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="GET" action="{{ route('acs.devices') }}" class="row align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label text-xs">Protocollo</label>
+                        <select name="protocol" class="form-select form-select-sm">
+                            <option value="all" {{ request('protocol', 'all') == 'all' ? 'selected' : '' }}>Tutti</option>
+                            <option value="tr069" {{ request('protocol') == 'tr069' ? 'selected' : '' }}>TR-069 (CWMP)</option>
+                            <option value="tr369" {{ request('protocol') == 'tr369' ? 'selected' : '' }}>TR-369 (USP)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-xs">MTP Type (TR-369)</label>
+                        <select name="mtp_type" class="form-select form-select-sm">
+                            <option value="all" {{ request('mtp_type', 'all') == 'all' ? 'selected' : '' }}>Tutti</option>
+                            <option value="mqtt" {{ request('mtp_type') == 'mqtt' ? 'selected' : '' }}>MQTT</option>
+                            <option value="http" {{ request('mtp_type') == 'http' ? 'selected' : '' }}>HTTP</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-xs">Stato</label>
+                        <select name="status" class="form-select form-select-sm">
+                            <option value="all" {{ request('status', 'all') == 'all' ? 'selected' : '' }}>Tutti</option>
+                            <option value="online" {{ request('status') == 'online' ? 'selected' : '' }}>Online</option>
+                            <option value="offline" {{ request('status') == 'offline' ? 'selected' : '' }}>Offline</option>
+                            <option value="provisioning" {{ request('status') == 'provisioning' ? 'selected' : '' }}>Provisioning</option>
+                            <option value="error" {{ request('status') == 'error' ? 'selected' : '' }}>Error</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-sm btn-primary w-100">
+                            <i class="fas fa-filter me-2"></i>Filtra
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <div class="col-12">
         <div class="card mb-4">
-            <div class="card-header pb-0">
+            <div class="card-header pb-0 d-flex justify-content-between align-items-center">
                 <h6>Dispositivi CPE Registrati</h6>
+                @if(request()->hasAny(['protocol', 'mtp_type', 'status']))
+                <a href="{{ route('acs.devices') }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-times me-1"></i>Reset Filtri
+                </a>
+                @endif
             </div>
             <div class="card-body px-0 pt-0 pb-2">
                 <div class="table-responsive p-0">
@@ -16,9 +64,10 @@
                         <thead>
                             <tr>
                                 <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Dispositivo</th>
+                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Protocollo</th>
                                 <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Stato</th>
                                 <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">IP Address</th>
-                                <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Ultimo Inform</th>
+                                <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Ultimo Contatto</th>
                                 <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Azioni</th>
                             </tr>
                         </thead>
@@ -28,13 +77,25 @@
                                 <td>
                                     <div class="d-flex px-2 py-1">
                                         <div>
-                                            <i class="fas fa-router text-primary me-3"></i>
+                                            <i class="fas fa-{{ $device->protocol_type === 'tr369' ? 'satellite-dish' : 'router' }} text-{{ $device->protocol_type === 'tr369' ? 'success' : 'primary' }} me-3"></i>
                                         </div>
                                         <div class="d-flex flex-column justify-content-center">
                                             <h6 class="mb-0 text-sm">{{ $device->serial_number }}</h6>
                                             <p class="text-xs text-secondary mb-0">{{ $device->manufacturer }} - {{ $device->model_name }}</p>
                                         </div>
                                     </div>
+                                </td>
+                                <td>
+                                    @if($device->protocol_type === 'tr369')
+                                        <span class="badge badge-sm bg-gradient-success">TR-369</span>
+                                        @if($device->mtp_type)
+                                            <span class="badge badge-sm bg-gradient-{{ $device->mtp_type === 'mqtt' ? 'warning' : 'info' }}">
+                                                {{ strtoupper($device->mtp_type) }}
+                                            </span>
+                                        @endif
+                                    @else
+                                        <span class="badge badge-sm bg-gradient-primary">TR-069</span>
+                                    @endif
                                 </td>
                                 <td>
                                     <span class="badge badge-sm bg-gradient-{{ $device->status == 'online' ? 'success' : ($device->status == 'offline' ? 'secondary' : 'warning') }}">
@@ -45,7 +106,9 @@
                                     <span class="text-secondary text-xs font-weight-bold">{{ $device->ip_address ?? 'N/A' }}</span>
                                 </td>
                                 <td class="align-middle text-center">
-                                    <span class="text-secondary text-xs font-weight-bold">{{ $device->last_inform ? $device->last_inform->format('d/m/Y H:i') : 'Mai' }}</span>
+                                    <span class="text-secondary text-xs font-weight-bold">
+                                        {{ ($device->last_contact_at ?? $device->last_inform) ? ($device->last_contact_at ?? $device->last_inform)->format('d/m/Y H:i') : 'Mai' }}
+                                    </span>
                                 </td>
                                 <td class="align-middle text-center">
                                     <button class="btn btn-link text-info px-2 mb-0" onclick="viewDevice({{ $device->id }})">
@@ -67,8 +130,8 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="5" class="text-center text-sm text-muted py-4">
-                                    Nessun dispositivo registrato. I dispositivi si registreranno automaticamente al primo Inform TR-069.
+                                <td colspan="6" class="text-center text-sm text-muted py-4">
+                                    Nessun dispositivo registrato. I dispositivi si registreranno automaticamente al primo Inform TR-069 o USP Record TR-369.
                                 </td>
                             </tr>
                             @endforelse
