@@ -45,7 +45,7 @@ class TR069Controller extends Controller
         // Gets raw SOAP request body
         $rawBody = $request->getContent();
         
-        \Log::info('TR-069 Inform received', ['body' => $rawBody]);
+        \Log::info('TR-069 SOAP request received', ['body' => $rawBody]);
         
         // Parsa il messaggio XML SOAP
         // Parse SOAP XML message
@@ -59,8 +59,20 @@ class TR069Controller extends Controller
         $xml->registerXPathNamespace('soap', 'http://schemas.xmlsoap.org/soap/envelope/');
         $xml->registerXPathNamespace('cwmp', 'urn:dslforum-org:cwmp-1-0');
         
-        // Estrae DeviceId e lista parametri dall'Inform
-        // Extract DeviceId and parameter list from Inform
+        // Determina tipo di messaggio (Inform o Response)
+        // Determine message type (Inform or Response)
+        $messageType = $this->detectMessageType($xml);
+        
+        \Log::info('TR-069 message type detected', ['type' => $messageType]);
+        
+        // Se è una risposta, gestisce separatamente
+        // If it's a response, handle separately
+        if ($messageType !== 'Inform') {
+            return $this->handleResponse($request, $xml);
+        }
+        
+        // È un Inform, processa normalmente
+        // It's an Inform, process normally
         $deviceId = $xml->xpath('//cwmp:DeviceId')[0] ?? null;
         $paramList = $xml->xpath('//cwmp:ParameterValueStruct') ?? [];
         
@@ -223,6 +235,9 @@ class TR069Controller extends Controller
                 
             case 'download':
                 $params = $task->task_params ?? [];
+                // Usa task_id come CommandKey per correlazione deterministica TransferComplete
+                // Use task_id as CommandKey for deterministic TransferComplete correlation
+                $params['command_key'] = 'task_' . $task->id;
                 $sessionManager->queueCommand($session, 'Download', $params, $task->id);
                 break;
         }
@@ -275,11 +290,12 @@ class TR069Controller extends Controller
                         return $tr069Service->generateReboot($messageId);
                         
                     case 'Download':
-                        return $tr069Service->generateDownload(
+                        return $tr069Service->generateDownloadRequest(
                             $command['params']['url'] ?? '',
                             $command['params']['file_type'] ?? '1 Firmware Upgrade Image',
                             $command['params']['file_size'] ?? 0,
-                            $messageId
+                            $messageId,
+                            $command['params']['command_key'] ?? ''
                         );
                         
                     default:
@@ -322,5 +338,377 @@ class TR069Controller extends Controller
         
         return response('<?xml version="1.0" encoding="UTF-8"?><soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body></soap:Body></soap:Envelope>', 200)
             ->header('Content-Type', 'text/xml; charset=utf-8');
+    }
+    
+    /**
+     * Gestisce risposte SOAP dai dispositivi CPE
+     * Handles SOAP responses from CPE devices
+     * 
+     * Gestisce risposte a comandi TR-069:
+     * - GetParameterValuesResponse
+     * - SetParameterValuesResponse  
+     * - RebootResponse
+     * - TransferComplete
+     * 
+     * Handles TR-069 command responses:
+     * - GetParameterValuesResponse
+     * - SetParameterValuesResponse
+     * - RebootResponse
+     * - TransferComplete
+     * 
+     * @param Request $request Richiesta HTTP
+     * @param \SimpleXMLElement $xml Documento XML già parsato
+     * @return \Illuminate\Http\Response Risposta SOAP
+     */
+    private function handleResponse(Request $request, $xml)
+    {
+        \Log::info('TR-069 Response processing');
+        
+        // Recupera sessione tramite cookie
+        $cookieValue = $request->cookie('TR069SessionID');
+        $sessionManager = new TR069SessionManager();
+        $session = $cookieValue ? $sessionManager->getSessionByCookie($cookieValue) : null;
+        
+        // Se non c'è sessione tramite cookie (es. TransferComplete in nuova connessione),
+        // cerca dispositivo tramite DeviceId per correlazione alternativa
+        // If no session via cookie (e.g., TransferComplete in new connection),
+        // find device via DeviceId for alternative correlation
+        $device = null;
+        if (!$session) {
+            $deviceId = $xml->xpath('//cwmp:DeviceId')[0] ?? null;
+            
+            if ($deviceId) {
+                $serialNumber = (string)($deviceId->SerialNumber ?? '');
+                $device = CpeDevice::where('serial_number', $serialNumber)->first();
+                
+                if ($device) {
+                    \Log::info('TR-069 Response correlated via DeviceId', ['serial_number' => $serialNumber]);
+                    
+                    // Crea nuova sessione temporanea per processare la risposta
+                    // Create temporary session to process response
+                    $session = $sessionManager->createSession($device, $request->ip());
+                }
+            }
+        }
+        
+        if (!$session) {
+            \Log::warning('TR-069 Response without valid session or device correlation');
+            return response('No active session', 400);
+        }
+        
+        // Determina tipo di risposta
+        $responseType = $this->detectResponseType($xml);
+        
+        \Log::info('TR-069 response type detected', ['type' => $responseType]);
+        
+        // Gestisce risposta in base al tipo
+        switch ($responseType) {
+            case 'GetParameterValuesResponse':
+                $this->handleGetParameterValuesResponse($xml, $session);
+                break;
+                
+            case 'SetParameterValuesResponse':
+                $this->handleSetParameterValuesResponse($xml, $session);
+                break;
+                
+            case 'RebootResponse':
+                $this->handleRebootResponse($xml, $session);
+                break;
+                
+            case 'TransferComplete':
+                $this->handleTransferCompleteResponse($xml, $session);
+                break;
+                
+            default:
+                \Log::warning('TR-069 unknown response type', ['body' => $xml->asXML()]);
+                break;
+        }
+        
+        // Genera risposta successiva
+        $response = $this->generateSessionResponse($session);
+        
+        return response($response, 200)
+            ->header('Content-Type', 'text/xml; charset=utf-8')
+            ->header('SOAPAction', '')
+            ->cookie('TR069SessionID', $session->cookie, 5);
+    }
+    
+    /**
+     * Rileva tipo di messaggio SOAP (Inform o Response)
+     * Detect SOAP message type (Inform or Response)
+     * 
+     * @param \SimpleXMLElement $xml Documento XML
+     * @return string Tipo messaggio
+     */
+    private function detectMessageType($xml): string
+    {
+        // Prima verifica se è un Inform
+        if ($xml->xpath('//cwmp:Inform')) {
+            return 'Inform';
+        }
+        
+        // Altrimenti verifica i vari tipi di risposta
+        return $this->detectResponseType($xml);
+    }
+    
+    /**
+     * Rileva tipo di risposta SOAP
+     * Detect SOAP response type
+     * 
+     * @param \SimpleXMLElement $xml Documento XML
+     * @return string Tipo risposta
+     */
+    private function detectResponseType($xml): string
+    {
+        if ($xml->xpath('//cwmp:GetParameterValuesResponse')) {
+            return 'GetParameterValuesResponse';
+        } elseif ($xml->xpath('//cwmp:SetParameterValuesResponse')) {
+            return 'SetParameterValuesResponse';
+        } elseif ($xml->xpath('//cwmp:RebootResponse')) {
+            return 'RebootResponse';
+        } elseif ($xml->xpath('//cwmp:TransferComplete')) {
+            return 'TransferComplete';
+        } elseif ($xml->xpath('//cwmp:DownloadResponse')) {
+            return 'DownloadResponse';
+        }
+        
+        return 'Unknown';
+    }
+    
+    /**
+     * Gestisce GetParameterValuesResponse
+     * Handle GetParameterValuesResponse
+     * 
+     * @param \SimpleXMLElement $xml Documento XML
+     * @param \App\Models\Tr069Session $session Sessione corrente
+     * @return void
+     */
+    private function handleGetParameterValuesResponse($xml, $session): void
+    {
+        // Estrae parametri dalla risposta
+        $paramList = $xml->xpath('//cwmp:ParameterValueStruct') ?? [];
+        $parameters = [];
+        
+        foreach ($paramList as $param) {
+            $name = (string)($param->Name ?? '');
+            $value = (string)($param->Value ?? '');
+            $parameters[$name] = $value;
+        }
+        
+        \Log::info('TR-069 GetParameterValues response parsed', ['parameters' => $parameters]);
+        
+        // Aggiorna task associata se presente
+        if ($session->last_command_sent && isset($session->last_command_sent['task_id'])) {
+            $task = ProvisioningTask::find($session->last_command_sent['task_id']);
+            
+            if ($task) {
+                $task->update([
+                    'status' => 'completed',
+                    'result' => [
+                        'success' => true,
+                        'parameters' => $parameters,
+                        'completed_at' => now()->toIso8601String()
+                    ]
+                ]);
+                
+                \Log::info('TR-069 Task completed', ['task_id' => $task->id]);
+            }
+        }
+    }
+    
+    /**
+     * Gestisce SetParameterValuesResponse
+     * Handle SetParameterValuesResponse
+     * 
+     * @param \SimpleXMLElement $xml Documento XML
+     * @param \App\Models\Tr069Session $session Sessione corrente
+     * @return void
+     */
+    private function handleSetParameterValuesResponse($xml, $session): void
+    {
+        // Estrae status dalla risposta
+        $status = $xml->xpath('//cwmp:Status')[0] ?? null;
+        $statusCode = $status ? (int)((string)$status) : 0;
+        
+        $success = $statusCode === 0; // 0 = successo in TR-069
+        
+        \Log::info('TR-069 SetParameterValues response', ['status' => $statusCode, 'success' => $success]);
+        
+        // Aggiorna task associata
+        if ($session->last_command_sent && isset($session->last_command_sent['task_id'])) {
+            $task = ProvisioningTask::find($session->last_command_sent['task_id']);
+            
+            if ($task) {
+                $task->update([
+                    'status' => $success ? 'completed' : 'failed',
+                    'result' => [
+                        'success' => $success,
+                        'status_code' => $statusCode,
+                        'completed_at' => now()->toIso8601String()
+                    ]
+                ]);
+                
+                \Log::info('TR-069 Task updated', ['task_id' => $task->id, 'status' => $success ? 'completed' : 'failed']);
+            }
+        }
+    }
+    
+    /**
+     * Gestisce RebootResponse
+     * Handle RebootResponse
+     * 
+     * @param \SimpleXMLElement $xml Documento XML
+     * @param \App\Models\Tr069Session $session Sessione corrente
+     * @return void
+     */
+    private function handleRebootResponse($xml, $session): void
+    {
+        \Log::info('TR-069 Reboot response received');
+        
+        // Aggiorna task associata
+        if ($session->last_command_sent && isset($session->last_command_sent['task_id'])) {
+            $task = ProvisioningTask::find($session->last_command_sent['task_id']);
+            
+            if ($task) {
+                $task->update([
+                    'status' => 'completed',
+                    'result' => [
+                        'success' => true,
+                        'message' => 'Device reboot initiated',
+                        'completed_at' => now()->toIso8601String()
+                    ]
+                ]);
+                
+                \Log::info('TR-069 Reboot task completed', ['task_id' => $task->id]);
+            }
+        }
+    }
+    
+    /**
+     * Gestisce TransferComplete (callback firmware download)
+     * Handle TransferComplete (firmware download callback)
+     * 
+     * Questo è il callback critico per firmware deployment.
+     * Il dispositivo lo invia dopo aver completato il download del firmware.
+     * 
+     * This is the critical callback for firmware deployment.
+     * Device sends it after completing firmware download.
+     * 
+     * @param \SimpleXMLElement $xml Documento XML
+     * @param \App\Models\Tr069Session $session Sessione corrente
+     * @return void
+     */
+    private function handleTransferCompleteResponse($xml, $session): void
+    {
+        // Estrae informazioni da TransferComplete
+        $commandKey = $xml->xpath('//cwmp:CommandKey')[0] ?? null;
+        $faultStruct = $xml->xpath('//cwmp:FaultStruct')[0] ?? null;
+        $startTime = $xml->xpath('//cwmp:StartTime')[0] ?? null;
+        $completeTime = $xml->xpath('//cwmp:CompleteTime')[0] ?? null;
+        
+        $success = !$faultStruct; // Se non c'è FaultStruct, è successo
+        
+        $faultCode = null;
+        $faultString = null;
+        
+        if ($faultStruct) {
+            $faultCode = (string)($faultStruct->FaultCode ?? '');
+            $faultString = (string)($faultStruct->FaultString ?? '');
+        }
+        
+        \Log::info('TR-069 TransferComplete received', [
+            'success' => $success,
+            'command_key' => (string)$commandKey,
+            'fault_code' => $faultCode,
+            'fault_string' => $faultString
+        ]);
+        
+        // Trova task da aggiornare tramite CommandKey (metodo deterministico)
+        // Find task to update via CommandKey (deterministic method)
+        $task = null;
+        $commandKeyStr = (string)$commandKey;
+        
+        // Metodo 1: Via CommandKey (formato: task_<id>)
+        // Method 1: Via CommandKey (format: task_<id>)
+        if (str_starts_with($commandKeyStr, 'task_')) {
+            $taskId = (int)str_replace('task_', '', $commandKeyStr);
+            $task = ProvisioningTask::find($taskId);
+            
+            if ($task) {
+                \Log::info('TR-069 TransferComplete task found via CommandKey', [
+                    'task_id' => $task->id,
+                    'command_key' => $commandKeyStr
+                ]);
+            }
+        }
+        
+        // Metodo 2: Tramite sessione last_command_sent (fallback)
+        // Method 2: Via session last_command_sent (fallback)
+        if (!$task && $session->last_command_sent && isset($session->last_command_sent['task_id'])) {
+            $task = ProvisioningTask::find($session->last_command_sent['task_id']);
+            
+            if ($task) {
+                \Log::info('TR-069 TransferComplete task found via session', ['task_id' => $task->id]);
+            }
+        }
+        
+        // Metodo 3: Cerca task download per dispositivo SOLO se CommandKey è generico (ultimo resort)
+        // Method 3: Find download task by device ONLY if CommandKey is generic (last resort)
+        if (!$task && $session->cpe_device_id && !str_starts_with($commandKeyStr, 'task_')) {
+            $task = ProvisioningTask::where('cpe_device_id', $session->cpe_device_id)
+                ->where('task_type', 'download')
+                ->whereIn('status', ['processing', 'pending'])
+                ->orderBy('created_at', 'desc')
+                ->first();
+            
+            if ($task) {
+                \Log::warning('TR-069 TransferComplete task found via device fallback (non-deterministic)', [
+                    'task_id' => $task->id,
+                    'command_key' => $commandKeyStr
+                ]);
+            }
+        }
+        
+        if ($task) {
+            $task->update([
+                'status' => $success ? 'completed' : 'failed',
+                'result' => [
+                    'success' => $success,
+                    'command_key' => (string)$commandKey,
+                    'start_time' => (string)$startTime,
+                    'complete_time' => (string)$completeTime,
+                    'fault_code' => $faultCode,
+                    'fault_string' => $faultString,
+                    'completed_at' => now()->toIso8601String()
+                ]
+            ]);
+            
+            // Aggiorna anche FirmwareDeployment se task è di tipo download
+            if ($task->task_type === 'download' && isset($task->task_params['deployment_id'])) {
+                $deployment = \App\Models\FirmwareDeployment::find($task->task_params['deployment_id']);
+                
+                if ($deployment) {
+                    $deployment->update([
+                        'status' => $success ? 'completed' : 'failed',
+                        'deployed_at' => now()
+                    ]);
+                    
+                    \Log::info('TR-069 Firmware deployment updated', [
+                        'deployment_id' => $deployment->id,
+                        'status' => $success ? 'completed' : 'failed'
+                    ]);
+                }
+            }
+            
+            \Log::info('TR-069 Transfer task completed', [
+                'task_id' => $task->id,
+                'success' => $success
+            ]);
+        } else {
+            \Log::warning('TR-069 TransferComplete without matching task', [
+                'device_id' => $session->cpe_device_id,
+                'command_key' => (string)$commandKey
+            ]);
+        }
     }
 }

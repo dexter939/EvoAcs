@@ -211,18 +211,24 @@ class TR069Service
      * @param string $url URL pubblico file da scaricare / Public URL of file to download
      * @param string $fileType Tipo file TR-069 (default "1 Firmware Upgrade Image") / TR-069 file type
      * @param int $fileSize Dimensione file in bytes / File size in bytes
+     * @param int $messageId Message ID SOAP per sessione / SOAP message ID for session
+     * @param string $commandKey Command Key custom per correlazione (opzionale) / Custom command key for correlation
      * @return string Messaggio SOAP XML / SOAP XML message
      */
-    public function generateDownloadRequest($url, $fileType = '1 Firmware Upgrade Image', $fileSize = 0)
+    public function generateDownloadRequest($url, $fileType = '1 Firmware Upgrade Image', $fileSize = 0, $messageId = 1, $commandKey = '')
     {
+        // Usa CommandKey custom se fornito, altrimenti genera automatico
+        // Use custom CommandKey if provided, otherwise generate automatic
+        $cmdKey = $commandKey ?: 'Download_' . time();
+        
         return '<?xml version="1.0" encoding="UTF-8"?>
 <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-0">
     <soap:Header>
-        <cwmp:ID soap:mustUnderstand="1">' . uniqid() . '</cwmp:ID>
+        <cwmp:ID soap:mustUnderstand="1">' . $messageId . '</cwmp:ID>
     </soap:Header>
     <soap:Body>
         <cwmp:Download>
-            <CommandKey>Download_' . time() . '</CommandKey>
+            <CommandKey>' . htmlspecialchars($cmdKey) . '</CommandKey>
             <FileType>' . htmlspecialchars($fileType) . '</FileType>
             <URL>' . htmlspecialchars($url) . '</URL>
             <Username></Username>

@@ -176,11 +176,25 @@ Il sistema utilizza le seguenti variabili d'ambiente (già configurate):
 - Interfaccia web completa con CRUD profili, firmware upload/deploy, azioni dispositivi
 - Validazione firmware upload: richiede file o URL download per prevenire deploy vuoti
 
-### Limitazioni Note (da completare in Fase 2)
-- **TransferComplete Handling**: Firmware deployment segna "completed" dopo invio Download SOAP, senza aspettare TransferComplete dal CPE. Richiede implementazione callback e session management TR-069.
-- **Session Management**: Non implementata gestione sessioni TR-069 multiple con lo stesso dispositivo
-- **Response Parsing**: Le risposte SOAP dai dispositivi vengono loggiate ma non parsate completamente
+### Response Handling & Callback (Fase 2) ✅
+- **Response Detection**: Sistema automatico per rilevare tipo messaggio SOAP (Inform vs Response)
+- **GetParameterValuesResponse**: Parsing completo parametri TR-181 con aggiornamento task
+- **SetParameterValuesResponse**: Verifica status code e aggiornamento stato task (completed/failed)
+- **RebootResponse**: Conferma reboot dispositivo e completamento task
+- **TransferComplete Callback**: Gestione completa download firmware con:
+  - **Cookie-less Correlation**: TransferComplete arriva in nuova sessione HTTP senza cookie → correlazione via DeviceId extraction da SOAP body
+  - **Deterministic Task Correlation**: CommandKey-based matching (`task_<id>`) per prevenire race conditions con deployment multipli simultanei
+  - **Fallback Chain**: 3 livelli di correlazione (CommandKey → Session → Device fallback) con logging per diagnostica
+  - Parsing FaultStruct per errori download
+  - Aggiornamento task di provisioning con risultato dettagliato
+  - Aggiornamento FirmwareDeployment con stato finale (completed/failed)
+  - Tracciamento tempi (start_time, complete_time)
+  - Logging fault code e fault string per troubleshooting
+
+### Limitazioni Note (da completare in Fase 2+)
 - **Horizon Dashboard**: Horizon installato ma dashboard non esposta (può essere aggiunta con route dedicata)
+- **Connection Request**: Comunicazione bidirezionale ACS→CPE tramite ConnectionRequestURL (preparato ma non testato)
+- **Diagnostica Avanzata**: Comandi ping, traceroute, speed test da implementare
 
 ## Prossimi Sviluppi (Fase 2)
 
