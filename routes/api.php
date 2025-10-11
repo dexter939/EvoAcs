@@ -38,4 +38,9 @@ Route::prefix('v1')->middleware(\App\Http\Middleware\ApiKeyAuth::class)->group(f
     Route::post('usp/devices/{device}/add-object', [UspController::class, 'addObject']);
     Route::post('usp/devices/{device}/delete-object', [UspController::class, 'deleteObject']);
     Route::post('usp/devices/{device}/reboot', [UspController::class, 'reboot']);
+    
+    // USP TR-369 Event Subscriptions
+    Route::post('usp/devices/{device}/subscribe', [UspController::class, 'createSubscription']);
+    Route::get('usp/devices/{device}/subscriptions', [UspController::class, 'listSubscriptions']);
+    Route::delete('usp/devices/{device}/subscriptions/{subscription}', [UspController::class, 'deleteSubscription']);
 });

@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\CpeDevice;
 use App\Models\UspPendingRequest;
+use App\Models\UspSubscription;
 use App\Services\UspMessageService;
 use App\Services\UspMqttService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 /**
@@ -496,5 +498,195 @@ class UspController extends Controller
         }
         
         return $updateObjects;
+    }
+    
+    /**
+     * Create event subscription on USP device
+     * 
+     * Sends a USP Subscribe message (ADD to Device.LocalAgent.Subscription.{i}.)
+     * 
+     * @param Request $request {event_path, reference_list (optional), notification_retry}
+     * @param CpeDevice $device Target USP device
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function createSubscription(Request $request, CpeDevice $device)
+    {
+        // Validate device is TR-369
+        if ($device->protocol_type !== 'tr369') {
+            return response()->json([
+                'error' => 'Device is not a TR-369 USP device',
+                'device_protocol' => $device->protocol_type
+            ], 400);
+        }
+        
+        // Validate request
+        $validated = $request->validate([
+            'event_path' => 'required|string',
+            'reference_list' => 'nullable|array',
+            'reference_list.*' => 'string',
+            'notification_retry' => 'nullable|boolean'
+        ]);
+        
+        try {
+            $msgId = 'api-subscribe-' . Str::random(10);
+            $subscriptionId = (string) Str::uuid();
+            
+            // Use transaction to ensure atomicity
+            return DB::transaction(function () use ($device, $validated, $msgId, $subscriptionId) {
+                // Create subscription record
+                $subscription = UspSubscription::create([
+                    'cpe_device_id' => $device->id,
+                    'subscription_id' => $subscriptionId,
+                    'event_path' => $validated['event_path'],
+                    'reference_list' => $validated['reference_list'] ?? [],
+                    'notification_retry' => $validated['notification_retry'] ?? true,
+                    'is_active' => true
+                ]);
+                
+                // Send via appropriate MTP
+                if ($device->mtp_type === 'mqtt') {
+                    $this->uspService->sendSubscriptionRequest(
+                        $device,
+                        $validated['event_path'],
+                        $subscriptionId,
+                        $validated['reference_list'] ?? [],
+                        $validated['notification_retry'] ?? true,
+                        $msgId
+                    );
+                    
+                    return response()->json([
+                        'message' => 'USP Subscribe request sent via MQTT',
+                        'msg_id' => $msgId,
+                        'subscription_id' => $subscriptionId,
+                        'device' => $device->serial_number,
+                        'event_path' => $validated['event_path'],
+                        'mtp' => 'mqtt',
+                        'subscription' => $subscription
+                    ], 201);
+                } else {
+                    // For HTTP MTP, store request
+                    $subscribeMessage = $this->uspService->createSubscribeMessage(
+                        $validated['event_path'],
+                        $subscriptionId,
+                        $validated['reference_list'] ?? [],
+                        $validated['notification_retry'] ?? true,
+                        $msgId
+                    );
+                    $pendingRequest = $this->storePendingRequest($device, $msgId, 'add', $subscribeMessage);
+                    
+                    return response()->json([
+                        'message' => 'USP Subscribe request stored for HTTP polling',
+                        'msg_id' => $msgId,
+                        'subscription_id' => $subscriptionId,
+                        'device' => $device->serial_number,
+                        'event_path' => $validated['event_path'],
+                        'mtp' => 'http',
+                        'expires_at' => $pendingRequest->expires_at,
+                        'subscription' => $subscription
+                    ], 201);
+                }
+            });
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to create subscription',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    /**
+     * List all subscriptions for a device
+     * 
+     * @param CpeDevice $device Target USP device
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function listSubscriptions(CpeDevice $device)
+    {
+        // Validate device is TR-369
+        if ($device->protocol_type !== 'tr369') {
+            return response()->json([
+                'error' => 'Device is not a TR-369 USP device',
+                'device_protocol' => $device->protocol_type
+            ], 400);
+        }
+        
+        $subscriptions = UspSubscription::where('cpe_device_id', $device->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+            
+        return response()->json([
+            'device' => $device->serial_number,
+            'total' => $subscriptions->count(),
+            'subscriptions' => $subscriptions
+        ]);
+    }
+    
+    /**
+     * Delete subscription from USP device
+     * 
+     * Sends a USP Delete message to remove subscription
+     * 
+     * @param CpeDevice $device Target USP device
+     * @param UspSubscription $subscription Target subscription
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function deleteSubscription(CpeDevice $device, UspSubscription $subscription)
+    {
+        // Validate device is TR-369
+        if ($device->protocol_type !== 'tr369') {
+            return response()->json([
+                'error' => 'Device is not a TR-369 USP device',
+                'device_protocol' => $device->protocol_type
+            ], 400);
+        }
+        
+        // Validate subscription belongs to device
+        if ($subscription->cpe_device_id !== $device->id) {
+            return response()->json([
+                'error' => 'Subscription does not belong to this device'
+            ], 403);
+        }
+        
+        try {
+            $msgId = 'api-unsubscribe-' . Str::random(10);
+            $objectPath = "Device.LocalAgent.Subscription.{$subscription->subscription_id}.";
+            
+            // Use transaction to ensure atomicity
+            return DB::transaction(function () use ($device, $subscription, $msgId, $objectPath) {
+                // Mark as inactive immediately
+                $subscription->update(['is_active' => false]);
+                
+                // Send DELETE message via appropriate MTP
+                if ($device->mtp_type === 'mqtt') {
+                    $this->mqttService->sendDeleteRequest($device, [$objectPath], $msgId);
+                    
+                    return response()->json([
+                        'message' => 'USP Delete request sent via MQTT',
+                        'msg_id' => $msgId,
+                        'subscription_id' => $subscription->subscription_id,
+                        'device' => $device->serial_number,
+                        'mtp' => 'mqtt'
+                    ]);
+                } else {
+                    // For HTTP MTP, store request (fix: add allowPartial parameter)
+                    $deleteMessage = $this->uspService->createDeleteMessage([$objectPath], false, $msgId);
+                    $pendingRequest = $this->storePendingRequest($device, $msgId, 'delete', $deleteMessage);
+                    
+                    return response()->json([
+                        'message' => 'USP Delete request stored for HTTP polling',
+                        'msg_id' => $msgId,
+                        'subscription_id' => $subscription->subscription_id,
+                        'device' => $device->serial_number,
+                        'mtp' => 'http',
+                        'expires_at' => $pendingRequest->expires_at
+                    ]);
+                }
+            });
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to delete subscription',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 }
