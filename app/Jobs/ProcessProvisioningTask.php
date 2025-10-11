@@ -14,23 +14,82 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 
+/**
+ * ProcessProvisioningTask - Job per elaborazione asincrona task provisioning
+ * ProcessProvisioningTask - Job for asynchronous provisioning task processing
+ * 
+ * Questo job elabora task di provisioning TR-069:
+ * - GetParameterValues: Lettura parametri dal dispositivo
+ * - SetParameterValues: Scrittura parametri sul dispositivo
+ * - Reboot: Riavvio remoto dispositivo
+ * - Download: Download firmware via TR-069
+ * 
+ * This job processes TR-069 provisioning tasks:
+ * - GetParameterValues: Read parameters from device
+ * - SetParameterValues: Write parameters to device
+ * - Reboot: Remote device reboot
+ * - Download: Firmware download via TR-069
+ * 
+ * Caratteristiche:
+ * - 3 tentativi automatici con delay di 60 secondi / 3 automatic retries with 60s delay
+ * - Timeout 120 secondi per richiesta / 120s timeout per request
+ * - Invio SOAP request a ConnectionRequestURL del dispositivo / SOAP request sent to device ConnectionRequestURL
+ * - Aggiornamento automatico stato FirmwareDeployment per download / Automatic FirmwareDeployment status update for downloads
+ */
 class ProcessProvisioningTask implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, BusQueueable, SerializesModels;
 
+    /**
+     * Numero massimo tentativi / Maximum number of attempts
+     */
     public $tries = 3;
+    
+    /**
+     * Timeout job in secondi / Job timeout in seconds
+     */
     public $timeout = 120;
 
+    /**
+     * Costruttore job
+     * Job constructor
+     * 
+     * @param ProvisioningTask $task Task da elaborare / Task to process
+     */
     public function __construct(
         public ProvisioningTask $task
     ) {}
 
+    /**
+     * Esegue il job di provisioning
+     * Execute provisioning job
+     * 
+     * Flusso:
+     * 1. Verifica task in stato "pending"
+     * 2. Aggiorna stato a "processing"
+     * 3. Genera richiesta SOAP TR-069 appropriata
+     * 4. Invia richiesta a ConnectionRequestURL dispositivo
+     * 5. Salva risultato e aggiorna stato task
+     * 6. Se download firmware, aggiorna anche stato FirmwareDeployment
+     * 
+     * Flow:
+     * 1. Check task is in "pending" status
+     * 2. Update status to "processing"
+     * 3. Generate appropriate TR-069 SOAP request
+     * 4. Send request to device ConnectionRequestURL
+     * 5. Save result and update task status
+     * 6. If firmware download, also update FirmwareDeployment status
+     */
     public function handle(): void
     {
+        // Solo task pending possono essere elaborate
+        // Only pending tasks can be processed
         if ($this->task->status !== 'pending') {
             return;
         }
 
+        // Aggiorna stato a processing
+        // Update status to processing
         $this->task->update([
             'status' => 'processing',
             'started_at' => now()
@@ -39,6 +98,8 @@ class ProcessProvisioningTask implements ShouldQueue
         try {
             $device = $this->task->cpeDevice;
             
+            // Verifica dispositivo e ConnectionRequestURL disponibili
+            // Verify device and ConnectionRequestURL available
             if (!$device || !$device->connection_request_url) {
                 throw new \Exception('Device not found or connection request URL missing');
             }
@@ -46,6 +107,8 @@ class ProcessProvisioningTask implements ShouldQueue
             $tr069Service = new TR069Service();
             $soapRequest = null;
 
+            // Genera richiesta SOAP appropriata per tipo task
+            // Generate appropriate SOAP request for task type
             switch ($this->task->task_type) {
                 case 'get_parameters':
                     $parameters = $this->task->task_data['parameters'] ?? [];
@@ -69,6 +132,8 @@ class ProcessProvisioningTask implements ShouldQueue
                     break;
             }
 
+            // Invia richiesta SOAP al dispositivo se generata
+            // Send SOAP request to device if generated
             if ($soapRequest) {
                 $response = Http::withHeaders([
                     'Content-Type' => 'text/xml; charset=utf-8',
@@ -83,6 +148,8 @@ class ProcessProvisioningTask implements ShouldQueue
                     'body' => $soapRequest
                 ]);
 
+                // Aggiorna task come completata
+                // Update task as completed
                 $this->task->update([
                     'status' => 'completed',
                     'completed_at' => now(),
@@ -92,6 +159,8 @@ class ProcessProvisioningTask implements ShouldQueue
                     ]
                 ]);
 
+                // Se task di download firmware, aggiorna deployment
+                // If firmware download task, update deployment
                 if ($this->task->task_type === 'download' && isset($this->task->task_data['deployment_id'])) {
                     $deployment = \App\Models\FirmwareDeployment::find($this->task->task_data['deployment_id']);
                     if ($deployment) {
@@ -111,8 +180,12 @@ class ProcessProvisioningTask implements ShouldQueue
             }
 
         } catch (\Exception $e) {
+            // Gestione errori con retry logic
+            // Error handling with retry logic
             $this->task->increment('retry_count');
             
+            // Se raggiunto max retry, segna come failed
+            // If max retry reached, mark as failed
             if ($this->task->retry_count >= $this->task->max_retries) {
                 $this->task->update([
                     'status' => 'failed',
@@ -120,6 +193,8 @@ class ProcessProvisioningTask implements ShouldQueue
                     'completed_at' => now()
                 ]);
                 
+                // Aggiorna anche deployment firmware se fallito
+                // Also update firmware deployment if failed
                 if ($this->task->task_type === 'download' && isset($this->task->task_data['deployment_id'])) {
                     $deployment = \App\Models\FirmwareDeployment::find($this->task->task_data['deployment_id']);
                     if ($deployment) {
@@ -131,6 +206,8 @@ class ProcessProvisioningTask implements ShouldQueue
                     }
                 }
             } else {
+                // Altrimenti riprova dopo 60 secondi
+                // Otherwise retry after 60 seconds
                 $this->task->update([
                     'status' => 'pending',
                     'error_message' => $e->getMessage()
