@@ -18,9 +18,9 @@ The system now supports next-generation TR-369 User Services Platform alongside 
 - ✅ **Binary Serialization**: Protobuf message and Record wrapping for MTP transport
 - ✅ **Device Scopes**: Query scopes for tr069(), tr369(), uspMqtt() filtering
 - ✅ **USP Controller**: HTTP endpoint at /usp for receiving USP Records, auto-registration of TR-369 devices, request handlers for GET/SET/OPERATE/ADD/DELETE/NOTIFY operations
+- ✅ **MQTT Transport Layer**: UspMqttService for broker-based pub/sub, UspMqttSubscriber daemon for receiving device messages, topic structure (controller: usp/controller/{id}/+, agent: usp/agent/{id}/request), msg_id tracking for request/response correlation
 
 **Pending Features:**
-- 🔄 MQTT broker integration for USP devices
 - 🔄 Web interface TR-369 device management
 - 🔄 RESTful API for USP operations
 - 🔄 USP Event/Notification Subscribe/Notify pattern
@@ -32,17 +32,17 @@ The web interface utilizes the Soft UI Dashboard Laravel template, offering a mo
 
 ### Technical Implementations
 - **TR-069 (CWMP) Server**: Features a dedicated `/tr069` SOAP endpoint for device communication, handling `Inform` requests, and managing stateful TR-069 sessions with cookie-based tracking. It supports `GetParameterValues`, `SetParameterValues`, `Reboot`, and `Download` operations.
-- **TR-369 (USP) Support**: Next-generation protocol implementation with Protocol Buffers encoding, MQTT/WebSocket transport, and full USP message operations (Get, Set, Add, Delete, Operate). HTTP endpoint `/usp` receives USP Records, auto-registers TR-369 devices (protocol_type=tr369, default OUI=000000), and responds with correct message types (GET_RESP, SET_RESP, OPERATE_RESP). Devices support dual-protocol operation with protocol_type field for TR-069/TR-369 selection.
+- **TR-369 (USP) Support**: Next-generation protocol implementation with Protocol Buffers encoding, MQTT/WebSocket transport, and full USP message operations (Get, Set, Add, Delete, Operate). HTTP endpoint `/usp` receives USP Records via binary POST. MQTT transport layer with UspMqttService enables broker-based communication (subscribe/publish) on standard USP topics. Auto-registration of TR-369 devices (protocol_type=tr369, default OUI=000000, mtp_type=mqtt/http) with correct message types (GET_RESP, SET_RESP, OPERATE_RESP) and msg_id tracking. Devices support dual-protocol operation with protocol_type field for TR-069/TR-369 selection.
 - **Database**: PostgreSQL is used for high-performance data storage, optimized with indexes for managing over 100K devices. Key tables include `cpe_devices`, `configuration_profiles`, `firmware_versions`, `device_parameters`, `provisioning_tasks`, and `firmware_deployments`.
 - **Asynchronous Queue System**: Laravel Horizon is configured with Redis queues to handle asynchronous tasks such as `ProcessProvisioningTask`, `ProcessFirmwareDeployment`, and `SendTR069Request`. Tasks include retry logic and timeouts for robustness.
 - **API Security**: All API v1 endpoints are protected using API Key authentication via a custom middleware, requiring an `X-API-Key` header or `api_key` query parameter.
 - **RESTful API (v1)**: Provides authenticated endpoints for managing devices (CRUD), provisioning (get/set parameters, reboot), firmware (upload, deploy), and remote diagnostics (ping, traceroute, download/upload speed tests).
 - **Web Interface**: A comprehensive web interface is accessible via `/acs/*`, offering a dashboard with 8 statistics cards and 4 Chart.js graphs (doughnut, bar, polar area, line), device management, provisioning tools, firmware management, and configuration profile CRUD functionalities. All dashboard statistics are calculated in the controller for performance and accuracy, including distinct TR-181 parameter counts.
 - **Eloquent Models**: Core models include `CpeDevice`, `ConfigurationProfile`, `FirmwareVersion`, `DeviceParameter`, `ProvisioningTask`, `FirmwareDeployment`, and `DiagnosticTest`.
-- **Services**: `TR069Service` handles TR-069 SOAP requests, `UspMessageService` manages TR-369 protobuf encoding/decoding, Record wrapping for MTP transport, and correct response message creation for each USP operation type.
+- **Services**: `TR069Service` handles TR-069 SOAP requests, `UspMessageService` manages TR-369 protobuf encoding/decoding, Record wrapping for MTP transport, and correct response message creation for each USP operation type. `UspMqttService` provides MQTT pub/sub for broker-based USP device communication with methods sendGetRequest(), sendSetRequest(), sendOperateRequest().
 - **Controllers**: `TR069Controller` manages the TR-069 protocol, `UspController` handles TR-369 USP protocol with /usp endpoint, `Api` controllers handle RESTful interactions for devices, provisioning, and firmware, and `AcsController` manages the web interface.
 - **Scalability**: Database optimizations include composite indexes and soft deletes. The queue system is designed for high throughput and reliability.
-- **Configuration**: Uses standard Laravel environment variables for database and API key settings. The server listens on `0.0.0.0:5000`.
+- **Configuration**: Uses standard Laravel environment variables for database, API key, MQTT broker (MQTT_HOST, MQTT_PORT, MQTT_CLIENT_ID), and USP settings (USP_CONTROLLER_ENDPOINT_ID). The server listens on `0.0.0.0:5000`. MQTT subscriber daemon available via `php artisan usp:mqtt-subscribe`.
 
 ### Feature Specifications
 - **Auto-registration**: Devices are automatically identified via Serial Number, OUI, and Product Class.
