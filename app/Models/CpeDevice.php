@@ -18,6 +18,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $protocol_type Protocollo: tr069, tr369 / Protocol: tr069, tr369
  * @property string $usp_endpoint_id Endpoint ID USP univoco (TR-369) / Unique USP Endpoint ID (TR-369)
  * @property string $mqtt_client_id Client ID MQTT per transport / MQTT Client ID for transport
+ * @property string $websocket_client_id Client ID WebSocket per transport / WebSocket Client ID for transport
+ * @property \DateTime $websocket_connected_at Timestamp connessione WebSocket / WebSocket connection timestamp
+ * @property \DateTime $last_websocket_ping Ultimo ping WebSocket / Last WebSocket ping
  * @property string $mtp_type Message Transfer Protocol: mqtt, websocket, stomp, coap, uds
  * @property string $oui Organizationally Unique Identifier (IEEE)
  * @property string $product_class Classe prodotto TR-069 / TR-069 product class
@@ -41,6 +44,9 @@ class CpeDevice extends Model
         'protocol_type',
         'usp_endpoint_id',
         'mqtt_client_id',
+        'websocket_client_id',
+        'websocket_connected_at',
+        'last_websocket_ping',
         'mtp_type',
         'oui',
         'product_class',
@@ -77,6 +83,8 @@ class CpeDevice extends Model
         'is_active' => 'boolean',
         'last_inform' => 'datetime',
         'last_contact' => 'datetime',
+        'websocket_connected_at' => 'datetime',
+        'last_websocket_ping' => 'datetime',
     ];
 
     /**
@@ -180,6 +188,38 @@ class CpeDevice extends Model
     {
         return $query->where('protocol_type', 'tr369')
                      ->where('mtp_type', 'mqtt');
+    }
+
+    /**
+     * Scope per filtrare dispositivi USP con WebSocket
+     * Scope to filter USP devices with WebSocket transport
+     */
+    public function scopeUspWebSocket($query)
+    {
+        return $query->where('protocol_type', 'tr369')
+                     ->where('mtp_type', 'websocket');
+    }
+
+    /**
+     * Scope per dispositivi WebSocket connessi
+     * Scope for connected WebSocket devices
+     * 
+     * Considera un device connesso se:
+     * - Ha un last_websocket_ping recente (< 5 min), oppure
+     * - Se ping è null, usa websocket_connected_at recente (< 5 min)
+     */
+    public function scopeWebSocketConnected($query)
+    {
+        $timeout = now()->subMinutes(5);
+        
+        return $query->where('mtp_type', 'websocket')
+                     ->where(function($q) use ($timeout) {
+                         $q->where('last_websocket_ping', '>', $timeout)
+                           ->orWhere(function($subq) use ($timeout) {
+                               $subq->whereNull('last_websocket_ping')
+                                    ->where('websocket_connected_at', '>', $timeout);
+                           });
+                     });
     }
 
     /**
