@@ -33,7 +33,7 @@ return new class extends Migration
             // Health
             $table->string('health_status')->default('OK'); // OK, Warning, Error
             $table->float('temperature')->nullable(); // Celsius
-            $table->integer('smart_status')->default(0); // SMART health
+            $table->string('smart_status')->default('PASSED'); // SMART health: PASSED, FAILED, WARNING
             
             $table->timestamps();
             $table->softDeletes();

@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\ProvisioningController;
 use App\Http\Controllers\Api\FirmwareController;
 use App\Http\Controllers\Api\DiagnosticsController;
 use App\Http\Controllers\Api\UspController;
+use App\Http\Controllers\Api\VoiceServiceController;
+use App\Http\Controllers\Api\StorageServiceController;
 
 Route::prefix('v1')->middleware(\App\Http\Middleware\ApiKeyAuth::class)->group(function () {
     Route::apiResource('devices', DeviceController::class);
@@ -43,4 +45,16 @@ Route::prefix('v1')->middleware(\App\Http\Middleware\ApiKeyAuth::class)->group(f
     Route::post('usp/devices/{device}/subscribe', [UspController::class, 'createSubscription']);
     Route::get('usp/devices/{device}/subscriptions', [UspController::class, 'listSubscriptions']);
     Route::delete('usp/devices/{device}/subscriptions/{subscription}', [UspController::class, 'deleteSubscription']);
+    
+    // TR-104 VoIP Service Management
+    Route::apiResource('voice-services', VoiceServiceController::class);
+    Route::post('voice-services/{service}/sip-profiles', [VoiceServiceController::class, 'createSipProfile']);
+    Route::post('sip-profiles/{profile}/voip-lines', [VoiceServiceController::class, 'createVoipLine']);
+    Route::get('voice-services/stats/overview', [VoiceServiceController::class, 'getStatistics']);
+    
+    // TR-140 Storage Service Management
+    Route::apiResource('storage-services', StorageServiceController::class);
+    Route::post('storage-services/{service}/volumes', [StorageServiceController::class, 'createVolume']);
+    Route::post('storage-services/{service}/file-servers', [StorageServiceController::class, 'createFileServer']);
+    Route::get('storage-services/stats/overview', [StorageServiceController::class, 'getStatistics']);
 });

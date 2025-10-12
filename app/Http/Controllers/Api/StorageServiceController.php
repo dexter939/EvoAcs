@@ -3,47 +3,222 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\StorageService;
+use App\Models\LogicalVolume;
+use App\Models\FileServer;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class StorageServiceController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(Request $request): JsonResponse
     {
-        //
+        $query = StorageService::with(['cpeDevice', 'logicalVolumes', 'fileServers']);
+
+        if ($request->has('cpe_device_id')) {
+            $query->where('cpe_device_id', $request->cpe_device_id);
+        }
+
+        if ($request->has('enabled')) {
+            $query->where('enabled', $request->boolean('enabled'));
+        }
+
+        if ($request->has('health_status')) {
+            $query->where('health_status', $request->health_status);
+        }
+
+        $services = $query->paginate($request->input('per_page', 50));
+
+        return response()->json($services);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
-        //
+        $validator = Validator::make($request->all(), [
+            'cpe_device_id' => 'required|exists:cpe_devices,id',
+            'service_instance' => 'required|integer',
+            'enabled' => 'boolean',
+            'total_capacity' => 'required|integer|min:0',
+            'used_capacity' => 'integer|min:0',
+            'raid_supported' => 'boolean',
+            'supported_raid_types' => 'array',
+            'ftp_supported' => 'boolean',
+            'sftp_supported' => 'boolean',
+            'http_supported' => 'boolean',
+            'https_supported' => 'boolean',
+            'samba_supported' => 'boolean',
+            'nfs_supported' => 'boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $service = StorageService::create($validator->validated());
+
+        return response()->json([
+            'message' => 'Storage service created successfully',
+            'service' => $service->load('cpeDevice')
+        ], 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function show(string $id): JsonResponse
     {
-        //
+        $service = StorageService::with(['cpeDevice', 'logicalVolumes', 'fileServers'])->find($id);
+
+        if (!$service) {
+            return response()->json(['error' => 'Storage service not found'], 404);
+        }
+
+        return response()->json($service);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    public function update(Request $request, string $id): JsonResponse
     {
-        //
+        $service = StorageService::find($id);
+
+        if (!$service) {
+            return response()->json(['error' => 'Storage service not found'], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'enabled' => 'boolean',
+            'total_capacity' => 'integer|min:0',
+            'used_capacity' => 'integer|min:0',
+            'health_status' => 'string',
+            'temperature' => 'integer',
+            'smart_status' => 'string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $service->update($validator->validated());
+
+        return response()->json([
+            'message' => 'Storage service updated successfully',
+            'service' => $service->fresh(['cpeDevice'])
+        ]);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function destroy(string $id): JsonResponse
     {
-        //
+        $service = StorageService::find($id);
+
+        if (!$service) {
+            return response()->json(['error' => 'Storage service not found'], 404);
+        }
+
+        $service->delete();
+
+        return response()->json(['message' => 'Storage service deleted successfully']);
+    }
+
+    public function createVolume(Request $request, string $serviceId): JsonResponse
+    {
+        $service = StorageService::find($serviceId);
+
+        if (!$service) {
+            return response()->json(['error' => 'Storage service not found'], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'volume_instance' => 'required|integer',
+            'enabled' => 'boolean',
+            'volume_name' => 'required|string|max:255',
+            'filesystem' => ['required', Rule::in(['ext4', 'ext3', 'xfs', 'btrfs', 'ntfs', 'fat32'])],
+            'capacity' => 'required|integer|min:0',
+            'raid_level' => ['nullable', Rule::in(['RAID0', 'RAID1', 'RAID5', 'RAID6', 'RAID10'])],
+            'mount_point' => 'required|string',
+            'auto_mount' => 'boolean',
+            'read_only' => 'boolean',
+            'quota_enabled' => 'boolean',
+            'quota_size' => 'nullable|integer',
+            'encrypted' => 'boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $data = $validator->validated();
+        $data['storage_service_id'] = $serviceId;
+        $data['free_space'] = $data['capacity'];
+        $data['used_space'] = 0;
+        $data['usage_percent'] = 0;
+        $data['status'] = 'Online';
+
+        $volume = LogicalVolume::create($data);
+
+        return response()->json([
+            'message' => 'Logical volume created successfully',
+            'volume' => $volume
+        ], 201);
+    }
+
+    public function createFileServer(Request $request, string $serviceId): JsonResponse
+    {
+        $service = StorageService::find($serviceId);
+
+        if (!$service) {
+            return response()->json(['error' => 'Storage service not found'], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'server_type' => ['required', Rule::in(['FTP', 'SFTP', 'HTTP', 'HTTPS', 'SAMBA', 'NFS'])],
+            'enabled' => 'boolean',
+            'port' => 'required|integer|between:1,65535',
+            'bind_interface' => 'string',
+            'max_connections' => 'integer|min:1',
+            'anonymous_enabled' => 'boolean',
+            'anonymous_directory' => 'nullable|string',
+            'passive_mode' => 'boolean',
+            'document_root' => 'required|string',
+            'ssl_enabled' => 'boolean',
+            'auth_required' => 'boolean',
+            'allowed_users' => 'array',
+            'ip_whitelist' => 'array',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $data = $validator->validated();
+        $data['storage_service_id'] = $serviceId;
+        $data['status'] = 'Stopped';
+
+        $fileServer = FileServer::create($data);
+
+        return response()->json([
+            'message' => 'File server created successfully',
+            'file_server' => $fileServer
+        ], 201);
+    }
+
+    public function getStatistics(Request $request): JsonResponse
+    {
+        $stats = [
+            'total_services' => StorageService::count(),
+            'enabled_services' => StorageService::where('enabled', true)->count(),
+            'total_volumes' => LogicalVolume::count(),
+            'total_file_servers' => FileServer::count(),
+            'total_capacity' => StorageService::sum('total_capacity'),
+            'used_capacity' => StorageService::sum('used_capacity'),
+            'server_types' => FileServer::select('server_type')
+                ->selectRaw('COUNT(*) as count')
+                ->groupBy('server_type')
+                ->get(),
+        ];
+
+        $stats['free_capacity'] = $stats['total_capacity'] - $stats['used_capacity'];
+        $stats['usage_percent'] = $stats['total_capacity'] > 0 
+            ? round(($stats['used_capacity'] / $stats['total_capacity']) * 100, 2) 
+            : 0;
+
+        return response()->json($stats);
     }
 }
