@@ -262,4 +262,55 @@ class TR069ServiceTest extends TestCase
         $this->assertEquals('', $result['device_id']['product_class']);
         $this->assertEquals('', $result['device_id']['manufacturer']);
     }
+
+    public function test_parse_inform_handles_namespaced_events_and_parameters(): void
+    {
+        $soapXml = '<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-0">
+    <soap:Body>
+        <cwmp:Inform>
+            <cwmp:DeviceId>
+                <cwmp:Manufacturer>Namespaced</cwmp:Manufacturer>
+                <cwmp:OUI>AABBCC</cwmp:OUI>
+                <cwmp:ProductClass>CPE</cwmp:ProductClass>
+                <cwmp:SerialNumber>NS12345</cwmp:SerialNumber>
+            </cwmp:DeviceId>
+            <cwmp:Event>
+                <cwmp:EventStruct>
+                    <cwmp:EventCode>2 PERIODIC</cwmp:EventCode>
+                    <cwmp:CommandKey></cwmp:CommandKey>
+                </cwmp:EventStruct>
+            </cwmp:Event>
+            <cwmp:ParameterList>
+                <cwmp:ParameterValueStruct>
+                    <cwmp:Name>Device.DeviceInfo.HardwareVersion</cwmp:Name>
+                    <cwmp:Value>HW1.0</cwmp:Value>
+                </cwmp:ParameterValueStruct>
+            </cwmp:ParameterList>
+        </cwmp:Inform>
+    </soap:Body>
+</soap:Envelope>';
+
+        $xml = simplexml_load_string($soapXml);
+        $result = $this->service->parseInform($xml);
+
+        // Verifica DeviceId con namespace cwmp completo (production critical)
+        // Verify DeviceId with full cwmp namespace (production critical)
+        $this->assertArrayHasKey('device_id', $result);
+        $this->assertEquals('NS12345', $result['device_id']['serial_number']);
+        $this->assertEquals('AABBCC', $result['device_id']['oui']);
+        $this->assertEquals('CPE', $result['device_id']['product_class']);
+        $this->assertEquals('Namespaced', $result['device_id']['manufacturer']);
+
+        // Verifica eventi con namespace cwmp
+        // Verify events with cwmp namespace
+        $this->assertArrayHasKey('events', $result);
+        $this->assertCount(1, $result['events']);
+        $this->assertContains('2 PERIODIC', $result['events']);
+        
+        // Verifica parametri con namespace cwmp
+        // Verify parameters with cwmp namespace
+        $this->assertArrayHasKey('parameters', $result);
+        $this->assertEquals('HW1.0', $result['parameters']['Device.DeviceInfo.HardwareVersion']);
+    }
 }

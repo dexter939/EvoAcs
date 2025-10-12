@@ -47,9 +47,11 @@ class TR069Service
         $xml->registerXPathNamespace('soap', 'http://schemas.xmlsoap.org/soap/envelope/');
         $xml->registerXPathNamespace('cwmp', 'urn:dslforum-org:cwmp-1-0');
         
-        $deviceId = $xml->xpath('//cwmp:DeviceId')[0] ?? null;
-        $eventCodes = $xml->xpath('//EventStruct/EventCode') ?? [];
-        $parameterList = $xml->xpath('//cwmp:ParameterValueStruct') ?? [];
+        // Usa XPath namespace-agnostic per tutti gli elementi (compatibility con o senza cwmp: prefix)
+        // Use namespace-agnostic XPath for all elements (compatible with or without cwmp: prefix)
+        $deviceId = $xml->xpath('//*[local-name()="DeviceId"]')[0] ?? null;
+        $eventCodes = $xml->xpath('//*[local-name()="EventStruct"]/*[local-name()="EventCode"]') ?? [];
+        $parameterList = $xml->xpath('//*[local-name()="ParameterValueStruct"]') ?? [];
         
         $data = [
             'device_id' => [],
@@ -57,14 +59,32 @@ class TR069Service
             'parameters' => []
         ];
         
-        // Estrae informazioni DeviceId
-        // Extract DeviceId information
+        // Estrae informazioni DeviceId con supporto namespace completo
+        // Extract DeviceId information with full namespace support
         if ($deviceId) {
+            // Ottiene children sia con namespace cwmp che senza (default)
+            // Get children with both cwmp namespace and without (default)
+            $cwmpNs = 'urn:dslforum-org:cwmp-1-0';
+            $cwmpChildren = $deviceId->children($cwmpNs, true);
+            $defaultChildren = $deviceId->children(null, false);
+            
+            // Helper per ottenere valore da namespace cwmp o default
+            // Helper to get value from cwmp namespace or default
+            $getValue = function($name) use ($cwmpChildren, $defaultChildren) {
+                if (isset($cwmpChildren->$name) && (string)$cwmpChildren->$name !== '') {
+                    return (string)$cwmpChildren->$name;
+                }
+                if (isset($defaultChildren->$name) && (string)$defaultChildren->$name !== '') {
+                    return (string)$defaultChildren->$name;
+                }
+                return '';
+            };
+            
             $data['device_id'] = [
-                'serial_number' => (string)($deviceId->SerialNumber ?? ''),
-                'oui' => (string)($deviceId->OUI ?? ''),
-                'product_class' => (string)($deviceId->ProductClass ?? ''),
-                'manufacturer' => (string)($deviceId->Manufacturer ?? '')
+                'serial_number' => $getValue('SerialNumber'),
+                'oui' => $getValue('OUI'),
+                'product_class' => $getValue('ProductClass'),
+                'manufacturer' => $getValue('Manufacturer')
             ];
         }
         
@@ -77,8 +97,10 @@ class TR069Service
         // Estrae parametri TR-181 del dispositivo
         // Extract TR-181 device parameters
         foreach ($parameterList as $param) {
-            $name = (string)($param->Name ?? '');
-            $value = (string)($param->Value ?? '');
+            $nameNodes = $param->xpath('.//*[local-name()="Name"]');
+            $valueNodes = $param->xpath('.//*[local-name()="Value"]');
+            $name = isset($nameNodes[0]) ? (string)$nameNodes[0] : '';
+            $value = isset($valueNodes[0]) ? (string)$valueNodes[0] : '';
             if ($name) {
                 $data['parameters'][$name] = $value;
             }
