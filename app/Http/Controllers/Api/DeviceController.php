@@ -69,15 +69,23 @@ class DeviceController extends Controller
         $perPage = $request->get('per_page', 10);
         $devices = $query->paginate($perPage);
         
-        // Ritorna response con struttura standardizzata
-        // Return response with standardized structure
+        // Ritorna response con struttura standardizzata Laravel pagination
+        // Return response with standardized Laravel pagination structure
         return response()->json([
             'data' => $devices->items(),
             'meta' => [
                 'current_page' => $devices->currentPage(),
-                'total' => $devices->total(),
-                'per_page' => $devices->perPage(),
+                'from' => $devices->firstItem(),
                 'last_page' => $devices->lastPage(),
+                'per_page' => $devices->perPage(),
+                'to' => $devices->lastItem(),
+                'total' => $devices->total(),
+            ],
+            'links' => [
+                'first' => $devices->url(1),
+                'last' => $devices->url($devices->lastPage()),
+                'prev' => $devices->previousPageUrl(),
+                'next' => $devices->nextPageUrl(),
             ]
         ]);
     }
