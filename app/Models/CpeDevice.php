@@ -261,4 +261,15 @@ class CpeDevice extends Model
     {
         return $this->hasMany(StorageService::class);
     }
+
+    /**
+     * Relazione con device capabilities TR-111
+     * Relationship with TR-111 Device Capabilities
+     * 
+     * @return HasMany
+     */
+    public function deviceCapabilities(): HasMany
+    {
+        return $this->hasMany(DeviceCapability::class);
+    }
 }
