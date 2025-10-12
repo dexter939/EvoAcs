@@ -203,6 +203,7 @@ class DiagnosticTest extends Model
                 return [
                     'type' => 'Download Speed Test',
                     'url' => $this->parameters['url'] ?? 'N/A',
+                    'connections' => $this->parameters['connections'] ?? 1,
                     'total_bytes' => $bytes,
                     'duration_ms' => $duration,
                     'speed_mbps' => round($speedMbps, 2),
@@ -216,6 +217,7 @@ class DiagnosticTest extends Model
                 return [
                     'type' => 'Upload Speed Test',
                     'url' => $this->parameters['url'] ?? 'N/A',
+                    'connections' => $this->parameters['connections'] ?? 1,
                     'total_bytes' => $bytes,
                     'duration_ms' => $duration,
                     'speed_mbps' => round($speedMbps, 2),

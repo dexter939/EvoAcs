@@ -164,9 +164,9 @@ class DiagnosticsController extends Controller
      * Avvia test Download Speed su dispositivo CPE
      * Start Download Speed test on CPE device
      * 
-     * Standard TR-143: DownloadDiagnostics
+     * Standard TR-143: DownloadDiagnostics with multi-threaded support
      * 
-     * @param Request $request Parametri: url, file_size
+     * @param Request $request Parametri: url, file_size, connections (NumberOfConnections for multi-threading)
      * @param CpeDevice $device Dispositivo target / Target device
      * @return \Illuminate\Http\JsonResponse Test diagnostico creato / Diagnostic test created
      */
@@ -174,7 +174,8 @@ class DiagnosticsController extends Controller
     {
         $validated = $request->validate([
             'url' => 'required|url|max:500',
-            'file_size' => 'integer|min:0'
+            'file_size' => 'integer|min:0',
+            'connections' => 'integer|min:1|max:8' // TR-143 NumberOfConnections (1-8 threads)
         ]);
 
         try {
@@ -185,7 +186,8 @@ class DiagnosticsController extends Controller
                     'status' => 'pending',
                     'parameters' => [
                         'url' => $validated['url'],
-                        'file_size' => $validated['file_size'] ?? 0
+                        'file_size' => $validated['file_size'] ?? 0,
+                        'connections' => $validated['connections'] ?? 1
                     ],
                     'command_key' => 'DownloadDiag_' . time()
                 ]);
@@ -197,7 +199,8 @@ class DiagnosticsController extends Controller
                     'task_data' => [
                         'diagnostic_id' => $diagnostic->id,
                         'url' => $validated['url'],
-                        'file_size' => $validated['file_size'] ?? 0
+                        'file_size' => $validated['file_size'] ?? 0,
+                        'connections' => $validated['connections'] ?? 1
                     ]
                 ]);
 
@@ -225,9 +228,9 @@ class DiagnosticsController extends Controller
      * Avvia test Upload Speed su dispositivo CPE
      * Start Upload Speed test on CPE device
      * 
-     * Standard TR-143: UploadDiagnostics
+     * Standard TR-143: UploadDiagnostics with multi-threaded support
      * 
-     * @param Request $request Parametri: url, file_size
+     * @param Request $request Parametri: url, file_size, connections (NumberOfConnections for multi-threading)
      * @param CpeDevice $device Dispositivo target / Target device
      * @return \Illuminate\Http\JsonResponse Test diagnostico creato / Diagnostic test created
      */
@@ -235,7 +238,8 @@ class DiagnosticsController extends Controller
     {
         $validated = $request->validate([
             'url' => 'required|url|max:500',
-            'file_size' => 'integer|min:0|max:104857600' // Max 100MB
+            'file_size' => 'integer|min:0|max:104857600', // Max 100MB
+            'connections' => 'integer|min:1|max:8' // TR-143 NumberOfConnections (1-8 threads)
         ]);
 
         try {
@@ -246,7 +250,8 @@ class DiagnosticsController extends Controller
                     'status' => 'pending',
                     'parameters' => [
                         'url' => $validated['url'],
-                        'file_size' => $validated['file_size'] ?? 1048576 // 1MB default
+                        'file_size' => $validated['file_size'] ?? 1048576, // 1MB default
+                        'connections' => $validated['connections'] ?? 1
                     ],
                     'command_key' => 'UploadDiag_' . time()
                 ]);
@@ -258,7 +263,8 @@ class DiagnosticsController extends Controller
                     'task_data' => [
                         'diagnostic_id' => $diagnostic->id,
                         'url' => $validated['url'],
-                        'file_size' => $validated['file_size'] ?? 1048576
+                        'file_size' => $validated['file_size'] ?? 1048576,
+                        'connections' => $validated['connections'] ?? 1
                     ]
                 ]);
 
