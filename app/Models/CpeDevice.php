@@ -283,4 +283,26 @@ class CpeDevice extends Model
     {
         return $this->hasMany(LanDevice::class);
     }
+
+    /**
+     * Relazione con smart home devices TR-181 IoT
+     * Relationship with TR-181 IoT Smart Home Devices
+     * 
+     * @return HasMany
+     */
+    public function smartHomeDevices(): HasMany
+    {
+        return $this->hasMany(SmartHomeDevice::class);
+    }
+
+    /**
+     * Relazione con IoT services TR-181
+     * Relationship with TR-181 IoT Services
+     * 
+     * @return HasMany
+     */
+    public function iotServices(): HasMany
+    {
+        return $this->hasMany(IotService::class);
+    }
 }

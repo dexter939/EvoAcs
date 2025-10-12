@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\VoiceServiceController;
 use App\Http\Controllers\Api\StorageServiceController;
 use App\Http\Controllers\Api\ParameterDiscoveryController;
 use App\Http\Controllers\Api\LanDeviceController;
+use App\Http\Controllers\Api\IotDeviceController;
 
 Route::prefix('v1')->middleware(\App\Http\Middleware\ApiKeyAuth::class)->group(function () {
     Route::apiResource('devices', DeviceController::class);
@@ -73,4 +74,11 @@ Route::prefix('v1')->middleware(\App\Http\Middleware\ApiKeyAuth::class)->group(f
     Route::get('devices/{device}/lan-devices', [LanDeviceController::class, 'index']);
     Route::post('devices/{device}/lan-devices/ssdp', [LanDeviceController::class, 'processSsdpAnnouncement']);
     Route::post('lan-devices/{lanDevice}/soap-action', [LanDeviceController::class, 'invokeSoapAction']);
+    
+    // TR-181 IoT Extension
+    Route::get('devices/{device}/smart-home-devices', [IotDeviceController::class, 'listDevices']);
+    Route::post('devices/{device}/smart-home-devices', [IotDeviceController::class, 'provisionDevice']);
+    Route::patch('smart-home-devices/{smartDevice}/state', [IotDeviceController::class, 'updateState']);
+    Route::get('devices/{device}/iot-services', [IotDeviceController::class, 'listServices']);
+    Route::post('devices/{device}/iot-services', [IotDeviceController::class, 'createService']);
 });
