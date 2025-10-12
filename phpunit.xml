@@ -3,6 +3,10 @@
          xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
          bootstrap="vendor/autoload.php"
          colors="true"
+         failOnRisky="true"
+         failOnWarning="true"
+         stopOnFailure="false"
+         cacheDirectory=".phpunit.cache"
 >
     <testsuites>
         <testsuite name="Unit">
@@ -11,24 +15,55 @@
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
         </testsuite>
+        <testsuite name="Integration">
+            <directory>tests/Integration</directory>
+        </testsuite>
     </testsuites>
+    
     <source>
         <include>
             <directory>app</directory>
         </include>
+        <exclude>
+            <directory>app/USP/Generated</directory>
+            <file>app/Console/Kernel.php</file>
+            <file>app/Exceptions/Handler.php</file>
+        </exclude>
     </source>
+    
+    <coverage>
+        <report>
+            <html outputDirectory="coverage/html"/>
+            <clover outputFile="coverage/clover.xml"/>
+            <text outputFile="coverage/coverage.txt" showUncoveredFiles="false"/>
+        </report>
+    </coverage>
+    
     <php>
         <env name="APP_ENV" value="testing"/>
+        <env name="APP_KEY" value="base64:TEST_KEY_FOR_TESTING_ONLY_32_CHARS"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_STORE" value="array"/>
         <env name="DB_CONNECTION" value="sqlite"/>
         <env name="DB_DATABASE" value=":memory:"/>
+        <env name="DB_FOREIGN_KEYS" value="true"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        
+        <!-- ACS Test Configuration -->
+        <env name="ACS_API_KEY" value="test-api-key-for-phpunit-testing"/>
+        <env name="USP_WEBSOCKET_ENABLED" value="false"/>
+        <env name="USP_MQTT_ENABLED" value="false"/>
+        <env name="TR069_ENABLED" value="true"/>
     </php>
+    
+    <logging>
+        <junit outputFile="coverage/junit.xml"/>
+        <testdoxHtml outputFile="coverage/testdox.html"/>
+    </logging>
 </phpunit>
