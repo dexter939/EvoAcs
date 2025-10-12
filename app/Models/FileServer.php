@@ -12,6 +12,7 @@ class FileServer extends Model
 
     protected $fillable = [
         'storage_service_id',
+        'server_instance',
         'server_type',
         'enabled',
         'port',

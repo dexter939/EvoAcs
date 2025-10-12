@@ -7,6 +7,7 @@ use App\Models\VoiceService;
 use App\Models\SipProfile;
 use App\Models\VoipLine;
 use App\Models\CpeDevice;
+use App\Jobs\ProvisionVoiceService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
@@ -219,5 +220,37 @@ class VoiceServiceController extends Controller
         ];
 
         return response()->json($stats);
+    }
+
+    public function provisionService(Request $request, string $id): JsonResponse
+    {
+        $service = VoiceService::with(['cpeDevice', 'sipProfiles.voipLines'])->find($id);
+
+        if (!$service) {
+            return response()->json(['error' => 'Voice service not found'], 404);
+        }
+
+        $device = $service->cpeDevice;
+
+        if (!$device) {
+            return response()->json(['error' => 'Device not found'], 404);
+        }
+
+        if ($device->protocol_type !== 'tr069') {
+            return response()->json([
+                'error' => 'VoIP provisioning only works with TR-069 devices',
+                'device_protocol' => $device->protocol_type
+            ], 422);
+        }
+
+        ProvisionVoiceService::dispatch($service);
+
+        return response()->json([
+            'message' => 'VoIP provisioning task queued successfully',
+            'voice_service_id' => $service->id,
+            'device_id' => $device->id,
+            'service_instance' => $service->service_instance,
+            'status' => 'queued'
+        ]);
     }
 }

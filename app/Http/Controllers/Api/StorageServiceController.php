@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\StorageService;
 use App\Models\LogicalVolume;
 use App\Models\FileServer;
+use App\Jobs\ProvisionStorageService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
@@ -191,6 +192,12 @@ class StorageServiceController extends Controller
         $data['storage_service_id'] = $serviceId;
         $data['status'] = 'Stopped';
 
+        if (!isset($data['server_instance'])) {
+            $maxInstance = FileServer::where('storage_service_id', $serviceId)
+                ->max('server_instance');
+            $data['server_instance'] = $maxInstance ? $maxInstance + 1 : 1;
+        }
+
         $fileServer = FileServer::create($data);
 
         return response()->json([
@@ -220,5 +227,37 @@ class StorageServiceController extends Controller
             : 0;
 
         return response()->json($stats);
+    }
+
+    public function provisionService(Request $request, string $id): JsonResponse
+    {
+        $service = StorageService::with(['cpeDevice', 'logicalVolumes', 'fileServers'])->find($id);
+
+        if (!$service) {
+            return response()->json(['error' => 'Storage service not found'], 404);
+        }
+
+        $device = $service->cpeDevice;
+
+        if (!$device) {
+            return response()->json(['error' => 'Device not found'], 404);
+        }
+
+        if ($device->protocol_type !== 'tr069') {
+            return response()->json([
+                'error' => 'Storage provisioning only works with TR-069 devices',
+                'device_protocol' => $device->protocol_type
+            ], 422);
+        }
+
+        ProvisionStorageService::dispatch($service);
+
+        return response()->json([
+            'message' => 'Storage provisioning task queued successfully',
+            'storage_service_id' => $service->id,
+            'device_id' => $device->id,
+            'service_instance' => $service->service_instance,
+            'status' => 'queued'
+        ]);
     }
 }
