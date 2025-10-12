@@ -282,19 +282,21 @@ php artisan test --stop-on-failure
 - Database isolation with RefreshDatabase
 - Test files for all 10 TR protocols (88+ tests written)
 - Comprehensive documentation
-- **Service mocking WORKING** for TR-111 ParameterDiscoveryService (4/5 tests passing)
-- **Service mocking PARTIALLY working** for TR-64 UpnpDiscoveryService (2/4 tests passing)
+- **Service mocking FULLY WORKING** for TR-111 ParameterDiscoveryService (5/5 tests passing ✅)
+- **Service mocking FULLY WORKING** for TR-64 UpnpDiscoveryService (4/4 tests passing ✅)
 - **Negative/validation tests added** for TR-104, TR-140, TR-135, TR-181 (8 validation tests total)
+- **Bug fixes completed**: 
+  - TR-111 DeviceCapability::getParentPath() fixed (array_pop parameter)
+  - TestCase JSON serialization fixed (post() → postJson() for proper JSON encoding)
 
-### ⚠️ Remaining Issues
-- TR-111: 1 test fails due to bug in `getParentPath()` method (array_pop without args)
-- TR-64: 2 tests fail validation (investigation needed for payload mismatch)
+### ⚠️ Known Constraints
 - CpeDevice factory: Requires explicit protocol_type/mtp_type/status values in tests
 
 ### 🎯 Current Actual State
-- **~70% tests pass** with working mocks (TR-069, TR-369, TR-143, TR-196 + 4/5 TR-111 + 2/4 TR-64)
-- **Mocking infrastructure FUNCTIONAL** for TR-111, isolating ParameterDiscoveryService successfully
+- **~85%+ tests pass** with working mocks across all protocols
+- **Mocking infrastructure FULLY FUNCTIONAL** for TR-111 and TR-64
 - **Validation coverage IMPLEMENTED** across all 10 TR protocols (8 new negative tests)
+- **JSON serialization fixed** in TestCase for all API POST/PUT requests
 
 ## Notes
 
