@@ -37,21 +37,31 @@ class TR069Service
      * - Events (EventCode)
      * - Device parameters (ParameterValueStruct)
      * 
-     * @param \SimpleXMLElement $xml Messaggio SOAP Inform parsato / Parsed SOAP Inform message
+     * MIGRATION: Usa DOMDocument invece di SimpleXML per supporto namespace completo
+     * MIGRATION: Uses DOMDocument instead of SimpleXML for full namespace support
+     * 
+     * @param \SimpleXMLElement|\DOMDocument|string $xml Messaggio SOAP Inform / SOAP Inform message
      * @return array Dati estratti (device_id, events, parameters) / Extracted data
      */
     public function parseInform($xml)
     {
-        // Registra namespace SOAP e CWMP per XPath
-        // Register SOAP and CWMP namespaces for XPath
-        $xml->registerXPathNamespace('soap', 'http://schemas.xmlsoap.org/soap/envelope/');
-        $xml->registerXPathNamespace('cwmp', 'urn:dslforum-org:cwmp-1-0');
+        // Converte input a DOMDocument per supporto namespace carrier-grade
+        // Convert input to DOMDocument for carrier-grade namespace support
+        if ($xml instanceof \SimpleXMLElement) {
+            $dom = new \DOMDocument();
+            $dom->loadXML($xml->asXML());
+        } elseif ($xml instanceof \DOMDocument) {
+            $dom = $xml;
+        } else {
+            $dom = new \DOMDocument();
+            $dom->loadXML($xml);
+        }
         
-        // Usa XPath namespace-agnostic per tutti gli elementi (compatibility con o senza cwmp: prefix)
-        // Use namespace-agnostic XPath for all elements (compatible with or without cwmp: prefix)
-        $deviceId = $xml->xpath('//*[local-name()="DeviceId"]')[0] ?? null;
-        $eventCodes = $xml->xpath('//*[local-name()="EventStruct"]/*[local-name()="EventCode"]') ?? [];
-        $parameterList = $xml->xpath('//*[local-name()="ParameterValueStruct"]') ?? [];
+        // Crea DOMXPath e registra namespace SOAP/CWMP
+        // Create DOMXPath and register SOAP/CWMP namespaces
+        $xpath = new \DOMXPath($dom);
+        $xpath->registerNamespace('soap', 'http://schemas.xmlsoap.org/soap/envelope/');
+        $xpath->registerNamespace('cwmp', 'urn:dslforum-org:cwmp-1-0');
         
         $data = [
             'device_id' => [],
@@ -59,48 +69,55 @@ class TR069Service
             'parameters' => []
         ];
         
-        // Estrae informazioni DeviceId con supporto namespace completo
-        // Extract DeviceId information with full namespace support
-        if ($deviceId) {
-            // Ottiene children sia con namespace cwmp che senza (default)
-            // Get children with both cwmp namespace and without (default)
-            $cwmpNs = 'urn:dslforum-org:cwmp-1-0';
-            $cwmpChildren = $deviceId->children($cwmpNs, true);
-            $defaultChildren = $deviceId->children(null, false);
+        // Estrae DeviceId con supporto namespace completo (cwmp: prefixed o no)
+        // Extract DeviceId with full namespace support (cwmp: prefixed or not)
+        $deviceIdNodes = $xpath->query('//*[local-name()="DeviceId"]');
+        if ($deviceIdNodes->length > 0) {
+            $deviceIdNode = $deviceIdNodes->item(0);
             
-            // Helper per ottenere valore da namespace cwmp o default
-            // Helper to get value from cwmp namespace or default
-            $getValue = function($name) use ($cwmpChildren, $defaultChildren) {
-                if (isset($cwmpChildren->$name) && (string)$cwmpChildren->$name !== '') {
-                    return (string)$cwmpChildren->$name;
+            // Helper per ottenere valore child con namespace awareness
+            // Helper to get child value with namespace awareness
+            $getChildValue = function($parentNode, $childName) use ($xpath) {
+                // Prova prima con namespace cwmp, poi senza (massima compatibility)
+                // Try first with cwmp namespace, then without (maximum compatibility)
+                $cwmpQuery = $xpath->query("cwmp:$childName", $parentNode);
+                if ($cwmpQuery->length > 0 && $cwmpQuery->item(0)->nodeValue !== '') {
+                    return $cwmpQuery->item(0)->nodeValue;
                 }
-                if (isset($defaultChildren->$name) && (string)$defaultChildren->$name !== '') {
-                    return (string)$defaultChildren->$name;
+                
+                $defaultQuery = $xpath->query("*[local-name()='$childName']", $parentNode);
+                if ($defaultQuery->length > 0 && $defaultQuery->item(0)->nodeValue !== '') {
+                    return $defaultQuery->item(0)->nodeValue;
                 }
+                
                 return '';
             };
             
             $data['device_id'] = [
-                'serial_number' => $getValue('SerialNumber'),
-                'oui' => $getValue('OUI'),
-                'product_class' => $getValue('ProductClass'),
-                'manufacturer' => $getValue('Manufacturer')
+                'serial_number' => $getChildValue($deviceIdNode, 'SerialNumber'),
+                'oui' => $getChildValue($deviceIdNode, 'OUI'),
+                'product_class' => $getChildValue($deviceIdNode, 'ProductClass'),
+                'manufacturer' => $getChildValue($deviceIdNode, 'Manufacturer')
             ];
         }
         
         // Estrae event codes (es. "0 BOOTSTRAP", "1 BOOT", "6 CONNECTION REQUEST")
         // Extract event codes (e.g. "0 BOOTSTRAP", "1 BOOT", "6 CONNECTION REQUEST")
-        foreach ($eventCodes as $event) {
-            $data['events'][] = (string)$event;
+        $eventNodes = $xpath->query('//*[local-name()="EventStruct"]/*[local-name()="EventCode"]');
+        foreach ($eventNodes as $eventNode) {
+            $data['events'][] = $eventNode->nodeValue;
         }
         
         // Estrae parametri TR-181 del dispositivo
         // Extract TR-181 device parameters
-        foreach ($parameterList as $param) {
-            $nameNodes = $param->xpath('.//*[local-name()="Name"]');
-            $valueNodes = $param->xpath('.//*[local-name()="Value"]');
-            $name = isset($nameNodes[0]) ? (string)$nameNodes[0] : '';
-            $value = isset($valueNodes[0]) ? (string)$valueNodes[0] : '';
+        $paramNodes = $xpath->query('//*[local-name()="ParameterValueStruct"]');
+        foreach ($paramNodes as $paramNode) {
+            $nameNodes = $xpath->query('*[local-name()="Name"]', $paramNode);
+            $valueNodes = $xpath->query('*[local-name()="Value"]', $paramNode);
+            
+            $name = $nameNodes->length > 0 ? $nameNodes->item(0)->nodeValue : '';
+            $value = $valueNodes->length > 0 ? $valueNodes->item(0)->nodeValue : '';
+            
             if ($name) {
                 $data['parameters'][$name] = $value;
             }
