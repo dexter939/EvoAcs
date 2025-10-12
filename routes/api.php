@@ -29,6 +29,7 @@ Route::prefix('v1')->middleware(\App\Http\Middleware\ApiKeyAuth::class)->group(f
     Route::post('devices/{device}/diagnostics/traceroute', [DiagnosticsController::class, 'traceroute']);
     Route::post('devices/{device}/diagnostics/download', [DiagnosticsController::class, 'download']);
     Route::post('devices/{device}/diagnostics/upload', [DiagnosticsController::class, 'upload']);
+    Route::post('devices/{device}/diagnostics/udpecho', [DiagnosticsController::class, 'udpEcho']);
     Route::get('devices/{device}/diagnostics', [DiagnosticsController::class, 'listDeviceDiagnostics']);
     Route::get('diagnostics', [DiagnosticsController::class, 'index']);
     Route::get('diagnostics/{diagnostic}', [DiagnosticsController::class, 'getResults']);

@@ -283,6 +283,79 @@ class DiagnosticsController extends Controller
     }
 
     /**
+     * Avvia test UDPEcho su dispositivo CPE
+     * Start UDPEcho test on CPE device
+     * 
+     * Standard TR-143: UDPEcho diagnostics
+     * 
+     * @param Request $request Parametri: host, port, packets, timeout, size, interval
+     * @param CpeDevice $device Dispositivo target / Target device
+     * @return \Illuminate\Http\JsonResponse Test diagnostico creato / Diagnostic test created
+     */
+    public function udpEcho(Request $request, CpeDevice $device)
+    {
+        $validated = $request->validate([
+            'host' => 'required|string|max:255',
+            'port' => 'required|integer|min:1|max:65535',
+            'packets' => 'integer|min:1|max:100',
+            'timeout' => 'integer|min:100|max:10000',
+            'size' => 'integer|min:32|max:1500',
+            'interval' => 'integer|min:10|max:10000'
+        ]);
+
+        try {
+            [$diagnostic, $task] = DB::transaction(function () use ($device, $validated) {
+                $diagnostic = DiagnosticTest::create([
+                    'cpe_device_id' => $device->id,
+                    'diagnostic_type' => 'udpecho',
+                    'status' => 'pending',
+                    'parameters' => [
+                        'host' => $validated['host'],
+                        'port' => $validated['port'],
+                        'packets' => $validated['packets'] ?? 10,
+                        'timeout' => $validated['timeout'] ?? 1000,
+                        'size' => $validated['size'] ?? 64,
+                        'interval' => $validated['interval'] ?? 100
+                    ],
+                    'command_key' => 'UDPEcho_' . time()
+                ]);
+
+                $task = ProvisioningTask::create([
+                    'cpe_device_id' => $device->id,
+                    'task_type' => 'diagnostic_udpecho',
+                    'status' => 'pending',
+                    'task_data' => [
+                        'diagnostic_id' => $diagnostic->id,
+                        'host' => $validated['host'],
+                        'port' => $validated['port'],
+                        'packets' => $validated['packets'] ?? 10,
+                        'timeout' => $validated['timeout'] ?? 1000,
+                        'size' => $validated['size'] ?? 64,
+                        'interval' => $validated['interval'] ?? 100
+                    ]
+                ]);
+
+                return [$diagnostic, $task];
+            });
+
+            \App\Jobs\ProcessProvisioningTask::dispatch($task);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'UDPEcho diagnostic test started',
+                'diagnostic' => $diagnostic,
+                'task' => $task
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to start diagnostic test: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Ottiene risultati test diagnostico
      * Get diagnostic test results
      * 

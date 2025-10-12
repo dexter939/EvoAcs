@@ -221,6 +221,20 @@ class DiagnosticTest extends Model
                     'speed_mbps' => round($speedMbps, 2),
                 ];
 
+            case 'udpecho':
+                return [
+                    'type' => 'UDP Echo Test',
+                    'host' => $this->parameters['host'] ?? 'N/A',
+                    'port' => $this->parameters['port'] ?? 0,
+                    'packets_sent' => $this->parameters['packets'] ?? 0,
+                    'success_count' => $results['SuccessCount'] ?? 0,
+                    'failure_count' => $results['FailureCount'] ?? 0,
+                    'avg_response_time' => $results['AverageResponseTime'] ?? 0,
+                    'min_response_time' => $results['MinimumResponseTime'] ?? 0,
+                    'max_response_time' => $results['MaximumResponseTime'] ?? 0,
+                    'packet_loss' => $this->calculatePacketLoss($results),
+                ];
+
             default:
                 return ['type' => 'Unknown', 'raw_results' => $results];
         }
