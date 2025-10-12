@@ -73,9 +73,9 @@ class UspWebSocketService
     /**
      * Send USP GET request
      */
-    public function sendGetRequest(CpeDevice $device, array $paths): bool
+    public function sendGetRequest(CpeDevice $device, array $paths, ?string $msgId = null): bool
     {
-        $getRequest = $this->uspMessageService->createGetMessage($paths);
+        $getRequest = $this->uspMessageService->createGetMessage($paths, $msgId);
         $record = $this->uspMessageService->wrapInRecord(
             $getRequest,
             config('usp.controller_endpoint_id', 'proto::acs-controller'),
@@ -89,9 +89,9 @@ class UspWebSocketService
     /**
      * Send USP SET request
      */
-    public function sendSetRequest(CpeDevice $device, array $parameters): bool
+    public function sendSetRequest(CpeDevice $device, array $parameters, ?string $msgId = null, bool $allowPartial = true): bool
     {
-        $setRequest = $this->uspMessageService->createSetMessage($parameters);
+        $setRequest = $this->uspMessageService->createSetMessage($parameters, $allowPartial, $msgId);
         $record = $this->uspMessageService->wrapInRecord(
             $setRequest,
             config('usp.controller_endpoint_id', 'proto::acs-controller'),
@@ -105,9 +105,9 @@ class UspWebSocketService
     /**
      * Send USP OPERATE request
      */
-    public function sendOperateRequest(CpeDevice $device, string $command, array $commandArgs = []): bool
+    public function sendOperateRequest(CpeDevice $device, string $command, array $commandArgs = [], ?string $msgId = null): bool
     {
-        $operateRequest = $this->uspMessageService->createOperateMessage($command, $commandArgs);
+        $operateRequest = $this->uspMessageService->createOperateMessage($command, $commandArgs, $msgId);
         $record = $this->uspMessageService->wrapInRecord(
             $operateRequest,
             config('usp.controller_endpoint_id', 'proto::acs-controller'),
@@ -121,9 +121,9 @@ class UspWebSocketService
     /**
      * Send USP ADD request
      */
-    public function sendAddRequest(CpeDevice $device, string $objectPath, array $parameters = []): bool
+    public function sendAddRequest(CpeDevice $device, string $objectPath, array $parameters = [], ?string $msgId = null, bool $allowPartial = false): bool
     {
-        $addRequest = $this->uspMessageService->createAddMessage($objectPath, $parameters);
+        $addRequest = $this->uspMessageService->createAddMessage($objectPath, $parameters, $allowPartial, $msgId);
         $record = $this->uspMessageService->wrapInRecord(
             $addRequest,
             config('usp.controller_endpoint_id', 'proto::acs-controller'),
@@ -137,9 +137,9 @@ class UspWebSocketService
     /**
      * Send USP DELETE request
      */
-    public function sendDeleteRequest(CpeDevice $device, string $objectPath): bool
+    public function sendDeleteRequest(CpeDevice $device, array $objectPaths, ?string $msgId = null, bool $allowPartial = false): bool
     {
-        $deleteRequest = $this->uspMessageService->createDeleteMessage($objectPath);
+        $deleteRequest = $this->uspMessageService->createDeleteMessage($objectPaths, $allowPartial, $msgId);
         $record = $this->uspMessageService->wrapInRecord(
             $deleteRequest,
             config('usp.controller_endpoint_id', 'proto::acs-controller'),
@@ -153,9 +153,9 @@ class UspWebSocketService
     /**
      * Send Subscribe request for event notifications
      */
-    public function sendSubscriptionRequest(CpeDevice $device, string $subscriptionId, string $path): bool
+    public function sendSubscriptionRequest(CpeDevice $device, string $subscriptionPath, array $subscriptionParams, ?string $msgId = null): bool
     {
-        $subscribeRequest = $this->uspMessageService->createSubscribeMessage($subscriptionId, $path);
+        $subscribeRequest = $this->uspMessageService->createSubscriptionMessage($subscriptionPath, $subscriptionParams, $msgId);
         $record = $this->uspMessageService->wrapInRecord(
             $subscribeRequest,
             config('usp.controller_endpoint_id', 'proto::acs-controller'),

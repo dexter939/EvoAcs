@@ -8,6 +8,7 @@ use App\Models\UspPendingRequest;
 use App\Models\UspSubscription;
 use App\Services\UspMessageService;
 use App\Services\UspMqttService;
+use App\Services\UspWebSocketService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
@@ -23,11 +24,16 @@ class UspController extends Controller
 {
     protected $uspService;
     protected $mqttService;
+    protected $webSocketService;
     
-    public function __construct(UspMessageService $uspService, UspMqttService $mqttService)
-    {
+    public function __construct(
+        UspMessageService $uspService, 
+        UspMqttService $mqttService,
+        UspWebSocketService $webSocketService
+    ) {
         $this->uspService = $uspService;
         $this->mqttService = $mqttService;
+        $this->webSocketService = $webSocketService;
     }
     
     /**
@@ -68,6 +74,16 @@ class UspController extends Controller
                     'device' => $device->serial_number,
                     'paths' => $validated['paths'],
                     'mtp' => 'mqtt'
+                ]);
+            } elseif ($device->mtp_type === 'websocket') {
+                $this->webSocketService->sendGetRequest($device, $validated['paths'], $msgId);
+                
+                return response()->json([
+                    'message' => 'USP Get request sent via WebSocket',
+                    'msg_id' => $msgId,
+                    'device' => $device->serial_number,
+                    'paths' => $validated['paths'],
+                    'mtp' => 'websocket'
                 ]);
             } else {
                 // For HTTP MTP, store request in database for polling
@@ -133,6 +149,17 @@ class UspController extends Controller
                     'allow_partial' => $allowPartial,
                     'mtp' => 'mqtt'
                 ]);
+            } elseif ($device->mtp_type === 'websocket') {
+                $this->webSocketService->sendSetRequest($device, $validated['parameters'], $msgId, $allowPartial);
+                
+                return response()->json([
+                    'message' => 'USP Set request sent via WebSocket',
+                    'msg_id' => $msgId,
+                    'device' => $device->serial_number,
+                    'parameters' => $validated['parameters'],
+                    'allow_partial' => $allowPartial,
+                    'mtp' => 'websocket'
+                ]);
             } else {
                 // For HTTP MTP, store request in database for polling
                 $updateObjects = $this->convertToUpdateObjects($validated['parameters']);
@@ -197,6 +224,17 @@ class UspController extends Controller
                     'command' => $validated['command'],
                     'params' => $params,
                     'mtp' => 'mqtt'
+                ]);
+            } elseif ($device->mtp_type === 'websocket') {
+                $this->webSocketService->sendOperateRequest($device, $validated['command'], $params, $msgId);
+                
+                return response()->json([
+                    'message' => 'USP Operate request sent via WebSocket',
+                    'msg_id' => $msgId,
+                    'device' => $device->serial_number,
+                    'command' => $validated['command'],
+                    'params' => $params,
+                    'mtp' => 'websocket'
                 ]);
             } else {
                 // For HTTP MTP, store request in database for polling
@@ -277,6 +315,17 @@ class UspController extends Controller
                     'params' => $validated['params'] ?? [],
                     'mtp' => 'mqtt'
                 ]);
+            } elseif ($device->mtp_type === 'websocket') {
+                $this->webSocketService->sendAddRequest($device, $validated['object_path'], $validated['params'] ?? [], $msgId, false);
+                
+                return response()->json([
+                    'message' => 'USP Add request sent via WebSocket',
+                    'msg_id' => $msgId,
+                    'device' => $device->serial_number,
+                    'object_path' => $validated['object_path'],
+                    'params' => $validated['params'] ?? [],
+                    'mtp' => 'websocket'
+                ]);
             } else {
                 // For HTTP MTP, store request in database for polling
                 $pendingRequest = $this->storePendingRequest($device, $msgId, 'add', $addMessage);
@@ -353,6 +402,16 @@ class UspController extends Controller
                     'object_paths' => $validated['object_paths'],
                     'mtp' => 'mqtt'
                 ]);
+            } elseif ($device->mtp_type === 'websocket') {
+                $this->webSocketService->sendDeleteRequest($device, $validated['object_paths'], $msgId, false);
+                
+                return response()->json([
+                    'message' => 'USP Delete request sent via WebSocket',
+                    'msg_id' => $msgId,
+                    'device' => $device->serial_number,
+                    'object_paths' => $validated['object_paths'],
+                    'mtp' => 'websocket'
+                ]);
             } else {
                 // For HTTP MTP, store request in database for polling
                 $pendingRequest = $this->storePendingRequest($device, $msgId, 'delete', $deleteMessage);
@@ -405,6 +464,15 @@ class UspController extends Controller
                     'msg_id' => $msgId,
                     'device' => $device->serial_number,
                     'mtp' => 'mqtt'
+                ]);
+            } elseif ($device->mtp_type === 'websocket') {
+                $this->webSocketService->sendOperateRequest($device, 'Device.Reboot()', [], $msgId);
+                
+                return response()->json([
+                    'message' => 'USP Reboot command sent via WebSocket',
+                    'msg_id' => $msgId,
+                    'device' => $device->serial_number,
+                    'mtp' => 'websocket'
                 ]);
             } else {
                 // For HTTP MTP, store request in database for polling
@@ -571,6 +639,26 @@ class UspController extends Controller
                         'mtp' => 'mqtt',
                         'subscription' => $subscription
                     ], 201);
+                } elseif ($device->mtp_type === 'websocket') {
+                    $subscriptionParams = [
+                        'ID' => $subscriptionId,
+                        'Enable' => 'true',
+                        'NotifType' => 'ValueChange',
+                        'ReferenceList' => $validated['reference_list'] ?? [],
+                        'NotifRetry' => $validated['notification_retry'] ?? true
+                    ];
+                    
+                    $this->webSocketService->sendSubscriptionRequest($device, $validated['event_path'], $subscriptionParams, $msgId);
+                    
+                    return response()->json([
+                        'message' => 'USP Subscribe request sent via WebSocket',
+                        'msg_id' => $msgId,
+                        'subscription_id' => $subscriptionId,
+                        'device' => $device->serial_number,
+                        'event_path' => $validated['event_path'],
+                        'mtp' => 'websocket',
+                        'subscription' => $subscription
+                    ], 201);
                 } else {
                     // For HTTP MTP, store request
                     $subscribeMessage = $uspService->createSubscribeMessage(
@@ -679,6 +767,16 @@ class UspController extends Controller
                         'subscription_id' => $subscription->subscription_id,
                         'device' => $device->serial_number,
                         'mtp' => 'mqtt'
+                    ]);
+                } elseif ($device->mtp_type === 'websocket') {
+                    $this->webSocketService->sendDeleteRequest($device, [$objectPath], $msgId, false);
+                    
+                    return response()->json([
+                        'message' => 'Subscription deleted successfully, USP Delete request sent via WebSocket',
+                        'msg_id' => $msgId,
+                        'subscription_id' => $subscription->subscription_id,
+                        'device' => $device->serial_number,
+                        'mtp' => 'websocket'
                     ]);
                 } else {
                     // For HTTP MTP, store request (fix: add allowPartial parameter)
