@@ -195,7 +195,7 @@ class ParameterDiscoveryService
      * Costruisce struttura ad albero da lista capabilities
      * Build tree structure from capabilities list
      */
-    private function buildTreeFromCapabilities($capabilities): array
+    public function buildTreeFromCapabilities($capabilities): array
     {
         $tree = [];
 

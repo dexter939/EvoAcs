@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\DiagnosticsController;
 use App\Http\Controllers\Api\UspController;
 use App\Http\Controllers\Api\VoiceServiceController;
 use App\Http\Controllers\Api\StorageServiceController;
+use App\Http\Controllers\Api\ParameterDiscoveryController;
 
 Route::prefix('v1')->middleware(\App\Http\Middleware\ApiKeyAuth::class)->group(function () {
     Route::apiResource('devices', DeviceController::class);
@@ -60,4 +61,10 @@ Route::prefix('v1')->middleware(\App\Http\Middleware\ApiKeyAuth::class)->group(f
     Route::post('storage-services/{service}/volumes', [StorageServiceController::class, 'createVolume']);
     Route::post('storage-services/{service}/file-servers', [StorageServiceController::class, 'createFileServer']);
     Route::get('storage-services/stats/overview', [StorageServiceController::class, 'getStatistics']);
+    
+    // TR-111 Parameter Discovery
+    Route::post('devices/{device}/discover-parameters', [ParameterDiscoveryController::class, 'discoverParameters']);
+    Route::get('devices/{device}/capabilities', [ParameterDiscoveryController::class, 'getCapabilities']);
+    Route::get('devices/{device}/capabilities/stats', [ParameterDiscoveryController::class, 'getStats']);
+    Route::get('devices/{device}/capabilities/path', [ParameterDiscoveryController::class, 'getCapabilityByPath']);
 });
