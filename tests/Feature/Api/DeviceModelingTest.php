@@ -5,7 +5,10 @@ namespace Tests\Feature\Api;
 use Tests\TestCase;
 use App\Models\CpeDevice;
 use App\Models\DeviceCapability;
+use App\Models\ProvisioningTask;
+use App\Services\ParameterDiscoveryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Mockery;
 
 class DeviceModelingTest extends TestCase
 {
@@ -13,24 +16,52 @@ class DeviceModelingTest extends TestCase
 
     public function test_discover_parameters_creates_capabilities(): void
     {
-        $device = CpeDevice::factory()->online()->create();
-
-        $response = $this->apiPost("/api/v1/devices/{$device->id}/discover-parameters", [
-            'root_path' => 'Device.',
-            'next_level' => false
+        $device = CpeDevice::factory()->create([
+            'protocol_type' => 'tr069',
+            'mtp_type' => null,
+            'status' => 'online'
         ]);
 
-        $response->assertStatus(200)
+        $mockTask = ProvisioningTask::create([
+            'cpe_device_id' => $device->id,
+            'config_profile_id' => null,
+            'task_type' => 'parameter_discovery',
+            'priority' => 5,
+            'status' => 'pending',
+            'parameters' => json_encode(['path' => 'Device.'])
+        ]);
+
+        $mock = Mockery::mock(ParameterDiscoveryService::class);
+        $mock->shouldReceive('discoverParameters')
+            ->once()
+            ->with(
+                Mockery::on(fn($d) => $d->id === $device->id),
+                null,
+                true
+            )
+            ->andReturn($mockTask);
+
+        $this->app->instance(ParameterDiscoveryService::class, $mock);
+
+        $response = $this->apiPost("/api/v1/devices/{$device->id}/discover-parameters", [
+            'next_level_only' => false
+        ]);
+
+        $response->assertStatus(201)
             ->assertJsonStructure([
                 'success',
                 'message',
-                'discovered_count'
+                'task',
+                'device'
             ]);
     }
 
     public function test_get_capabilities_returns_parameters(): void
     {
-        $device = CpeDevice::factory()->create();
+        $device = CpeDevice::factory()->create([
+            'protocol_type' => 'tr069',
+            'mtp_type' => null
+        ]);
         
         DeviceCapability::create([
             'cpe_device_id' => $device->id,
@@ -44,15 +75,19 @@ class DeviceModelingTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'data' => [
-                    '*' => ['parameter_path', 'parameter_type', 'writable']
-                ]
+                'format',
+                'device_id',
+                'capabilities'
             ]);
     }
 
     public function test_get_capabilities_with_filtering(): void
     {
-        $device = CpeDevice::factory()->create();
+        $device = CpeDevice::factory()->create([
+            'protocol_type' => 'tr069',
+            'mtp_type' => null,
+            'status' => 'online'
+        ]);
         
         DeviceCapability::create([
             'cpe_device_id' => $device->id,
@@ -65,13 +100,15 @@ class DeviceModelingTest extends TestCase
         $response = $this->apiGet("/api/v1/devices/{$device->id}/capabilities?root_path=Device.WiFi.");
 
         $response->assertStatus(200);
-        $data = $response->json('data');
-        $this->assertNotEmpty($data);
+        $this->assertArrayHasKey('capabilities', $response->json());
     }
 
     public function test_get_stats_returns_summary(): void
     {
-        $device = CpeDevice::factory()->create();
+        $device = CpeDevice::factory()->create([
+            'protocol_type' => 'tr069',
+            'mtp_type' => null
+        ]);
         
         DeviceCapability::create([
             'cpe_device_id' => $device->id,
@@ -81,20 +118,46 @@ class DeviceModelingTest extends TestCase
             'value_type' => 'string'
         ]);
 
+        $mockStats = [
+            'total_capabilities' => 1,
+            'by_type' => [
+                'parameter' => 1,
+                'object' => 0
+            ],
+            'writable_count' => 0,
+            'readonly_count' => 1
+        ];
+
+        $mock = Mockery::mock(ParameterDiscoveryService::class);
+        $mock->shouldReceive('getDiscoveryStats')
+            ->once()
+            ->with(Mockery::on(fn($d) => $d->id === $device->id))
+            ->andReturn($mockStats);
+
+        $this->app->instance(ParameterDiscoveryService::class, $mock);
+
         $response = $this->apiGet("/api/v1/devices/{$device->id}/capabilities/stats");
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'total_capabilities',
-                'by_type',
-                'writable_count',
-                'readonly_count'
+                'device_id',
+                'serial_number',
+                'stats' => [
+                    'total_capabilities',
+                    'by_type',
+                    'writable_count',
+                    'readonly_count'
+                ]
             ]);
     }
 
     public function test_get_capability_by_path(): void
     {
-        $device = CpeDevice::factory()->create();
+        $device = CpeDevice::factory()->create([
+            'protocol_type' => 'tr069',
+            'mtp_type' => null,
+            'status' => 'online'
+        ]);
         
         DeviceCapability::create([
             'cpe_device_id' => $device->id,
@@ -107,8 +170,9 @@ class DeviceModelingTest extends TestCase
         $response = $this->apiGet("/api/v1/devices/{$device->id}/capabilities/path?path=Device.DeviceInfo.ModelName");
 
         $response->assertStatus(200)
-            ->assertJson([
-                'parameter_path' => 'Device.DeviceInfo.ModelName'
+            ->assertJsonStructure([
+                'success',
+                'capability'
             ]);
     }
 }

@@ -5,7 +5,9 @@ namespace Tests\Feature\Api;
 use Tests\TestCase;
 use App\Models\CpeDevice;
 use App\Models\LanDevice;
+use App\Services\UpnpDiscoveryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Mockery;
 
 class LanDeviceTest extends TestCase
 {
@@ -38,8 +40,25 @@ class LanDeviceTest extends TestCase
     {
         $device = CpeDevice::factory()->create();
 
+        $usn = 'uuid:' . uniqid();
+        $mockLanDevice = new LanDevice([
+            'cpe_device_id' => $device->id,
+            'usn' => $usn,
+            'location' => 'http://192.168.1.100:1900/description.xml',
+            'device_type' => 'urn:schemas-upnp-org:device:MediaRenderer:1',
+            'status' => 'active'
+        ]);
+        $mockLanDevice->id = 1;
+
+        $mock = Mockery::mock(UpnpDiscoveryService::class);
+        $mock->shouldReceive('processSsdpAnnouncement')
+            ->once()
+            ->andReturn($mockLanDevice);
+
+        $this->app->instance(UpnpDiscoveryService::class, $mock);
+
         $response = $this->apiPost("/api/v1/devices/{$device->id}/lan-devices/ssdp", [
-            'usn' => 'uuid:' . uniqid(),
+            'usn' => $usn,
             'location' => 'http://192.168.1.100:1900/description.xml',
             'nt' => 'urn:schemas-upnp-org:device:MediaRenderer:1'
         ]);
@@ -81,12 +100,28 @@ class LanDeviceTest extends TestCase
             'last_seen' => now()
         ]);
 
+        $mockResult = [
+            'Status' => 'OK',
+            'Info' => 'Device information retrieved'
+        ];
+
+        $mock = Mockery::mock(UpnpDiscoveryService::class);
+        $mock->shouldReceive('invokeSoapAction')
+            ->once()
+            ->andReturn($mockResult);
+
+        $this->app->instance(UpnpDiscoveryService::class, $mock);
+
         $response = $this->apiPost("/api/v1/lan-devices/{$lanDevice->id}/soap-action", [
             'service_type' => 'urn:schemas-upnp-org:service:DeviceInfo:1',
             'action' => 'GetInfo',
             'arguments' => []
         ]);
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'result'
+            ]);
     }
 }
