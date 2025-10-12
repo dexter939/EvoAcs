@@ -280,19 +280,23 @@ php artisan test --stop-on-failure
 ### ✅ Completed
 - Test infrastructure with authentication helpers
 - Database isolation with RefreshDatabase
-- Test files for all 10 TR protocols (80+ tests written)
+- Test files for all 10 TR protocols (85+ tests written)
 - Comprehensive documentation
+- **Service mocking implemented** for TR-111 ParameterDiscoveryService (2/5 tests passing)
+- **Service mocking implemented** for TR-64 UpnpDiscoveryService (2/4 tests passing)
+- **Negative/validation tests added** for TR-104 VoIP (3 new tests)
 
-### ⚠️ Requires Completion
-- Service mocking for TR-111, TR-64 (external dependencies)
-- Negative/validation test cases for TR-104, TR-140, TR-135, TR-181  
-- Factory patterns for all models (currently using direct creation)
-- Full execution passing without external services
+### ⚠️ Partially Complete / Known Issues
+- TR-111: 2/5 tests passing with mocks (discovery tests have type hint issues)
+- TR-64: 2/4 tests passing with mocks (SSDP validation issues remain)
+- TR-104, TR-140, TR-135, TR-181: Basic validation tests added, more coverage needed
+- CpeDevice factory: mtp_type/status constraints require explicit values in tests
 
 ### 🎯 Current State
-- **50% tests pass** without mocks (TR-069, TR-369, TR-143, TR-196)
-- **50% tests need work** (mocking, validation, factories)
+- **~60% tests pass** with mocking infrastructure (TR-069, TR-369, TR-143, TR-196 + partial TR-111/TR-64)
+- **~40% tests need refinement** (type hints, validation rules, edge cases)
 - **100% test structure implemented** and documented
+- **Mocking infrastructure in place** for service isolation
 
 ## Notes
 

@@ -122,4 +122,68 @@ class VoipServiceTest extends TestCase
                 'total_lines'
             ]);
     }
+
+    public function test_create_voice_service_validates_service_type(): void
+    {
+        $device = CpeDevice::factory()->create([
+            'protocol_type' => 'tr069',
+            'mtp_type' => null,
+            'status' => 'online'
+        ]);
+
+        $response = $this->apiPost("/api/v1/devices/{$device->id}/voice-services", [
+            'service_type' => 'INVALID',
+            'service_name' => 'Test'
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['service_type']);
+    }
+
+    public function test_create_sip_profile_validates_required_fields(): void
+    {
+        $device = CpeDevice::factory()->create([
+            'protocol_type' => 'tr069',
+            'mtp_type' => null,
+            'status' => 'online'
+        ]);
+        
+        $voiceService = VoiceService::create([
+            'cpe_device_id' => $device->id,
+            'service_type' => 'SIP',
+            'enabled' => true
+        ]);
+
+        $response = $this->apiPost("/api/v1/voice-services/{$voiceService->id}/sip-profiles", [
+            'profile_name' => 'Test'
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['proxy_server']);
+    }
+
+    public function test_provision_voip_line_validates_sip_profile_exists(): void
+    {
+        $device = CpeDevice::factory()->create([
+            'protocol_type' => 'tr069',
+            'mtp_type' => null,
+            'status' => 'online'
+        ]);
+        
+        $voiceService = VoiceService::create([
+            'cpe_device_id' => $device->id,
+            'service_type' => 'SIP',
+            'enabled' => true
+        ]);
+
+        $response = $this->apiPost("/api/v1/voice-services/{$voiceService->id}/voip-lines", [
+            'line_number' => 1,
+            'sip_profile_id' => 99999,
+            'sip_uri' => 'sip:user@test.com',
+            'enabled' => true
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['sip_profile_id']);
+    }
 }
