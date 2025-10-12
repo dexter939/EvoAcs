@@ -48,7 +48,7 @@ class TR069Service
         $xml->registerXPathNamespace('cwmp', 'urn:dslforum-org:cwmp-1-0');
         
         $deviceId = $xml->xpath('//cwmp:DeviceId')[0] ?? null;
-        $eventCodes = $xml->xpath('//cwmp:EventStruct/cwmp:EventCode') ?? [];
+        $eventCodes = $xml->xpath('//EventStruct/EventCode') ?? [];
         $parameterList = $xml->xpath('//cwmp:ParameterValueStruct') ?? [];
         
         $data = [
