@@ -15,7 +15,11 @@ class LanDeviceTest extends TestCase
 
     public function test_list_lan_devices(): void
     {
-        $device = CpeDevice::factory()->create();
+        $device = CpeDevice::factory()->create([
+            'protocol_type' => 'tr069',
+            'mtp_type' => null,
+            'status' => 'online'
+        ]);
         
         LanDevice::create([
             'cpe_device_id' => $device->id,
@@ -38,21 +42,30 @@ class LanDeviceTest extends TestCase
 
     public function test_process_ssdp_announcement(): void
     {
-        $device = CpeDevice::factory()->create();
+        $device = CpeDevice::factory()->create([
+            'protocol_type' => 'tr069',
+            'mtp_type' => null,
+            'status' => 'online'
+        ]);
 
         $usn = 'uuid:' . uniqid();
-        $mockLanDevice = new LanDevice([
+        
+        $mockLanDevice = LanDevice::create([
             'cpe_device_id' => $device->id,
             'usn' => $usn,
             'location' => 'http://192.168.1.100:1900/description.xml',
             'device_type' => 'urn:schemas-upnp-org:device:MediaRenderer:1',
-            'status' => 'active'
+            'status' => 'active',
+            'last_seen' => now()
         ]);
-        $mockLanDevice->id = 1;
 
         $mock = Mockery::mock(UpnpDiscoveryService::class);
         $mock->shouldReceive('processSsdpAnnouncement')
             ->once()
+            ->with(
+                Mockery::on(fn($d) => $d->id === $device->id),
+                Mockery::type('array')
+            )
             ->andReturn($mockLanDevice);
 
         $this->app->instance(UpnpDiscoveryService::class, $mock);
@@ -72,7 +85,11 @@ class LanDeviceTest extends TestCase
 
     public function test_ssdp_announcement_validates_usn(): void
     {
-        $device = CpeDevice::factory()->create();
+        $device = CpeDevice::factory()->create([
+            'protocol_type' => 'tr069',
+            'mtp_type' => null,
+            'status' => 'online'
+        ]);
 
         $response = $this->apiPost("/api/v1/devices/{$device->id}/lan-devices/ssdp", [
             'location' => 'http://192.168.1.100:1900/description.xml'
@@ -84,7 +101,11 @@ class LanDeviceTest extends TestCase
 
     public function test_invoke_soap_action(): void
     {
-        $device = CpeDevice::factory()->create();
+        $device = CpeDevice::factory()->create([
+            'protocol_type' => 'tr069',
+            'mtp_type' => null,
+            'status' => 'online'
+        ]);
         
         $lanDevice = LanDevice::create([
             'cpe_device_id' => $device->id,
