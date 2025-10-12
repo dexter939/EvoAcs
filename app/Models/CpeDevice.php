@@ -239,4 +239,26 @@ class CpeDevice extends Model
     {
         return $this->protocol_type === 'tr069';
     }
+
+    /**
+     * Relazione con servizi VoIP TR-104
+     * Relationship with TR-104 VoIP services
+     * 
+     * @return HasMany
+     */
+    public function voiceServices(): HasMany
+    {
+        return $this->hasMany(VoiceService::class);
+    }
+
+    /**
+     * Relazione con servizi Storage TR-140
+     * Relationship with TR-140 Storage services
+     * 
+     * @return HasMany
+     */
+    public function storageServices(): HasMany
+    {
+        return $this->hasMany(StorageService::class);
+    }
 }
