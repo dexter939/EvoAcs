@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\UspController;
 use App\Http\Controllers\Api\VoiceServiceController;
 use App\Http\Controllers\Api\StorageServiceController;
 use App\Http\Controllers\Api\ParameterDiscoveryController;
+use App\Http\Controllers\Api\LanDeviceController;
 
 Route::prefix('v1')->middleware(\App\Http\Middleware\ApiKeyAuth::class)->group(function () {
     Route::apiResource('devices', DeviceController::class);
@@ -67,4 +68,9 @@ Route::prefix('v1')->middleware(\App\Http\Middleware\ApiKeyAuth::class)->group(f
     Route::get('devices/{device}/capabilities', [ParameterDiscoveryController::class, 'getCapabilities']);
     Route::get('devices/{device}/capabilities/stats', [ParameterDiscoveryController::class, 'getStats']);
     Route::get('devices/{device}/capabilities/path', [ParameterDiscoveryController::class, 'getCapabilityByPath']);
+    
+    // TR-64 LAN-Side Configuration
+    Route::get('devices/{device}/lan-devices', [LanDeviceController::class, 'index']);
+    Route::post('devices/{device}/lan-devices/ssdp', [LanDeviceController::class, 'processSsdpAnnouncement']);
+    Route::post('lan-devices/{lanDevice}/soap-action', [LanDeviceController::class, 'invokeSoapAction']);
 });
