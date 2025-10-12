@@ -46,7 +46,7 @@ class CpeDeviceFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'protocol_type' => 'tr369',
-            'mtp_type' => $this->faker->randomElement(['http', 'mqtt', 'websocket']),
+            'mtp_type' => $this->faker->randomElement(['mqtt', 'websocket', 'stomp', 'coap', 'uds']),
             'usp_endpoint_id' => 'proto::' . $this->faker->uuid(),
         ]);
     }
