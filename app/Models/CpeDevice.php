@@ -272,4 +272,15 @@ class CpeDevice extends Model
     {
         return $this->hasMany(DeviceCapability::class);
     }
+
+    /**
+     * Relazione con LAN devices TR-64
+     * Relationship with TR-64 LAN Devices
+     * 
+     * @return HasMany
+     */
+    public function lanDevices(): HasMany
+    {
+        return $this->hasMany(LanDevice::class);
+    }
 }
