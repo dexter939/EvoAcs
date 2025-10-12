@@ -21,9 +21,10 @@ class DeviceController extends Controller
      * 
      * Filtri disponibili / Available filters:
      * - status: Filtra per stato dispositivo / Filter by device status
+     * - protocol_type: Filtra per tipo protocollo (tr069, tr369) / Filter by protocol type
      * - manufacturer: Filtra per produttore / Filter by manufacturer
      * - search: Ricerca in serial_number, model_name, ip_address / Search in serial_number, model_name, ip_address
-     * - per_page: Numero risultati per pagina (default 50) / Results per page (default 50)
+     * - per_page: Numero risultati per pagina (default 10) / Results per page (default 10)
      * 
      * @param Request $request Richiesta HTTP con parametri di filtro / HTTP request with filter parameters
      * @return \Illuminate\Http\JsonResponse Lista dispositivi paginata / Paginated device list
@@ -38,6 +39,12 @@ class DeviceController extends Controller
         // Filter by status (online, offline, provisioning, error)
         if ($request->has('status')) {
             $query->where('status', $request->status);
+        }
+        
+        // Filtro per tipo protocollo (tr069, tr369)
+        // Filter by protocol type (tr069, tr369)
+        if ($request->has('protocol_type')) {
+            $query->where('protocol_type', $request->protocol_type);
         }
         
         // Filtro per produttore
@@ -57,11 +64,22 @@ class DeviceController extends Controller
             });
         }
         
-        // Paginazione risultati (default 50 per pagina)
-        // Paginate results (default 50 per page)
-        $devices = $query->paginate($request->get('per_page', 50));
+        // Paginazione risultati (default 10 per pagina, configurabile via per_page)
+        // Paginate results (default 10 per page, configurable via per_page)
+        $perPage = $request->get('per_page', 10);
+        $devices = $query->paginate($perPage);
         
-        return response()->json($devices);
+        // Ritorna response con struttura standardizzata
+        // Return response with standardized structure
+        return response()->json([
+            'data' => $devices->items(),
+            'meta' => [
+                'current_page' => $devices->currentPage(),
+                'total' => $devices->total(),
+                'per_page' => $devices->perPage(),
+                'last_page' => $devices->lastPage(),
+            ]
+        ]);
     }
     
     /**
@@ -76,7 +94,7 @@ class DeviceController extends Controller
         // Carica tutte le relazioni del dispositivo
         // Load all device relationships
         $device->load(['configurationProfile', 'parameters', 'provisioningTasks', 'firmwareDeployments']);
-        return response()->json($device);
+        return response()->json(['data' => $device]);
     }
     
     /**
@@ -96,13 +114,16 @@ class DeviceController extends Controller
         $validated = $request->validate([
             'serial_number' => 'required|unique:cpe_devices',
             'oui' => 'required',
+            'product_class' => 'nullable|string',
             'manufacturer' => 'nullable|string',
             'model_name' => 'nullable|string',
+            'protocol_type' => 'nullable|in:tr069,tr369',
+            'status' => 'nullable|in:online,offline,provisioning,error',
             'configuration_profile_id' => 'nullable|exists:configuration_profiles,id'
         ]);
         
         $device = CpeDevice::create($validated);
-        return response()->json($device, 201);
+        return response()->json(['data' => $device], 201);
     }
     
     /**
@@ -119,12 +140,15 @@ class DeviceController extends Controller
         // Validate updatable fields
         $validated = $request->validate([
             'configuration_profile_id' => 'nullable|exists:configuration_profiles,id',
+            'manufacturer' => 'nullable|string',
+            'model_name' => 'nullable|string',
+            'status' => 'nullable|in:online,offline,provisioning,error',
             'notes' => 'nullable|string',
             'is_active' => 'boolean'
         ]);
         
         $device->update($validated);
-        return response()->json($device);
+        return response()->json(['data' => $device]);
     }
     
     /**
@@ -137,6 +161,6 @@ class DeviceController extends Controller
     public function destroy(CpeDevice $device)
     {
         $device->delete();
-        return response()->json(['message' => 'Device deleted successfully']);
+        return response()->json(null, 204);
     }
 }

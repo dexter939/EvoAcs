@@ -59,7 +59,7 @@ abstract class TestCase extends BaseTestCase
      */
     protected function apiDelete(string $uri, array $headers = [])
     {
-        return $this->delete($uri, $this->apiHeaders($headers));
+        return $this->deleteJson($uri, [], $this->apiHeaders($headers));
     }
 
     /**

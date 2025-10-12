@@ -83,7 +83,7 @@ class DeviceManagementTest extends TestCase
             'product_class' => 'IGD',
             'manufacturer' => 'Test Manufacturer',
             'protocol_type' => 'tr069',
-            'status' => 'pending'
+            'status' => 'offline'
         ];
 
         $response = $this->apiPost('/api/v1/devices', $deviceData);
