@@ -6,62 +6,41 @@ The ACS (Auto Configuration Server) project is a carrier-grade system built with
 ## User Preferences
 I prefer clear and concise explanations. When making changes, prioritize core functionalities and ensure backward compatibility. I prefer an iterative development approach, focusing on delivering functional components incrementally. Please ask for confirmation before implementing significant architectural changes or altering existing API contracts. Ensure all new features have comprehensive test coverage. I want the agent to use proper markdown formatting in all its responses.
 
-## Recent Developments (October 2025)
-### TR-369 (USP) Protocol Support - IN PROGRESS
-The system now supports next-generation TR-369 User Services Platform alongside TR-069 for modern device management:
-
-**Completed Features:**
-- ✅ **Protocol Buffers Integration**: Google protobuf v4.32.1 with 44 generated USP message classes
-- ✅ **MQTT Transport Layer**: php-mqtt/laravel-client v1.6.1 for broker-based communication
-- ✅ **Dual-Protocol Database**: Added protocol_type, usp_endpoint_id, mqtt_client_id, mtp_type fields to cpe_devices
-- ✅ **USP Message Service**: Complete encoding/decoding for GET, SET, ADD, DELETE, OPERATE operations with correct response types (GET_RESP, SET_RESP, OPERATE_RESP, ADD_RESP, DELETE_RESP, ERROR)
-- ✅ **Binary Serialization**: Protobuf message and Record wrapping for MTP transport
-- ✅ **Device Scopes**: Query scopes for tr069(), tr369(), uspMqtt() filtering
-- ✅ **USP Controller**: HTTP endpoint at /usp for receiving USP Records, auto-registration of TR-369 devices, request handlers for GET/SET/OPERATE/ADD/DELETE/NOTIFY operations
-- ✅ **MQTT Transport Layer**: UspMqttService for broker-based pub/sub, UspMqttSubscriber daemon for receiving device messages, topic structure (controller: usp/controller/{id}/+, agent: usp/agent/{id}/request), msg_id tracking for request/response correlation
-
-- ✅ **Web Interface TR-369 Support**: Dashboard statistics cards (TR-069 CWMP count, TR-369 USP count, USP via MQTT, USP via HTTP), device management page with protocol/MTP/status filters, protocol column with differentiated badges (TR-369 green, TR-069 blue), MTP type badges (MQTT orange, HTTP cyan), device icons (satellite-dish for USP, router for CWMP)
-
-- ✅ **RESTful API for USP Operations**: Complete API v1 implementation at `/api/v1/usp/devices/{device}/*` with 6 authenticated endpoints (get-params, set-params, operate, add-object, delete-object, reboot). Dual MTP support: MQTT for immediate device communication, HTTP for polling-based devices. HTTP MTP uses `usp_pending_requests` table for request storage with 1-hour expiration, devices poll via GET /usp endpoint with auto-delivery tracking. Parameter format conversion (flat API -> grouped USP). Full Postman collection and markdown documentation included.
-
-- ✅ **Subscribe/Notify Event Pattern**: Complete TR-369 event subscription system for device notifications. Database tracking via `usp_subscriptions` table with UspSubscription model. API endpoints for subscription CRUD (create at POST /api/v1/usp/devices/{device}/subscribe, list at GET /subscriptions, delete at DELETE /subscriptions/{id}). UspController processes 6 notification types (ValueChange, Event, OperationComplete, ObjectCreation, ObjectDeletion, OnBoardRequest) with SendResp compliance. Web UI for subscription management integrated in device detail page. UspMqttService includes sendSubscriptionRequest() and sendDeleteRequest() methods. End-to-end test script validates full lifecycle (create/list/verify/delete) with notification_retry flag support.
-
-- ✅ **WebSocket Transport Layer (MTP)**: Native PHP RFC 6455-compliant WebSocket server for direct device connections. UspWebSocketServer Artisan command provides standalone server with frame fragmentation handling, continuation frame support (opcode 0x0), big-endian payload encoding, heartbeat/ping-pong mechanism, and per-client buffering. UspWebSocketService implements Redis queue-based message delivery with full msgId propagation for request/response correlation. Database fields: websocket_client_id, websocket_connected_at, last_websocket_ping in cpe_devices table. CpeDevice model includes webSocketConnected() scope prioritizing heartbeat tracking. UspController API supports WebSocket routing for all 8 operations (GET/SET/OPERATE/ADD/DELETE/REBOOT/SUBSCRIBE/UNSUBSCRIBE) with functional parity across MQTT/HTTP/WebSocket transports. Multi-path DELETE support, subscription params structuring, and end-to-end msgId tracking implemented.
-
 ## System Architecture
 
 ### UI/UX Decisions
-The web interface utilizes the Soft UI Dashboard Laravel template, offering a modern, responsive design. Navigation is organized via a sidebar, and key statistics are displayed using real-time cards with FontAwesome icons. The dashboard features **12 statistics cards**: 8 original cards (Devices Online, Task Pending, Firmware Deploy, Task Completati, Test Diagnostici, Profili Attivi, Versioni Firmware, Parametri TR-181) plus **4 new TR-369 protocol cards** (Dispositivi TR-069 CWMP, Dispositivi TR-369 USP, USP via MQTT broker, USP via HTTP diretto) with differentiated icons (server, satellite-dish, exchange-alt, globe) and color-coded badges. The dashboard includes **4 interactive Chart.js visualizations** (Devices Status Doughnut, Tasks Bar Chart, Diagnostics Polar Area, Firmware Line Chart) for real-time monitoring. Device management page includes **protocol/MTP/status filters** with pagination preservation, displays protocol type column with TR-069 (blue) vs TR-369 (green) badges, and shows MTP transport badges (MQTT orange, HTTP cyan) for USP devices. Tables include pagination and status badges for clarity. Modal forms are used for CRUD operations and device actions like provisioning and rebooting. The dashboard auto-refreshes every 30 seconds. Assets use relative paths for compatibility across various environments.
+The web interface utilizes the Soft UI Dashboard Laravel template, offering a modern, responsive design. Navigation is organized via a sidebar, and key statistics are displayed using real-time cards with FontAwesome icons. The dashboard features 12 statistics cards (8 original, 4 new TR-369 protocol cards) with differentiated icons and color-coded badges, and 4 interactive Chart.js visualizations (Devices Status Doughnut, Tasks Bar Chart, Diagnostics Polar Area, Firmware Line Chart). Device management pages include protocol/MTP/status filters with pagination, displaying protocol type and MTP transport badges. Modal forms are used for CRUD operations. The dashboard auto-refreshes every 30 seconds.
 
 ### Technical Implementations
-- **TR-069 (CWMP) Server**: Features a dedicated `/tr069` SOAP endpoint for device communication, handling `Inform` requests, and managing stateful TR-069 sessions with cookie-based tracking. It supports `GetParameterValues`, `SetParameterValues`, `Reboot`, and `Download` operations.
-- **TR-369 (USP) Support**: Next-generation protocol implementation with Protocol Buffers encoding, MQTT/WebSocket/HTTP transport (MTP), and full USP message operations (Get, Set, Add, Delete, Operate). HTTP endpoint `/usp` receives USP Records via binary POST. MQTT transport layer with UspMqttService enables broker-based communication (subscribe/publish) on standard USP topics. WebSocket transport with UspWebSocketService provides direct connections via native PHP RFC 6455 server, Redis queue routing, and heartbeat tracking. Auto-registration of TR-369 devices (protocol_type=tr369, default OUI=000000, mtp_type=mqtt/http/websocket) with correct message types (GET_RESP, SET_RESP, OPERATE_RESP) and msg_id tracking. Devices support dual-protocol operation with protocol_type field for TR-069/TR-369 selection.
-- **Database**: PostgreSQL is used for high-performance data storage, optimized with indexes for managing over 100K devices. Key tables include `cpe_devices`, `configuration_profiles`, `firmware_versions`, `device_parameters`, `provisioning_tasks`, and `firmware_deployments`.
-- **Asynchronous Queue System**: Laravel Horizon is configured with Redis queues to handle asynchronous tasks such as `ProcessProvisioningTask`, `ProcessFirmwareDeployment`, and `SendTR069Request`. Tasks include retry logic and timeouts for robustness.
-- **API Security**: All API v1 endpoints are protected using API Key authentication via a custom middleware, requiring an `X-API-Key` header or `api_key` query parameter.
-- **RESTful API (v1)**: Provides authenticated endpoints for managing devices (CRUD), provisioning (get/set parameters, reboot), firmware (upload, deploy), and remote diagnostics (ping, traceroute, download/upload speed tests).
-- **Web Interface**: A comprehensive web interface is accessible via `/acs/*`, offering a dashboard with 12 statistics cards (8 legacy + 4 TR-369 protocol cards) and 4 Chart.js graphs (doughnut, bar, polar area, line), device management with protocol/MTP/status filters, provisioning tools, firmware management, and configuration profile CRUD functionalities. All dashboard statistics are calculated in the controller for performance and accuracy, including distinct TR-181 parameter counts and TR-069/TR-369 device counts using model scopes (tr069(), tr369(), uspMqtt()). Device list shows differentiated protocol badges (TR-069 blue, TR-369 green), MTP transport badges (MQTT orange, HTTP cyan), and protocol-specific icons (router for CWMP, satellite-dish for USP).
+- **TR-069 (CWMP) Server**: Dedicated `/tr069` SOAP endpoint handling `Inform` requests and other CWMP operations with stateful, cookie-based sessions.
+- **TR-369 (USP) Support**: Implements next-generation protocol with Protocol Buffers encoding and MQTT, WebSocket, and HTTP as MTPs (Message Transfer Protocols). Includes full USP message operations (Get, Set, Add, Delete, Operate) and auto-registration of TR-369 devices. The `/usp` HTTP endpoint receives USP Records. MQTT transport uses `UspMqttService` for broker-based communication, while WebSocket transport uses `UspWebSocketService` for direct connections via a native PHP RFC 6455 server with Redis queue routing. Devices support dual-protocol operation.
+- **Database**: PostgreSQL for high-performance data storage, optimized with indexes for over 100K devices. Key tables include `cpe_devices`, `configuration_profiles`, `firmware_versions`, `device_parameters`, `provisioning_tasks`, and `usp_subscriptions`.
+- **Asynchronous Queue System**: Laravel Horizon with Redis queues handles tasks like provisioning, firmware deployment, and TR-069 requests with retry logic.
+- **API Security**: All API v1 endpoints are protected using API Key authentication via custom middleware.
+- **RESTful API (v1)**: Provides authenticated endpoints for device management (CRUD), provisioning (get/set parameters, reboot), firmware (upload, deploy), and remote diagnostics (ping, traceroute, download/upload speed tests). Includes specific API for TR-369 USP operations.
+- **Web Interface**: Accessible via `/acs/*`, offering a comprehensive dashboard, device management with filtering, provisioning tools, firmware management, and configuration profile CRUD.
 - **Eloquent Models**: Core models include `CpeDevice`, `ConfigurationProfile`, `FirmwareVersion`, `DeviceParameter`, `ProvisioningTask`, `FirmwareDeployment`, `DiagnosticTest`, and `UspSubscription`.
-- **Services**: `TR069Service` handles TR-069 SOAP requests, `UspMessageService` manages TR-369 protobuf encoding/decoding, Record wrapping for MTP transport, and correct response message creation for each USP operation type. `UspMqttService` provides MQTT pub/sub for broker-based USP device communication. `UspWebSocketService` provides WebSocket direct connections with Redis queue routing, msgId propagation, and multi-path operations. All USP services support sendGetRequest(), sendSetRequest(), sendOperateRequest(), sendAddRequest(), sendDeleteRequest(), sendSubscriptionRequest() methods with consistent msgId parameter for request/response correlation.
-- **Controllers**: `TR069Controller` manages the TR-069 protocol, `UspController` handles TR-369 USP protocol with /usp endpoint, `Api` controllers handle RESTful interactions for devices, provisioning, and firmware, and `AcsController` manages the web interface.
-- **Scalability**: Database optimizations include composite indexes and soft deletes. The queue system is designed for high throughput and reliability.
-- **Configuration**: Uses standard Laravel environment variables for database, API key, MQTT broker (MQTT_HOST, MQTT_PORT, MQTT_CLIENT_ID), and USP settings (USP_CONTROLLER_ENDPOINT_ID, USP_WEBSOCKET_PORT). The server listens on `0.0.0.0:5000`. Background daemons: MQTT subscriber (`php artisan usp:mqtt-subscribe`), WebSocket server (`php artisan usp:websocket-server`).
+- **Services**: `TR069Service` for TR-069 SOAP requests, `UspMessageService` for TR-369 protobuf encoding/decoding and response creation, `UspMqttService` for MQTT pub/sub, and `UspWebSocketService` for WebSocket connections and message routing.
+- **Controllers**: `TR069Controller`, `UspController`, `Api` controllers, and `AcsController`.
+- **Scalability**: Database optimizations and a high-throughput queue system.
+- **Configuration**: Uses Laravel environment variables for database, API key, MQTT, and USP settings. Background daemons (`usp:mqtt-subscribe`, `usp:websocket-server`) are essential for production.
 
 ### Feature Specifications
 - **Auto-registration**: Devices are automatically identified via Serial Number, OUI, and Product Class.
-- **Zero-touch Provisioning**: Configuration profiles enable automated device setup.
-- **Firmware Management**: Supports uploading, versioning, and deploying firmware to selected devices.
-- **TR-181 Data Model**: Parameters are stored with type and path, tracking writable/readonly status and last updates.
-- **Connection Request**: The system can initiate connection requests to devices using HTTP Digest/Basic Auth with retry mechanisms.
-- **Remote Diagnostics (TR-143)**: Full implementation of TR-143 diagnostic tests including IPPing (ping test with packet loss/latency metrics), TraceRoute (network path analysis with hop-by-hop timing), DownloadDiagnostics (download speed measurement), and UploadDiagnostics (upload speed measurement). API endpoints use atomic transactions (DB::transaction) to ensure data consistency between DiagnosticTest and ProvisioningTask creation. The `DiagnosticTest` model includes scopes for filtering by type and status, plus a `getResultsSummary()` method for formatted results. All tests are executed asynchronously via queue jobs with results stored in structured JSON format.
+- **Zero-touch Provisioning**: Automated device setup using configuration profiles.
+- **Firmware Management**: Uploading, versioning, and deploying firmware.
+- **TR-181 Data Model**: Parameters stored with type, path, writable/readonly status, and last updates.
+- **Connection Request**: System-initiated connection requests to devices using HTTP Digest/Basic Auth.
+- **Remote Diagnostics (TR-143)**: Implementation of IPPing, TraceRoute, DownloadDiagnostics, and UploadDiagnostics, executed asynchronously via queue jobs.
+- **TR-369 Subscription/Notification**: Full event subscription system for device notifications via API and Web UI, supporting ValueChange, Event, OperationComplete, ObjectCreation, ObjectDeletion, and OnBoardRequest notifications.
 
 ## External Dependencies
-- **PostgreSQL**: Primary database for data storage.
-- **Redis**: Used as the queue driver for Laravel Horizon.
+- **PostgreSQL**: Primary database.
+- **Redis**: Queue driver for Laravel Horizon and WebSocket message routing.
 - **Laravel Horizon**: Manages and monitors Redis queues.
-- **Guzzle**: Utilized for making HTTP requests, specifically for TR-069 Connection Requests.
-- **Google Protocol Buffers**: v4.32.1 for TR-369 USP message encoding/decoding with generated PHP classes.
-- **PHP-MQTT Client**: v1.6.1 Laravel-native MQTT client for USP broker-based transport.
-- **Soft UI Dashboard**: Laravel integration for the administrative web interface template.
-- **Chart.js**: JavaScript charting library for interactive dashboard visualizations (doughnut, bar, polar area, line charts).
-- **FontAwesome**: Icon library for dashboard cards and UI elements.
+- **Guzzle**: HTTP client for TR-069 Connection Requests.
+- **Google Protocol Buffers**: v4.32.1 for TR-369 USP message encoding/decoding.
+- **PHP-MQTT Client**: v1.6.1 for USP broker-based transport.
+- **Soft UI Dashboard**: Laravel template for the web interface.
+- **Chart.js**: JavaScript charting library for dashboard visualizations.
+- **FontAwesome**: Icon library for UI elements.
