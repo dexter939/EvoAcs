@@ -12,7 +12,7 @@ I prefer clear and concise explanations. When making changes, prioritize core fu
 The web interface utilizes the Soft UI Dashboard Laravel template, offering a modern, responsive design with a sidebar for navigation and real-time statistics cards. The dashboard includes 12 statistics cards and 4 interactive Chart.js visualizations (Devices Status, Tasks, Diagnostics, Firmware). Device management pages feature filtering, pagination, and modal forms for CRUD operations. The dashboard auto-refreshes every 30 seconds.
 
 ### Technical Implementations
-- **TR-069 (CWMP) Server**: Dedicated `/tr069` SOAP endpoint with stateful, cookie-based sessions.
+- **TR-069 (CWMP) Server**: Dedicated `/tr069` SOAP endpoint with stateful, cookie-based sessions. XML parsing migrated from SimpleXML to DOMDocument for carrier-grade namespace support (handles cwmp-prefixed DeviceId/EventCode/Parameters from multi-vendor CPE devices).
 - **TR-369 (USP) Support**: Implements next-generation protocol with Protocol Buffers, supporting MQTT, WebSocket, and HTTP as MTPs. Includes full USP message operations (Get, Set, Add, Delete, Operate) and auto-registration. Devices support dual-protocol operation.
 - **TR-104 (VoIP) Support**: Full VoIP service provisioning supporting SIP/MGCP/H.323 protocols, including SIP proxy/registrar configuration, codec management, RTP/DSCP settings, STUN support, call statistics, and supplementary services.
 - **TR-140 (Storage) Support**: Complete NAS/storage service management with multi-protocol file server support, including RAID configuration, filesystem management, quota management, encryption, and SMART health monitoring.
