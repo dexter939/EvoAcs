@@ -48,6 +48,15 @@ class DiagnosticTest extends Model
     }
 
     /**
+     * Relazione con risultati per-connessione (TR-143 multi-threaded)
+     * Relationship with per-connection results (TR-143 multi-threaded)
+     */
+    public function connectionResults()
+    {
+        return $this->hasMany(DiagnosticConnectionResult::class);
+    }
+
+    /**
      * Scope per filtrare test per tipo diagnostica
      * Scope to filter tests by diagnostic type
      */
