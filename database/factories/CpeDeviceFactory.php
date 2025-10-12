@@ -11,6 +11,9 @@ class CpeDeviceFactory extends Factory
 
     public function definition(): array
     {
+        // Default a TR-069 con mtp_type=null per evitare constraint violations
+        // Default to TR-069 with mtp_type=null to avoid constraint violations
+        // Usa ->tr369() state per dispositivi USP / Use ->tr369() state for USP devices
         return [
             'serial_number' => 'SN-' . strtoupper($this->faker->bothify('??########')),
             'oui' => $this->faker->randomElement(['00259E', 'F8C003', 'A4567B']),
@@ -19,15 +22,15 @@ class CpeDeviceFactory extends Factory
             'model_name' => $this->faker->bothify('Model-???-###'),
             'hardware_version' => $this->faker->bothify('HW-#.#'),
             'software_version' => $this->faker->bothify('SW-#.#.#'),
-            'protocol_type' => $this->faker->randomElement(['tr069', 'tr369']),
+            'protocol_type' => 'tr069', // Default TR-069
             'connection_request_url' => $this->faker->url(),
             'connection_request_username' => $this->faker->userName(),
             'connection_request_password' => bcrypt('password'),
-            'status' => $this->faker->randomElement(['online', 'offline', 'pending']),
+            'status' => $this->faker->randomElement(['online', 'offline']), // Solo 'online'/'offline' - NO 'pending'
             'last_inform' => $this->faker->dateTimeBetween('-1 day', 'now'),
             'ip_address' => $this->faker->ipv4(),
             'mac_address' => $this->faker->macAddress(),
-            'mtp_type' => $this->faker->randomElement(['http', 'mqtt', 'websocket']),
+            'mtp_type' => null, // TR-069 usa sempre null
         ];
     }
 
