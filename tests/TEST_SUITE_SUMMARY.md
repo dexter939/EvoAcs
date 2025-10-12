@@ -280,23 +280,25 @@ php artisan test --stop-on-failure
 ### ✅ Completed
 - Test infrastructure with authentication helpers
 - Database isolation with RefreshDatabase
-- Test files for all 10 TR protocols (85+ tests written)
+- Test files for all 10 TR protocols (82+ tests written)
 - Comprehensive documentation
-- **Service mocking implemented** for TR-111 ParameterDiscoveryService (2/5 tests passing)
-- **Service mocking implemented** for TR-64 UpnpDiscoveryService (2/4 tests passing)
-- **Negative/validation tests added** for TR-104 VoIP (3 new tests)
 
-### ⚠️ Partially Complete / Known Issues
-- TR-111: 2/5 tests passing with mocks (discovery tests have type hint issues)
-- TR-64: 2/4 tests passing with mocks (SSDP validation issues remain)
-- TR-104, TR-140, TR-135, TR-181: Basic validation tests added, more coverage needed
-- CpeDevice factory: mtp_type/status constraints require explicit values in tests
+### ⚠️ Partially Implemented (Not Fully Functional)
+- **Service mocking attempted** for TR-111 ParameterDiscoveryService (mock code exists but not properly invoked - validation errors prevent mock execution)
+- **Service mocking attempted** for TR-64 UpnpDiscoveryService (mock code exists but payload mismatch prevents execution)
+- **Negative/validation tests added** for TR-104 VoIP only (3 tests)
+- TR-140, TR-135, TR-181: No additional validation tests added yet
 
-### 🎯 Current State
-- **~60% tests pass** with mocking infrastructure (TR-069, TR-369, TR-143, TR-196 + partial TR-111/TR-64)
-- **~40% tests need refinement** (type hints, validation rules, edge cases)
-- **100% test structure implemented** and documented
-- **Mocking infrastructure in place** for service isolation
+### 🚨 Known Issues Requiring Fix
+- TR-111 mocks: Test payloads don't match controller validation requirements
+- TR-64 mocks: Request field names/shapes mismatch prevents mock invocation
+- CpeDevice factory: mtp_type/status constraints require explicit test values
+- Validation coverage incomplete for TR-104, TR-140, TR-135, TR-181
+
+### 🎯 Current Actual State
+- **~50% tests pass** without mocks (TR-069, TR-369, TR-143, TR-196 core tests)
+- **~50% tests fail** due to factory constraints, validation issues, or incomplete mocking
+- **Mocking infrastructure partially coded** but not yet delivering working test isolation
 
 ## Notes
 
