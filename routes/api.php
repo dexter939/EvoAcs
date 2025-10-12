@@ -12,6 +12,8 @@ use App\Http\Controllers\Api\StorageServiceController;
 use App\Http\Controllers\Api\ParameterDiscoveryController;
 use App\Http\Controllers\Api\LanDeviceController;
 use App\Http\Controllers\Api\IotDeviceController;
+use App\Http\Controllers\Api\FemtocellController;
+use App\Http\Controllers\Api\StbServiceController;
 
 Route::prefix('v1')->middleware(\App\Http\Middleware\ApiKeyAuth::class)->group(function () {
     Route::apiResource('devices', DeviceController::class);
@@ -81,4 +83,14 @@ Route::prefix('v1')->middleware(\App\Http\Middleware\ApiKeyAuth::class)->group(f
     Route::patch('smart-home-devices/{smartDevice}/state', [IotDeviceController::class, 'updateState']);
     Route::get('devices/{device}/iot-services', [IotDeviceController::class, 'listServices']);
     Route::post('devices/{device}/iot-services', [IotDeviceController::class, 'createService']);
+    
+    // TR-196 Femtocell
+    Route::post('devices/{device}/femtocell/configure', [FemtocellController::class, 'configure']);
+    Route::post('femtocell-configs/{config}/neighbor-cells', [FemtocellController::class, 'addNeighborCell']);
+    Route::post('femtocell-configs/{config}/scan', [FemtocellController::class, 'scanEnvironment']);
+    
+    // TR-135 STB/IPTV
+    Route::post('devices/{device}/stb-services', [StbServiceController::class, 'provisionService']);
+    Route::post('stb-services/{service}/sessions', [StbServiceController::class, 'startSession']);
+    Route::patch('streaming-sessions/{session}/qos', [StbServiceController::class, 'updateQos']);
 });

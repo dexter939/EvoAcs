@@ -305,4 +305,14 @@ class CpeDevice extends Model
     {
         return $this->hasMany(IotService::class);
     }
+
+    public function femtocellConfig()
+    {
+        return $this->hasOne(FemtocellConfig::class);
+    }
+
+    public function stbServices()
+    {
+        return $this->hasMany(StbService::class);
+    }
 }
