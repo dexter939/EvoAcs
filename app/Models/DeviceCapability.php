@@ -125,7 +125,7 @@ class DeviceCapability extends Model
     public function getParentPath(): ?string
     {
         $parts = explode('.', $this->parameter_path);
-        array_pop();
+        array_pop($parts);
         
         return count($parts) > 0 ? implode('.', $parts) : null;
     }
