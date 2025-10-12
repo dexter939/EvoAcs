@@ -1,0 +1,122 @@
+version: '3.8'
+
+services:
+  acs-app:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+    container_name: acs-app
+    restart: unless-stopped
+    ports:
+      - "5000:80"
+      - "9000:9000"
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_CONNECTION=pgsql
+      - DB_HOST=acs-db
+      - DB_PORT=5432
+      - DB_DATABASE=${DB_DATABASE:-acs_production}
+      - DB_USERNAME=${DB_USERNAME:-acs_user}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=acs-redis
+      - REDIS_PORT=6379
+      - QUEUE_CONNECTION=redis
+      - MQTT_HOST=${MQTT_HOST:-mqtt-broker}
+      - MQTT_PORT=${MQTT_PORT:-1883}
+      - USP_WEBSOCKET_PORT=9000
+      - ACS_API_KEY=${ACS_API_KEY}
+    depends_on:
+      - acs-db
+      - acs-redis
+    volumes:
+      - app-storage:/var/www/acs/storage
+      - app-logs:/var/www/acs/storage/logs
+    networks:
+      - acs-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/acs/dashboard"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  acs-db:
+    image: postgres:16-alpine
+    container_name: acs-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${DB_DATABASE:-acs_production}
+      - POSTGRES_USER=${DB_USERNAME:-acs_user}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - acs-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-acs_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  acs-redis:
+    image: redis:7-alpine
+    container_name: acs-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - acs-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  acs-nginx:
+    image: nginx:alpine
+    container_name: acs-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "9001:9001"
+    volumes:
+      - ../nginx/acs.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./ssl:/etc/ssl:ro
+      - app-storage:/var/www/acs/storage:ro
+    depends_on:
+      - acs-app
+    networks:
+      - acs-network
+
+  mqtt-broker:
+    image: eclipse-mosquitto:2
+    container_name: acs-mqtt
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "8883:8883"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config:ro
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    networks:
+      - acs-network
+
+volumes:
+  db-data:
+    driver: local
+  redis-data:
+    driver: local
+  app-storage:
+    driver: local
+  app-logs:
+    driver: local
+
+networks:
+  acs-network:
+    driver: bridge

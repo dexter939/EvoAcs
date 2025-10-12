@@ -1,0 +1,38 @@
+[Unit]
+Description=ACS MQTT Subscriber - TR-369 USP Device Communication
+Documentation=https://github.com/your-org/acs-system
+After=network.target postgresql.service redis.service
+Requires=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+Restart=always
+RestartSec=5s
+
+# Working directory
+WorkingDirectory=/var/www/acs
+
+# Environment
+Environment="PATH=/usr/bin:/usr/local/bin"
+EnvironmentFile=/var/www/acs/.env
+
+# Execute command
+ExecStart=/usr/bin/php /var/www/acs/artisan usp:mqtt-subscribe
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=acs-mqtt
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Restart policy
+StartLimitInterval=600
+StartLimitBurst=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,42 @@
+[Unit]
+Description=ACS Laravel Horizon - Queue Worker
+Documentation=https://github.com/your-org/acs-system
+After=network.target postgresql.service redis.service
+Requires=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+Restart=always
+RestartSec=5s
+
+# Working directory
+WorkingDirectory=/var/www/acs
+
+# Environment
+Environment="PATH=/usr/bin:/usr/local/bin"
+EnvironmentFile=/var/www/acs/.env
+
+# Execute command
+ExecStart=/usr/bin/php /var/www/acs/artisan horizon
+
+# Graceful shutdown
+ExecStop=/usr/bin/php /var/www/acs/artisan horizon:terminate
+TimeoutStopSec=60
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=acs-horizon
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Restart policy
+StartLimitInterval=600
+StartLimitBurst=5
+
+[Install]
+WantedBy=multi-user.target
