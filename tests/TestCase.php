@@ -43,7 +43,7 @@ abstract class TestCase extends BaseTestCase
      */
     protected function apiPost(string $uri, array $data = [], array $headers = [])
     {
-        return $this->post($uri, $data, $this->apiHeaders($headers));
+        return $this->postJson($uri, $data, $this->apiHeaders($headers));
     }
 
     /**
@@ -51,7 +51,7 @@ abstract class TestCase extends BaseTestCase
      */
     protected function apiPut(string $uri, array $data = [], array $headers = [])
     {
-        return $this->put($uri, $data, $this->apiHeaders($headers));
+        return $this->putJson($uri, $data, $this->apiHeaders($headers));
     }
 
     /**
