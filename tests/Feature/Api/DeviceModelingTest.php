@@ -24,11 +24,11 @@ class DeviceModelingTest extends TestCase
 
         $mockTask = ProvisioningTask::create([
             'cpe_device_id' => $device->id,
-            'config_profile_id' => null,
-            'task_type' => 'parameter_discovery',
-            'priority' => 5,
+            'task_type' => 'get_parameters',
             'status' => 'pending',
-            'parameters' => json_encode(['path' => 'Device.'])
+            'task_data' => ['path' => 'Device.'],
+            'retry_count' => 0,
+            'max_retries' => 3
         ]);
 
         $mock = Mockery::mock(ParameterDiscoveryService::class);
@@ -44,7 +44,8 @@ class DeviceModelingTest extends TestCase
         $this->app->instance(ParameterDiscoveryService::class, $mock);
 
         $response = $this->apiPost("/api/v1/devices/{$device->id}/discover-parameters", [
-            'next_level_only' => false
+            'parameter_path' => null,
+            'next_level_only' => true
         ]);
 
         $response->assertStatus(201)

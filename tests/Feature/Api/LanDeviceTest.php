@@ -72,8 +72,7 @@ class LanDeviceTest extends TestCase
 
         $response = $this->apiPost("/api/v1/devices/{$device->id}/lan-devices/ssdp", [
             'usn' => $usn,
-            'location' => 'http://192.168.1.100:1900/description.xml',
-            'nt' => 'urn:schemas-upnp-org:device:MediaRenderer:1'
+            'location' => 'http://192.168.1.100:1900/description.xml'
         ]);
 
         $response->assertStatus(201)

@@ -155,4 +155,29 @@ class StorageServiceTest extends TestCase
 
         $response->assertStatus(422);
     }
+
+    public function test_file_server_validates_protocol(): void
+    {
+        $device = CpeDevice::factory()->create([
+            'protocol_type' => 'tr069',
+            'mtp_type' => null,
+            'status' => 'online'
+        ]);
+        
+        $storageService = StorageService::create([
+            'cpe_device_id' => $device->id,
+            'service_name' => 'Test',
+            'storage_type' => 'NAS',
+            'enabled' => true
+        ]);
+
+        $response = $this->apiPost("/api/v1/storage-services/{$storageService->id}/file-servers", [
+            'server_name' => 'Test Server',
+            'protocol' => 'INVALID',
+            'enabled' => true
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['protocol']);
+    }
 }

@@ -124,6 +124,24 @@ class IotDeviceTest extends TestCase
             ]);
     }
 
+    public function test_provision_smart_device_validates_protocol(): void
+    {
+        $device = CpeDevice::factory()->create([
+            'protocol_type' => 'tr069',
+            'mtp_type' => null,
+            'status' => 'online'
+        ]);
+
+        $response = $this->apiPost("/api/v1/devices/{$device->id}/smart-home-devices", [
+            'device_class' => 'lighting',
+            'device_name' => 'Test Light',
+            'protocol' => 'INVALID_PROTOCOL'
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['protocol']);
+    }
+
     protected function apiRequest($method, $uri, $data = [])
     {
         return $this->json($method, $uri, $data, $this->apiHeaders());
