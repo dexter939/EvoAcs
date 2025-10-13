@@ -46,6 +46,18 @@ The web interface utilizes the Soft UI Dashboard Laravel template, offering a mo
 - **TR-196 Femtocell RF Management**: GPS-based location tracking with latitude/longitude/altitude. UARFCN/EARFCN frequency configuration for UMTS/LTE/5G networks. TxPower control and Radio Environment Map (REM) scanning with RSSI/RSRP/RSRQ measurements. Neighbor Cell List (NCL) management with intra-frequency, inter-frequency, and inter-RAT neighbor tracking. Blacklist support for neighbor cells.
 - **TR-135 STB/IPTV Services**: Set-Top Box provisioning with IP/DVB-T/DVB-S/DVB-C frontend support. Streaming protocol management for RTSP/RTP/IGMP/HLS/DASH. Real-time streaming session tracking with QoS metrics (bitrate, packet loss, jitter). Channel list management and codec configuration. Active session monitoring with start/end timestamps.
 
+## Recent Changes (October 2025)
+
+### API Standardization & Test Coverage
+- **ApiResponse Trait Enhancement**: Added `successDataResponse()` method to standardize API responses across all controllers with `{success: true, data: {...}}` format
+- **DiagnosticsController Standardized**: Complete refactoring to use ApiResponse trait methods (`successDataResponse`, `dataResponse`, `paginatedResponse`, `errorResponse`) for consistent API responses
+- **Syntax Error Fixes**: Corrected critical syntax errors in 8 controllers (UspController, VoiceServiceController, FemtocellController, IotDeviceController, LanDeviceController, ParameterDiscoveryController, StbServiceController, StorageServiceController) - fixed `use ApiResponse;` declaration pattern
+- **Migration Corrections**: Updated `diagnostic_tests` table enum to use TR-069 standard values (`IPPing`, `TraceRoute`, `DownloadDiagnostics`, `UploadDiagnostics`, `UDPEcho`) instead of simplified names
+- **Factory Alignment**: DiagnosticTestFactory updated to use TR-069 diagnostic type values matching database constraints
+- **Field Mapping**: Implemented database-to-API field mapping pattern (`diagnostic_type` → `test_type` accessor) for backward compatibility
+- **Test Infrastructure**: Added Queue::fake() in DiagnosticsTest setUp() to prevent Job execution during tests
+- **Test Coverage Progress**: DiagnosticsController now has 6/10 tests passing (list all, list device, get results, require online device, filter by status, validates required fields). Remaining issues with 4 create diagnostic tests under investigation.
+
 ## External Dependencies
 - **PostgreSQL 16+**: Primary database
 - **Redis 7+**: Queue driver for Laravel Horizon and WebSocket message routing

@@ -10,8 +10,8 @@ use App\Services\UpnpDiscoveryService;
 use Illuminate\Http\Request;
 
 class LanDeviceController extends Controller
-    use ApiResponse;
 {
+    use ApiResponse;
     protected $upnpService;
 
     public function __construct(UpnpDiscoveryService $upnpService)

@@ -16,8 +16,8 @@ use Illuminate\Http\Request;
  * Handles API for dynamic parameter discovery
  */
 class ParameterDiscoveryController extends Controller
-    use ApiResponse;
 {
+    use ApiResponse;
     protected $discoveryService;
 
     public function __construct(ParameterDiscoveryService $discoveryService)

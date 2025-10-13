@@ -10,8 +10,8 @@ use App\Services\FemtocellManagementService;
 use Illuminate\Http\Request;
 
 class FemtocellController extends Controller
-    use ApiResponse;
 {
+    use ApiResponse;
     protected $femtoService;
 
     public function __construct(FemtocellManagementService $femtoService)

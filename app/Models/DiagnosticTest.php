@@ -39,6 +39,21 @@ class DiagnosticTest extends Model
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
     ];
+    
+    /**
+     * Attributi appended per compatibilità API
+     * Appended attributes for API compatibility
+     */
+    protected $appends = ['test_type'];
+    
+    /**
+     * Accessor per test_type (alias di diagnostic_type)
+     * Accessor for test_type (alias of diagnostic_type)
+     */
+    public function getTestTypeAttribute(): ?string
+    {
+        return $this->diagnostic_type;
+    }
 
     /**
      * Relazione con dispositivo CPE

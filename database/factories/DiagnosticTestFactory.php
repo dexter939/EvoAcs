@@ -14,7 +14,7 @@ class DiagnosticTestFactory extends Factory
     {
         return [
             'cpe_device_id' => CpeDevice::factory(),
-            'diagnostic_type' => $this->faker->randomElement(['ping', 'traceroute', 'download', 'upload']),
+            'diagnostic_type' => $this->faker->randomElement(['IPPing', 'TraceRoute', 'DownloadDiagnostics', 'UploadDiagnostics']),
             'status' => $this->faker->randomElement(['pending', 'running', 'completed', 'failed']),
             'parameters' => [
                 'host' => '8.8.8.8',
@@ -32,7 +32,7 @@ class DiagnosticTestFactory extends Factory
     public function ping(): static
     {
         return $this->state(fn (array $attributes) => [
-            'diagnostic_type' => 'ping',
+            'diagnostic_type' => 'IPPing',
             'parameters' => [
                 'host' => '8.8.8.8',
                 'timeout' => 1000,
@@ -45,7 +45,7 @@ class DiagnosticTestFactory extends Factory
     public function traceroute(): static
     {
         return $this->state(fn (array $attributes) => [
-            'diagnostic_type' => 'traceroute',
+            'diagnostic_type' => 'TraceRoute',
             'parameters' => [
                 'host' => '8.8.8.8',
                 'timeout' => 5000,
@@ -58,7 +58,7 @@ class DiagnosticTestFactory extends Factory
     public function download(): static
     {
         return $this->state(fn (array $attributes) => [
-            'diagnostic_type' => 'download',
+            'diagnostic_type' => 'DownloadDiagnostics',
             'parameters' => [
                 'download_url' => 'http://speedtest.example.com/download',
                 'test_file_length' => 10485760
@@ -69,7 +69,7 @@ class DiagnosticTestFactory extends Factory
     public function upload(): static
     {
         return $this->state(fn (array $attributes) => [
-            'diagnostic_type' => 'upload',
+            'diagnostic_type' => 'UploadDiagnostics',
             'parameters' => [
                 'upload_url' => 'http://speedtest.example.com/upload',
                 'test_file_length' => 1048576

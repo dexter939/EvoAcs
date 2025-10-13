@@ -14,8 +14,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
 class StorageServiceController extends Controller
-    use ApiResponse;
 {
+    use ApiResponse;
     public function index(Request $request): JsonResponse
     {
         $query = StorageService::with(['cpeDevice', 'logicalVolumes', 'fileServers']);

@@ -11,8 +11,8 @@ use App\Services\IotProvisioningService;
 use Illuminate\Http\Request;
 
 class IotDeviceController extends Controller
-    use ApiResponse;
 {
+    use ApiResponse;
     protected $iotService;
 
     public function __construct(IotProvisioningService $iotService)

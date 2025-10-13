@@ -18,9 +18,9 @@ return new class extends Migration
             $table->id();
             $table->foreignId('cpe_device_id')->constrained()->cascadeOnDelete();
             
-            // Tipo diagnostica: ping, traceroute, download, upload
-            // Diagnostic type: ping, traceroute, download, upload
-            $table->enum('diagnostic_type', ['ping', 'traceroute', 'download', 'upload'])->index();
+            // Tipo diagnostica TR-069/TR-143: IPPing, TraceRoute, DownloadDiagnostics, UploadDiagnostics
+            // TR-069/TR-143 diagnostic type: IPPing, TraceRoute, DownloadDiagnostics, UploadDiagnostics
+            $table->enum('diagnostic_type', ['IPPing', 'TraceRoute', 'DownloadDiagnostics', 'UploadDiagnostics', 'UDPEcho'])->index();
             
             // Stato test: pending, running, completed, failed
             // Test status: pending, running, completed, failed

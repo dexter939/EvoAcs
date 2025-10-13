@@ -22,8 +22,8 @@ use Carbon\Carbon;
  * Supports Get, Set, Operate, Add, and Delete operations via MQTT/HTTP transport
  */
 class UspController extends Controller
-    use ApiResponse;
 {
+    use ApiResponse;
     protected $uspService;
     protected $mqttService;
     protected $webSocketService;

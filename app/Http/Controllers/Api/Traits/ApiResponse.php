@@ -90,4 +90,20 @@ trait ApiResponse
             'message' => $message
         ], $status);
     }
+
+    /**
+     * Response con successo e dati
+     * Success response with data
+     * 
+     * @param mixed $data Dati da restituire / Data to return
+     * @param int $status HTTP status code
+     * @return JsonResponse Response con success=true e data / Response with success=true and data
+     */
+    protected function successDataResponse($data, int $status = 200): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $data
+        ], $status);
+    }
 }

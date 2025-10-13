@@ -11,8 +11,8 @@ use App\Services\StbProvisioningService;
 use Illuminate\Http\Request;
 
 class StbServiceController extends Controller
-    use ApiResponse;
 {
+    use ApiResponse;
     protected $stbService;
 
     public function __construct(StbProvisioningService $stbService)

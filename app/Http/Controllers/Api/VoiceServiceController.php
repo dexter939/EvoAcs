@@ -15,8 +15,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
 class VoiceServiceController extends Controller
-    use ApiResponse;
 {
+    use ApiResponse;
     public function index(Request $request): JsonResponse
     {
         $query = VoiceService::with(['cpeDevice', 'sipProfiles.voipLines']);

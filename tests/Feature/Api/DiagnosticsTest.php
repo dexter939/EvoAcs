@@ -6,10 +6,17 @@ use Tests\TestCase;
 use App\Models\CpeDevice;
 use App\Models\DiagnosticTest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 
 class DiagnosticsTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Queue::fake(); // Prevent jobs from actually executing in tests
+    }
 
     public function test_ping_diagnostic_creates_task(): void
     {
@@ -34,7 +41,7 @@ class DiagnosticsTest extends TestCase
 
         $this->assertDatabaseHas('diagnostic_tests', [
             'cpe_device_id' => $device->id,
-            'test_type' => 'IPPing',
+            'diagnostic_type' => 'IPPing',
             'status' => 'pending'
         ]);
     }
@@ -71,7 +78,7 @@ class DiagnosticsTest extends TestCase
 
         $this->assertDatabaseHas('diagnostic_tests', [
             'cpe_device_id' => $device->id,
-            'test_type' => 'TraceRoute'
+            'diagnostic_type' => 'TraceRoute'
         ]);
     }
 
@@ -96,7 +103,7 @@ class DiagnosticsTest extends TestCase
 
         $this->assertDatabaseHas('diagnostic_tests', [
             'cpe_device_id' => $device->id,
-            'test_type' => 'DownloadDiagnostics'
+            'diagnostic_type' => 'DownloadDiagnostics'
         ]);
     }
 
@@ -120,7 +127,7 @@ class DiagnosticsTest extends TestCase
 
         $this->assertDatabaseHas('diagnostic_tests', [
             'cpe_device_id' => $device->id,
-            'test_type' => 'UploadDiagnostics'
+            'diagnostic_type' => 'UploadDiagnostics'
         ]);
     }
 
@@ -174,15 +181,15 @@ class DiagnosticsTest extends TestCase
         
         $diagnostic = DiagnosticTest::factory()->create([
             'cpe_device_id' => $device->id,
-            'test_type' => 'IPPing',
+            'diagnostic_type' => 'IPPing',
             'status' => 'completed',
-            'result' => json_encode([
+            'results' => [
                 'success_count' => 4,
                 'failure_count' => 0,
                 'average_response_time' => 25,
                 'min_response_time' => 20,
                 'max_response_time' => 30
-            ])
+            ]
         ]);
 
         $response = $this->apiGet("/api/v1/diagnostics/{$diagnostic->id}");

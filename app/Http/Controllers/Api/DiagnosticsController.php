@@ -18,8 +18,8 @@ use Illuminate\Support\Facades\DB;
  * Handles diagnostic requests: ping, traceroute, download/upload speed test
  */
 class DiagnosticsController extends Controller
-    use ApiResponse;
 {
+    use ApiResponse;
     /**
      * Avvia test Ping su dispositivo CPE
      * Start Ping test on CPE device
@@ -32,11 +32,19 @@ class DiagnosticsController extends Controller
      */
     public function ping(Request $request, CpeDevice $device)
     {
+        // Validazione: dispositivo deve essere online
+        // Validation: device must be online
+        if ($device->status !== 'online') {
+            return response()->json([
+                'message' => 'Device must be online to run diagnostics'
+            ], 422);
+        }
+        
         $validated = $request->validate([
             'host' => 'required|string|max:255',
-            'packets' => 'integer|min:1|max:100',
+            'number_of_repetitions' => 'integer|min:1|max:100',
             'timeout' => 'integer|min:100|max:10000',
-            'size' => 'integer|min:32|max:1500'
+            'data_block_size' => 'integer|min:32|max:1500'
         ]);
 
         try {
@@ -47,13 +55,13 @@ class DiagnosticsController extends Controller
                 // Create diagnostic test record
                 $diagnostic = DiagnosticTest::create([
                     'cpe_device_id' => $device->id,
-                    'diagnostic_type' => 'ping',
+                    'diagnostic_type' => 'IPPing',
                     'status' => 'pending',
                     'parameters' => [
                         'host' => $validated['host'],
-                        'packets' => $validated['packets'] ?? 4,
+                        'number_of_repetitions' => $validated['number_of_repetitions'] ?? 4,
                         'timeout' => $validated['timeout'] ?? 1000,
-                        'size' => $validated['size'] ?? 64
+                        'data_block_size' => $validated['data_block_size'] ?? 64
                     ],
                     'command_key' => 'IPPing_' . time()
                 ]);
@@ -67,9 +75,9 @@ class DiagnosticsController extends Controller
                     'task_data' => [
                         'diagnostic_id' => $diagnostic->id,
                         'host' => $validated['host'],
-                        'packets' => $validated['packets'] ?? 4,
+                        'number_of_repetitions' => $validated['number_of_repetitions'] ?? 4,
                         'timeout' => $validated['timeout'] ?? 1000,
-                        'size' => $validated['size'] ?? 64
+                        'data_block_size' => $validated['data_block_size'] ?? 64
                     ]
                 ]);
 
@@ -80,18 +88,14 @@ class DiagnosticsController extends Controller
             // Dispatch async job after transaction commit
             \App\Jobs\ProcessProvisioningTask::dispatch($task);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Ping diagnostic test started',
-                'diagnostic' => $diagnostic,
-                'task' => $task
-            ], 201);
+            return $this->successDataResponse([
+                'diagnostic_id' => $diagnostic->id,
+                'status' => $diagnostic->status,
+                'test_type' => $diagnostic->test_type
+            ], 200);
 
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to start diagnostic test: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to start diagnostic test: ' . $e->getMessage(), 500);
         }
     }
 
@@ -107,24 +111,32 @@ class DiagnosticsController extends Controller
      */
     public function traceroute(Request $request, CpeDevice $device)
     {
+        // Validazione: dispositivo deve essere online
+        // Validation: device must be online
+        if ($device->status !== 'online') {
+            return response()->json([
+                'message' => 'Device must be online to run diagnostics'
+            ], 422);
+        }
+        
         $validated = $request->validate([
             'host' => 'required|string|max:255',
-            'tries' => 'integer|min:1|max:10',
+            'number_of_tries' => 'integer|min:1|max:10',
             'timeout' => 'integer|min:100|max:30000',
-            'max_hops' => 'integer|min:1|max:64'
+            'max_hop_count' => 'integer|min:1|max:64'
         ]);
 
         try {
             [$diagnostic, $task] = DB::transaction(function () use ($device, $validated) {
                 $diagnostic = DiagnosticTest::create([
                     'cpe_device_id' => $device->id,
-                    'diagnostic_type' => 'traceroute',
+                    'diagnostic_type' => 'TraceRoute',
                     'status' => 'pending',
                     'parameters' => [
                         'host' => $validated['host'],
-                        'tries' => $validated['tries'] ?? 3,
+                        'number_of_tries' => $validated['number_of_tries'] ?? 3,
                         'timeout' => $validated['timeout'] ?? 5000,
-                        'max_hops' => $validated['max_hops'] ?? 30
+                        'max_hop_count' => $validated['max_hop_count'] ?? 30
                     ],
                     'command_key' => 'TraceRoute_' . time()
                 ]);
@@ -136,9 +148,9 @@ class DiagnosticsController extends Controller
                     'task_data' => [
                         'diagnostic_id' => $diagnostic->id,
                         'host' => $validated['host'],
-                        'tries' => $validated['tries'] ?? 3,
+                        'number_of_tries' => $validated['number_of_tries'] ?? 3,
                         'timeout' => $validated['timeout'] ?? 5000,
-                        'max_hops' => $validated['max_hops'] ?? 30
+                        'max_hop_count' => $validated['max_hop_count'] ?? 30
                     ]
                 ]);
 
@@ -147,18 +159,13 @@ class DiagnosticsController extends Controller
 
             \App\Jobs\ProcessProvisioningTask::dispatch($task);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Traceroute diagnostic test started',
-                'diagnostic' => $diagnostic,
-                'task' => $task
-            ], 201);
+            return $this->successDataResponse([
+                'diagnostic_id' => $diagnostic->id,
+                'status' => $diagnostic->status
+            ], 200);
 
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to start diagnostic test: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to start diagnostic test: ' . $e->getMessage(), 500);
         }
     }
 
@@ -174,9 +181,17 @@ class DiagnosticsController extends Controller
      */
     public function download(Request $request, CpeDevice $device)
     {
+        // Validazione: dispositivo deve essere online
+        // Validation: device must be online
+        if ($device->status !== 'online') {
+            return response()->json([
+                'message' => 'Device must be online to run diagnostics'
+            ], 422);
+        }
+        
         $validated = $request->validate([
-            'url' => 'required|url|max:500',
-            'file_size' => 'integer|min:0',
+            'download_url' => 'required|url|max:500',
+            'test_file_length' => 'integer|min:0',
             'connections' => 'integer|min:1|max:8' // TR-143 NumberOfConnections (1-8 threads)
         ]);
 
@@ -184,11 +199,11 @@ class DiagnosticsController extends Controller
             [$diagnostic, $task] = DB::transaction(function () use ($device, $validated) {
                 $diagnostic = DiagnosticTest::create([
                     'cpe_device_id' => $device->id,
-                    'diagnostic_type' => 'download',
+                    'diagnostic_type' => 'DownloadDiagnostics',
                     'status' => 'pending',
                     'parameters' => [
-                        'url' => $validated['url'],
-                        'file_size' => $validated['file_size'] ?? 0,
+                        'download_url' => $validated['download_url'],
+                        'test_file_length' => $validated['test_file_length'] ?? 0,
                         'connections' => $validated['connections'] ?? 1
                     ],
                     'command_key' => 'DownloadDiag_' . time()
@@ -200,8 +215,8 @@ class DiagnosticsController extends Controller
                     'status' => 'pending',
                     'task_data' => [
                         'diagnostic_id' => $diagnostic->id,
-                        'url' => $validated['url'],
-                        'file_size' => $validated['file_size'] ?? 0,
+                        'download_url' => $validated['download_url'],
+                        'test_file_length' => $validated['test_file_length'] ?? 0,
                         'connections' => $validated['connections'] ?? 1
                     ]
                 ]);
@@ -211,18 +226,14 @@ class DiagnosticsController extends Controller
 
             \App\Jobs\ProcessProvisioningTask::dispatch($task);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Download speed test started',
-                'diagnostic' => $diagnostic,
-                'task' => $task
-            ], 201);
+            return $this->successDataResponse([
+                'diagnostic_id' => $diagnostic->id,
+                'status' => $diagnostic->status,
+                'test_type' => $diagnostic->test_type
+            ], 200);
 
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to start diagnostic test: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to start diagnostic test: ' . $e->getMessage(), 500);
         }
     }
 
@@ -238,9 +249,17 @@ class DiagnosticsController extends Controller
      */
     public function upload(Request $request, CpeDevice $device)
     {
+        // Validazione: dispositivo deve essere online
+        // Validation: device must be online
+        if ($device->status !== 'online') {
+            return response()->json([
+                'message' => 'Device must be online to run diagnostics'
+            ], 422);
+        }
+        
         $validated = $request->validate([
-            'url' => 'required|url|max:500',
-            'file_size' => 'integer|min:0|max:104857600', // Max 100MB
+            'upload_url' => 'required|url|max:500',
+            'test_file_length' => 'integer|min:0|max:104857600', // Max 100MB
             'connections' => 'integer|min:1|max:8' // TR-143 NumberOfConnections (1-8 threads)
         ]);
 
@@ -248,11 +267,11 @@ class DiagnosticsController extends Controller
             [$diagnostic, $task] = DB::transaction(function () use ($device, $validated) {
                 $diagnostic = DiagnosticTest::create([
                     'cpe_device_id' => $device->id,
-                    'diagnostic_type' => 'upload',
+                    'diagnostic_type' => 'UploadDiagnostics',
                     'status' => 'pending',
                     'parameters' => [
-                        'url' => $validated['url'],
-                        'file_size' => $validated['file_size'] ?? 1048576, // 1MB default
+                        'upload_url' => $validated['upload_url'],
+                        'test_file_length' => $validated['test_file_length'] ?? 1048576, // 1MB default
                         'connections' => $validated['connections'] ?? 1
                     ],
                     'command_key' => 'UploadDiag_' . time()
@@ -264,8 +283,8 @@ class DiagnosticsController extends Controller
                     'status' => 'pending',
                     'task_data' => [
                         'diagnostic_id' => $diagnostic->id,
-                        'url' => $validated['url'],
-                        'file_size' => $validated['file_size'] ?? 1048576,
+                        'upload_url' => $validated['upload_url'],
+                        'test_file_length' => $validated['test_file_length'] ?? 1048576,
                         'connections' => $validated['connections'] ?? 1
                     ]
                 ]);
@@ -275,18 +294,13 @@ class DiagnosticsController extends Controller
 
             \App\Jobs\ProcessProvisioningTask::dispatch($task);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Upload speed test started',
-                'diagnostic' => $diagnostic,
-                'task' => $task
-            ], 201);
+            return $this->successDataResponse([
+                'diagnostic_id' => $diagnostic->id,
+                'status' => $diagnostic->status
+            ], 200);
 
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to start diagnostic test: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to start diagnostic test: ' . $e->getMessage(), 500);
         }
     }
 
@@ -348,18 +362,13 @@ class DiagnosticsController extends Controller
 
             \App\Jobs\ProcessProvisioningTask::dispatch($task);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'UDPEcho diagnostic test started',
+            return $this->successResponse('UDPEcho diagnostic test started', [
                 'diagnostic' => $diagnostic,
                 'task' => $task
             ], 201);
 
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to start diagnostic test: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to start diagnostic test: ' . $e->getMessage(), 500);
         }
     }
 
@@ -372,10 +381,18 @@ class DiagnosticsController extends Controller
      */
     public function getResults(DiagnosticTest $diagnostic)
     {
-        return response()->json([
-            'diagnostic' => $diagnostic->load('cpeDevice'),
-            'summary' => $diagnostic->getResultsSummary(),
-            'duration_seconds' => $diagnostic->duration
+        $diagnostic->load('cpeDevice');
+        
+        return $this->dataResponse([
+            'id' => $diagnostic->id,
+            'test_type' => $diagnostic->test_type,
+            'status' => $diagnostic->status,
+            'result' => $diagnostic->results ?? null,
+            'parameters' => $diagnostic->parameters,
+            'duration_seconds' => $diagnostic->duration,
+            'cpe_device_id' => $diagnostic->cpe_device_id,
+            'created_at' => $diagnostic->created_at,
+            'updated_at' => $diagnostic->updated_at
         ]);
     }
 
@@ -392,7 +409,7 @@ class DiagnosticsController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
-        return response()->json($diagnostics);
+        return $this->paginatedResponse($diagnostics);
     }
 
     /**
@@ -407,11 +424,11 @@ class DiagnosticsController extends Controller
         $query = DiagnosticTest::with('cpeDevice');
 
         if ($request->has('type')) {
-            $query->ofType($request->type);
+            $query->where('diagnostic_type', $request->type);
         }
 
         if ($request->has('status')) {
-            $query->withStatus($request->status);
+            $query->where('status', $request->status);
         }
 
         if ($request->has('device_id')) {
@@ -420,6 +437,6 @@ class DiagnosticsController extends Controller
 
         $diagnostics = $query->orderBy('created_at', 'desc')->paginate(50);
 
-        return response()->json($diagnostics);
+        return $this->paginatedResponse($diagnostics);
     }
 }
