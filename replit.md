@@ -9,23 +9,23 @@ I prefer clear and concise explanations. When making changes, prioritize core fu
 ## System Architecture
 
 ### UI/UX Decisions
-The web interface uses the Soft UI Dashboard Laravel template, providing a modern, responsive design with navigation and real-time statistics. It includes 12 statistics cards and 4 interactive Chart.js visualizations (Devices Status, Tasks, Diagnostics, Firmware). Device management features filtering, pagination, and modal forms for CRUD operations. The dashboard auto-refreshes every 30 seconds.
+The web interface uses the Soft UI Dashboard Laravel template, providing a modern, responsive design with navigation and real-time statistics. It includes 12 statistics cards and 4 interactive Chart.js visualizations. Device management features filtering, pagination, and modal forms for CRUD operations. The dashboard auto-refreshes every 30 seconds.
 
 ### Technical Implementations
-- **TR-069 (CWMP) Server**: Dedicated `/tr069` SOAP endpoint with stateful, cookie-based sessions. Uses DOMDocument for robust XML parsing and carrier-grade namespace support.
-- **TR-369 (USP) Support**: Implements next-generation protocol with Protocol Buffers, supporting MQTT, WebSocket, and HTTP as MTPs, including full USP message operations and auto-registration.
-- **TR-104 (VoIP) Support**: Full VoIP service provisioning supporting SIP/MGCP/H.323 protocols, including SIP proxy/registrar configuration, codec management, and supplementary services.
-- **TR-140 (Storage) Support**: Complete NAS/storage service management with multi-protocol file server support, RAID configuration, filesystem management, and quota management.
-- **TR-143 (Diagnostics) Support**: Comprehensive remote diagnostics suite including IPPing, TraceRoute, DownloadDiagnostics, UploadDiagnostics, and UDPEcho tests with multi-threaded throughput testing and microsecond-precision timestamps.
-- **TR-111 (Device Modeling) Support**: Complete device capability discovery with GetParameterNames parsing, vendor-specific detection, and hierarchical parameter tree building.
-- **TR-64 (LAN-Side Configuration) Support**: UPnP/SSDP-based LAN device discovery, SOAP service invocation, and automatic device management.
-- **TR-181 (IoT Extension) Support**: Smart home device management supporting ZigBee, Z-Wave, WiFi, BLE, Matter, and Thread protocols, including IoT service automation.
-- **TR-196 (Femtocell) Support**: Full femtocell RF management with GPS location tracking, UARFCN/EARFCN configuration, TxPower control, and Radio Environment Map (REM) scanning.
-- **TR-135 (STB/IPTV) Support**: Set-Top Box provisioning with support for various frontends and streaming protocols (RTSP/RTP/IGMP/HLS/DASH), including QoS monitoring.
-- **Database**: PostgreSQL with optimized indexes.
+- **TR-069 (CWMP) Server**: Dedicated `/tr069` SOAP endpoint with stateful, cookie-based sessions, using DOMDocument for XML parsing.
+- **TR-369 (USP) Support**: Implements Protocol Buffers, supporting MQTT, WebSocket, and HTTP as MTPs for USP message operations and auto-registration.
+- **TR-104 (VoIP) Support**: Full VoIP service provisioning supporting SIP/MGCP/H.323.
+- **TR-140 (Storage) Support**: Complete NAS/storage service management with multi-protocol file server support.
+- **TR-143 (Diagnostics) Support**: Comprehensive remote diagnostics suite including IPPing, TraceRoute, Download/Upload Diagnostics, and UDPEcho tests.
+- **TR-111 (Device Modeling) Support**: Complete device capability discovery with GetParameterNames parsing.
+- **TR-64 (LAN-Side Configuration) Support**: UPnP/SSDP-based LAN device discovery and SOAP service invocation.
+- **TR-181 (IoT Extension) Support**: Smart home device management supporting ZigBee, Z-Wave, WiFi, BLE, Matter, and Thread protocols.
+- **TR-196 (Femtocell) Support**: Full femtocell RF management with GPS location tracking and frequency configuration.
+- **TR-135 (STB/IPTV) Support**: Set-Top Box provisioning with support for various frontends and streaming protocols.
+- **Database**: PostgreSQL with optimized indexes, supporting multi-tenancy for customers and services.
 - **Asynchronous Queue System**: Laravel Horizon with Redis queues for provisioning, firmware deployment, and TR-069 requests.
 - **API Security**: All API v1 endpoints are protected using API Key authentication.
-- **RESTful API (v1)**: Provides authenticated endpoints for device management, provisioning, firmware, remote diagnostics, USP operations, VoIP services, and storage services.
+- **RESTful API (v1)**: Provides authenticated endpoints for device management, provisioning, firmware, and various TR protocol operations.
 - **Web Interface**: Accessible via `/acs/*` for dashboard, device management, and configuration.
 - **Scalability**: Achieved through database optimizations and a high-throughput queue system.
 - **Configuration**: Uses Laravel environment variables for all settings.
@@ -37,13 +37,14 @@ The web interface uses the Soft UI Dashboard Laravel template, providing a moder
 - **TR-181 Data Model**: Parameters stored with type, path, writable/readonly status, and last updates.
 - **Connection Request**: System-initiated connection requests to devices using HTTP Digest/Basic Auth.
 - **TR-369 Subscription/Notification**: Full event subscription system for device notifications via API and Web UI.
-- **TR-104 VoIP Provisioning**: Complete SIP/MGCP/H.323 service configuration with voice service instances, SIP profiles, and codec selection.
-- **TR-140 Storage Service**: Full NAS storage management with logical volume configuration, RAID support, and filesystem management.
-- **TR-111 Device Capabilities**: Automated device capability discovery through GetParameterNames parsing and vendor-specific detection.
-- **TR-64 LAN Device Management**: UPnP/SSDP-based discovery processes and SOAP service invocation for controlling UPnP devices.
-- **TR-181 IoT Device Provisioning**: Smart home device management for various protocols, including lighting, sensors, and security.
-- **TR-196 Femtocell RF Management**: GPS-based location tracking, frequency configuration, TxPower control, and Radio Environment Map (REM) scanning.
-- **TR-135 STB/IPTV Services**: Set-Top Box provisioning with frontend and streaming protocol support, and real-time QoS monitoring.
+- **TR-104 VoIP Provisioning**: Complete SIP/MGCP/H.323 service configuration.
+- **TR-140 Storage Service**: Full NAS storage management with logical volume configuration and RAID support.
+- **TR-111 Device Capabilities**: Automated device capability discovery through GetParameterNames parsing.
+- **TR-64 LAN Device Management**: UPnP/SSDP-based discovery processes and SOAP service invocation.
+- **TR-181 IoT Device Provisioning**: Smart home device management for various protocols.
+- **TR-196 Femtocell RF Management**: GPS-based location tracking, frequency configuration, and TxPower control.
+- **TR-135 STB/IPTV Services**: Set-Top Box provisioning with streaming protocol support and real-time QoS monitoring.
+- **Multi-Tenant Architecture**: Supports multiple customers and services with dedicated database tables and a 3-level web hierarchy (Customers, Customer Detail, Service Detail).
 
 ## External Dependencies
 - **PostgreSQL 16+**: Primary database
@@ -57,51 +58,3 @@ The web interface uses the Soft UI Dashboard Laravel template, providing a moder
 - **FontAwesome**: Icon library
 - **Nginx**: Reverse proxy and web server (production)
 - **Supervisor/Systemd**: Process management (production)
-
-## Recent Development Progress
-
-### TR-069 CWMP Complete DOMDocument Migration (SUCCESS ✅)
-- **Complete SimpleXML → DOMDocument Migration**: All 4 response handlers (GetParameterValuesResponse, SetParameterValuesResponse, RebootResponse, TransferCompleteResponse) fully migrated to DOMXPath with dual namespace support (`//cwmp:Element | //Element`) for robust parsing across CWMP implementations
-- **Critical Namespace Fix**: Added support for both namespaced (`cwmp:ParameterValueStruct`) and non-namespaced (`ParameterValueStruct`) SOAP elements, resolving parsing failures in response handlers
-- **TR069Service Method Names Fixed**: Corrected method calls from `generateGetParameterValues()` to `generateGetParameterValuesRequest()`, `generateSetParameterValues()` to `generateSetParameterValuesRequest()`, `generateReboot()` to `generateRebootRequest()`
-- **Task Data Schema Fix**: Corrected `task_params` → `task_data` references in queueTaskCommands() to match actual database column name, resolving parameter passing issues
-- **Session Correlation Enhancement**: Added last_command_sent tracking when sending commands, DeviceId-based session recovery, and TransferCompleteResponse SOAP generation for full TR-069 compliance
-- **Cookie Handling Fallback**: Added HTTP Cookie header parsing fallback for test environment compatibility while maintaining production cookie support
-- **DeviceId Fallback Correlation**: Response handlers support DeviceId-based session correlation when cookies unavailable, with active session lookup to preserve last_command_sent
-- **Test Results Final**: InformFlowTest **7/7 (100%)**, ConnectionRequestTest **6/7 (86%)**, ParameterOperationsTest **5/7 (71%)**
-- **Overall TR-069 Coverage**: **18/21 tests passing (86%)** - improved from 76% (+10% increase, +2 tests!)
-- **Technical Achievement**: Complete DOMDocument migration with namespace-agnostic parsing, eliminating all SimpleXML dependencies from response handler code paths
-- **Remaining Test Issues**: 1 digest auth test design issue (expects visible internal header), 2 test environment session correlation edge cases (DeviceId-based responses in Laravel test framework)
-
-### Modern Dashboard GUI Complete Implementation (SUCCESS ✅)
-- **Real-time Auto-refresh System**: Created `dashboard-realtime.js` with 30-second AJAX polling to `/acs/dashboard/stats-api`, smooth number animations, and chart updates without page reload
-- **Modern UI/UX Design**: Implemented `dashboard-enhancements.css` with gradient backgrounds, smooth transitions, card hover effects, pulse animations, and mobile-responsive breakpoints (@media queries for tablet/mobile)
-- **CRUD Modal System**: Added Bootstrap 5 modals for Add/Edit/Delete device operations with dynamic form population via JavaScript data attributes
-- **Backend CRUD Operations**: Created `storeDevice()`, `updateDevice()`, `destroyDevice()` methods in AcsController with validation, cascade delete for related data, and flash messages
-- **RESTful Routes**: Added POST/PUT/DELETE routes for `/acs/devices` and `/acs/devices/{id}` with proper method spoofing (@method directives)
-- **Touch-Friendly Mobile**: CSS optimizations for touch devices - larger tap targets (min 44px), disabled hover effects on touch screens, smooth scrolling for tables
-- **Visual Feedback**: Toast notifications system, stat card pulse animations, last-refresh indicator with timestamp, loading states for async operations
-
-### Dashboard Performance Optimizations (SUCCESS ✅)
-- **Query Consolidation**: Reduced `getDashboardStats()` from 30+ individual COUNT queries to only 9 optimized queries using conditional aggregates (`COUNT(CASE WHEN ...)`) for devices, tasks, firmware deployments, and diagnostics - **API response time: 32ms**
-- **DOM Table Updates**: Implemented real-time DOM updates for Recent Devices and Recent Tasks tables with complete row rebuilding, HTML escaping (`escapeHtml`), time formatting (`formatTimeAgo`), and smooth fade-in animations
-- **Performance Monitoring/Telemetria**: Complete telemetry system tracking totalRequests, successfulRequests, failedRequests, min/max/avg response times, automatic warnings for slow requests (>1000ms), high error rate alerts (>20%), periodic console logging (every 5min), and `showDashboardMetrics()` global function for debugging
-- **Scalability Achievement**: Optimized query aggregates handle 100k+ devices efficiently with all heavy counting in SQL layer, only top-10 recent lists materialized in PHP
-- **Architect Review**: **PASSED** - No security issues, significant performance improvements, proper XSS mitigation with HTML escaping, scalable to production loads
-
-### Complete TR Protocol Web Interfaces (SUCCESS ✅)
-- **Full Navigation System**: Enhanced sidebar with 3 organized sections: "GESTIONE CPE" (Device Management), "SERVIZI AVANZATI" (Advanced Services: Diagnostics, VoIP, Storage, IoT, LAN), "TELECOM SERVICES" (Femtocell, STB/IPTV, Parameters)
-- **Route Coverage**: Added 24+ new web routes covering all TR protocol functionalities with proper RESTful patterns (list/detail/configure endpoints)
-- **Controller Implementation**: 20+ new AcsController methods for data fetching and view rendering, using optimized queries with `whereHas()` for protocol-specific parameter filtering
-- **Blade Templates Created** (16 new views):
-  - **Diagnostics (TR-143)**: `diagnostics.blade.php` (test list with status/results) + `diagnostic-details.blade.php` (ping/traceroute/download/upload metrics)
-  - **VoIP Services (TR-104)**: `voip.blade.php` (device list) + `voip-device.blade.php` (SIP/MGCP/H.323 parameter configuration)
-  - **Storage/NAS (TR-140)**: `storage.blade.php` (device list) + `storage-device.blade.php` (RAID/filesystem parameters)
-  - **IoT Devices (TR-181)**: `iot.blade.php` (smart home device list) + `iot-device.blade.php` (ZigBee/Z-Wave/Matter control)
-  - **LAN Devices (TR-64)**: `lan-devices.blade.php` (UPnP/SSDP device list) + `lan-device-detail.blade.php` (LAN parameters)
-  - **Femtocell (TR-196)**: `femtocell.blade.php` (RF device list) + `femtocell-device.blade.php` (GPS/UARFCN/TxPower config)
-  - **STB/IPTV (TR-135)**: `stb.blade.php` (Set-Top Box list) + `stb-device.blade.php` (streaming protocols/QoS)
-  - **Parameters (TR-111)**: `parameters.blade.php` (device capability list) + `parameters-device.blade.php` (full parameter tree with discovery)
-- **UI Consistency**: All views follow Soft UI Dashboard template patterns with responsive tables, badge status indicators, pagination support, and breadcrumb navigation
-- **Manual Testing Verified**: Diagnostics page shows test results correctly, VoIP displays device configuration, Parameters page renders full device parameter tree with writable status
-- **Architect Review**: **PASSED** - All routes/controllers/views implemented correctly, no security issues, consistent UI patterns, end-to-end functionality verified
