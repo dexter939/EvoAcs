@@ -8,6 +8,20 @@ class DashboardRealtime {
         this.refreshInterval = 30000; // 30 seconds
         this.charts = {};
         this.statsEndpoint = '/acs/dashboard/stats-api'; // Existing API endpoint
+        
+        // Performance monitoring metrics
+        this.metrics = {
+            totalRequests: 0,
+            successfulRequests: 0,
+            failedRequests: 0,
+            totalResponseTime: 0,
+            minResponseTime: Infinity,
+            maxResponseTime: 0,
+            lastResponseTime: 0,
+            responseTimes: [], // Keep last 10 response times
+            errors: []
+        };
+        
         this.init();
     }
 
@@ -15,6 +29,7 @@ class DashboardRealtime {
         this.setupCharts();
         this.startAutoRefresh();
         this.setupNotifications();
+        this.logPerformanceMetrics();
         console.log('✅ Dashboard Real-time initialized');
     }
 
@@ -27,15 +42,121 @@ class DashboardRealtime {
     }
 
     async fetchStats() {
+        const startTime = performance.now();
+        this.metrics.totalRequests++;
+        
         try {
             const response = await fetch(this.statsEndpoint);
-            if (!response.ok) throw new Error('Failed to fetch stats');
-            return await response.json();
+            const endTime = performance.now();
+            const responseTime = Math.round(endTime - startTime);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            // Track successful request metrics
+            this.metrics.successfulRequests++;
+            this.trackResponseTime(responseTime);
+            
+            // Log slow requests (> 1000ms)
+            if (responseTime > 1000) {
+                console.warn(`⚠️ Slow API response: ${responseTime}ms`);
+            }
+            
+            return data;
         } catch (error) {
-            console.error('Error fetching stats:', error);
+            const endTime = performance.now();
+            const responseTime = Math.round(endTime - startTime);
+            
+            // Track failed request
+            this.metrics.failedRequests++;
+            this.metrics.errors.push({
+                timestamp: new Date().toISOString(),
+                error: error.message,
+                responseTime
+            });
+            
+            // Keep only last 10 errors
+            if (this.metrics.errors.length > 10) {
+                this.metrics.errors.shift();
+            }
+            
+            console.error('❌ Error fetching stats:', error);
             this.showNotification('Errore aggiornamento dati', 'danger');
             return null;
         }
+    }
+    
+    trackResponseTime(responseTime) {
+        this.metrics.lastResponseTime = responseTime;
+        this.metrics.totalResponseTime += responseTime;
+        this.metrics.minResponseTime = Math.min(this.metrics.minResponseTime, responseTime);
+        this.metrics.maxResponseTime = Math.max(this.metrics.maxResponseTime, responseTime);
+        
+        // Keep last 10 response times
+        this.metrics.responseTimes.push(responseTime);
+        if (this.metrics.responseTimes.length > 10) {
+            this.metrics.responseTimes.shift();
+        }
+    }
+    
+    getAverageResponseTime() {
+        if (this.metrics.successfulRequests === 0) return 0;
+        return Math.round(this.metrics.totalResponseTime / this.metrics.successfulRequests);
+    }
+    
+    getPerformanceReport() {
+        const avgResponseTime = this.getAverageResponseTime();
+        const successRate = this.metrics.totalRequests > 0
+            ? ((this.metrics.successfulRequests / this.metrics.totalRequests) * 100).toFixed(2)
+            : 0;
+        
+        return {
+            totalRequests: this.metrics.totalRequests,
+            successfulRequests: this.metrics.successfulRequests,
+            failedRequests: this.metrics.failedRequests,
+            successRate: `${successRate}%`,
+            avgResponseTime: `${avgResponseTime}ms`,
+            minResponseTime: this.metrics.minResponseTime === Infinity ? 'N/A' : `${this.metrics.minResponseTime}ms`,
+            maxResponseTime: `${this.metrics.maxResponseTime}ms`,
+            lastResponseTime: `${this.metrics.lastResponseTime}ms`,
+            recentResponseTimes: this.metrics.responseTimes,
+            recentErrors: this.metrics.errors
+        };
+    }
+    
+    logPerformanceMetrics() {
+        // Log performance metrics every 5 minutes
+        setInterval(() => {
+            const report = this.getPerformanceReport();
+            console.group('📊 Dashboard Performance Metrics');
+            console.log('Total Requests:', report.totalRequests);
+            console.log('Success Rate:', report.successRate);
+            console.log('Avg Response Time:', report.avgResponseTime);
+            console.log('Min/Max Response:', `${report.minResponseTime} / ${report.maxResponseTime}`);
+            console.log('Last Response:', report.lastResponseTime);
+            
+            if (report.recentResponseTimes.length > 0) {
+                console.log('Recent Response Times:', report.recentResponseTimes.join('ms, ') + 'ms');
+            }
+            
+            if (report.recentErrors.length > 0) {
+                console.warn('Recent Errors:', report.recentErrors);
+            }
+            
+            console.groupEnd();
+            
+            // Alert if error rate is high (> 20%)
+            const errorRate = this.metrics.totalRequests > 0
+                ? (this.metrics.failedRequests / this.metrics.totalRequests) * 100
+                : 0;
+            
+            if (errorRate > 20 && this.metrics.totalRequests >= 5) {
+                console.error(`🚨 High error rate detected: ${errorRate.toFixed(1)}%`);
+            }
+        }, 300000); // Every 5 minutes
     }
 
     async refreshDashboard() {
@@ -397,4 +518,33 @@ class DashboardRealtime {
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     window.dashboardRealtime = new DashboardRealtime();
+    
+    // Expose global performance report method for debugging
+    window.showDashboardMetrics = () => {
+        const report = window.dashboardRealtime.getPerformanceReport();
+        console.group('📊 Dashboard Performance Report');
+        console.table({
+            'Total Requests': report.totalRequests,
+            'Successful': report.successfulRequests,
+            'Failed': report.failedRequests,
+            'Success Rate': report.successRate,
+            'Avg Response': report.avgResponseTime,
+            'Min Response': report.minResponseTime,
+            'Max Response': report.maxResponseTime,
+            'Last Response': report.lastResponseTime
+        });
+        
+        if (report.recentResponseTimes.length > 0) {
+            console.log('Recent Response Times:', report.recentResponseTimes);
+        }
+        
+        if (report.recentErrors.length > 0) {
+            console.warn('Recent Errors:', report.recentErrors);
+        }
+        
+        console.groupEnd();
+        console.log('💡 Tip: Call showDashboardMetrics() anytime to see current metrics');
+    };
+    
+    console.log('💡 Type showDashboardMetrics() to view performance report');
 });
