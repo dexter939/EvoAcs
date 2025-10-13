@@ -114,6 +114,15 @@ class DiagnosticsController extends Controller
      */
     public function traceroute(Request $request, CpeDevice $device)
     {
+        // Prima valida i campi input
+        // First validate input fields
+        $validated = $request->validate([
+            'host' => 'required|string|max:255',
+            'number_of_tries' => 'integer|min:1|max:10',
+            'timeout' => 'integer|min:100|max:30000',
+            'max_hop_count' => 'integer|min:1|max:64'
+        ]);
+        
         // Validazione: dispositivo deve essere online
         // Validation: device must be online
         if ($device->status !== 'online') {
@@ -121,13 +130,6 @@ class DiagnosticsController extends Controller
                 'message' => 'Device must be online to run diagnostics'
             ], 422);
         }
-        
-        $validated = $request->validate([
-            'host' => 'required|string|max:255',
-            'number_of_tries' => 'integer|min:1|max:10',
-            'timeout' => 'integer|min:100|max:30000',
-            'max_hop_count' => 'integer|min:1|max:64'
-        ]);
 
         try {
             [$diagnostic, $task] = DB::transaction(function () use ($device, $validated) {
@@ -185,6 +187,14 @@ class DiagnosticsController extends Controller
      */
     public function download(Request $request, CpeDevice $device)
     {
+        // Prima valida i campi input
+        // First validate input fields
+        $validated = $request->validate([
+            'download_url' => 'required|url|max:500',
+            'test_file_length' => 'integer|min:0',
+            'connections' => 'integer|min:1|max:8' // TR-143 NumberOfConnections (1-8 threads)
+        ]);
+        
         // Validazione: dispositivo deve essere online
         // Validation: device must be online
         if ($device->status !== 'online') {
@@ -192,12 +202,6 @@ class DiagnosticsController extends Controller
                 'message' => 'Device must be online to run diagnostics'
             ], 422);
         }
-        
-        $validated = $request->validate([
-            'download_url' => 'required|url|max:500',
-            'test_file_length' => 'integer|min:0',
-            'connections' => 'integer|min:1|max:8' // TR-143 NumberOfConnections (1-8 threads)
-        ]);
 
         try {
             [$diagnostic, $task] = DB::transaction(function () use ($device, $validated) {
@@ -254,6 +258,14 @@ class DiagnosticsController extends Controller
      */
     public function upload(Request $request, CpeDevice $device)
     {
+        // Prima valida i campi input
+        // First validate input fields
+        $validated = $request->validate([
+            'upload_url' => 'required|url|max:500',
+            'test_file_length' => 'integer|min:0|max:104857600', // Max 100MB
+            'connections' => 'integer|min:1|max:8' // TR-143 NumberOfConnections (1-8 threads)
+        ]);
+        
         // Validazione: dispositivo deve essere online
         // Validation: device must be online
         if ($device->status !== 'online') {
@@ -261,12 +273,6 @@ class DiagnosticsController extends Controller
                 'message' => 'Device must be online to run diagnostics'
             ], 422);
         }
-        
-        $validated = $request->validate([
-            'upload_url' => 'required|url|max:500',
-            'test_file_length' => 'integer|min:0|max:104857600', // Max 100MB
-            'connections' => 'integer|min:1|max:8' // TR-143 NumberOfConnections (1-8 threads)
-        ]);
 
         try {
             [$diagnostic, $task] = DB::transaction(function () use ($device, $validated) {
@@ -322,6 +328,8 @@ class DiagnosticsController extends Controller
      */
     public function udpEcho(Request $request, CpeDevice $device)
     {
+        // Prima valida i campi input
+        // First validate input fields
         $validated = $request->validate([
             'host' => 'required|string|max:255',
             'port' => 'required|integer|min:1|max:65535',
@@ -330,6 +338,14 @@ class DiagnosticsController extends Controller
             'size' => 'integer|min:32|max:1500',
             'interval' => 'integer|min:10|max:10000'
         ]);
+        
+        // Validazione: dispositivo deve essere online
+        // Validation: device must be online
+        if ($device->status !== 'online') {
+            return response()->json([
+                'message' => 'Device must be online to run diagnostics'
+            ], 422);
+        }
 
         try {
             [$diagnostic, $task] = DB::transaction(function () use ($device, $validated) {

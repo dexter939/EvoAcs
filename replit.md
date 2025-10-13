@@ -48,15 +48,17 @@ The web interface utilizes the Soft UI Dashboard Laravel template, offering a mo
 
 ## Recent Changes (October 2025)
 
-### API Standardization & Test Coverage
+### API Standardization & Test Coverage (COMPLETED ✅)
 - **ApiResponse Trait Enhancement**: Added `successDataResponse()` method to standardize API responses across all controllers with `{success: true, data: {...}}` format
-- **DiagnosticsController Standardized**: Complete refactoring to use ApiResponse trait methods (`successDataResponse`, `dataResponse`, `paginatedResponse`, `errorResponse`) for consistent API responses
+- **DiagnosticsController Fully Standardized**: Complete refactoring to use ApiResponse trait methods (`successDataResponse`, `dataResponse`, `paginatedResponse`, `errorResponse`) for consistent API responses across all 5 diagnostic endpoints
 - **Syntax Error Fixes**: Corrected critical syntax errors in 8 controllers (UspController, VoiceServiceController, FemtocellController, IotDeviceController, LanDeviceController, ParameterDiscoveryController, StbServiceController, StorageServiceController) - fixed `use ApiResponse;` declaration pattern
 - **Migration Corrections**: Updated `diagnostic_tests` table enum to use TR-069 standard values (`IPPing`, `TraceRoute`, `DownloadDiagnostics`, `UploadDiagnostics`, `UDPEcho`) instead of simplified names
 - **Factory Alignment**: DiagnosticTestFactory updated to use TR-069 diagnostic type values matching database constraints
 - **Field Mapping**: Implemented database-to-API field mapping pattern (`diagnostic_type` → `test_type` accessor) for backward compatibility
 - **Test Infrastructure**: Added Queue::fake() in DiagnosticsTest setUp() to prevent Job execution during tests
-- **Test Coverage Progress**: DiagnosticsController now has 6/10 tests passing (list all, list device, get results, require online device, filter by status, validates required fields). Remaining issues with 4 create diagnostic tests under investigation.
+- **Task Type Enum Fix**: Fixed critical bug where all diagnostic methods used invalid `task_type` values (`diagnostic_ping`, `diagnostic_traceroute`, etc.) - changed to correct enum value `'diagnostic'` with `diagnostic_type` field added to task_data for proper identification
+- **Validation Order Consistency**: Standardized all 5 diagnostic endpoints (ping, traceroute, download, upload, udpEcho) to validate input fields BEFORE checking device online status, ensuring proper 422 validation error responses
+- **Test Coverage Achievement**: DiagnosticsController now has **10/10 tests passing (100%)** with 78 assertions - up from initial 5/10 (50%)
 
 ## External Dependencies
 - **PostgreSQL 16+**: Primary database
