@@ -101,5 +101,12 @@ Route::prefix('acs')->name('acs.')->group(function () {
     // Multi-tenant Customers & Services
     Route::get('/customers', [AcsController::class, 'customers'])->name('customers');
     Route::get('/customers/{customerId}', [AcsController::class, 'customerDetail'])->name('customers.detail');
+    Route::post('/customers', [AcsController::class, 'storeCustomer'])->name('customers.store');
+    Route::put('/customers/{customerId}', [AcsController::class, 'updateCustomer'])->name('customers.update');
+    Route::delete('/customers/{customerId}', [AcsController::class, 'destroyCustomer'])->name('customers.destroy');
+    
     Route::get('/services/{serviceId}', [AcsController::class, 'serviceDetail'])->name('services.detail');
+    Route::post('/services', [AcsController::class, 'storeService'])->name('services.store');
+    Route::put('/services/{serviceId}', [AcsController::class, 'updateService'])->name('services.update');
+    Route::delete('/services/{serviceId}', [AcsController::class, 'destroyService'])->name('services.destroy');
 });
