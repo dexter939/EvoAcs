@@ -49,6 +49,30 @@ class FirmwareVersion extends Model
         'is_active' => 'boolean',
         'file_size' => 'integer',
     ];
+    
+    /**
+     * Attributi appended per compatibilità test
+     * Appended attributes for test compatibility
+     */
+    protected $appends = ['checksum', 'release_date'];
+    
+    /**
+     * Accessor per checksum (alias di file_hash)
+     * Accessor for checksum (alias of file_hash)
+     */
+    public function getChecksumAttribute(): ?string
+    {
+        return $this->file_hash;
+    }
+    
+    /**
+     * Accessor per release_date (usa created_at)
+     * Accessor for release_date (uses created_at)
+     */
+    public function getReleaseDateAttribute(): ?string
+    {
+        return $this->created_at?->toDateTimeString();
+    }
 
     /**
      * Relazione con deployment di questo firmware

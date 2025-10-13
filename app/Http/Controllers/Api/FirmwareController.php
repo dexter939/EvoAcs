@@ -73,26 +73,52 @@ class FirmwareController extends Controller
      * Carica nuova versione firmware
      * Upload new firmware version
      * 
-     * Richiede file_hash e file_size per integrità e validazione
-     * Requires file_hash and file_size for integrity and validation
+     * Supporta upload file o specifica manuale di file_path/file_hash
+     * Supports file upload or manual file_path/file_hash specification
      * 
-     * @param Request $request Dati firmware (version, manufacturer, model, file_path, hash) / Firmware data
+     * @param Request $request Dati firmware / Firmware data
      * @return \Illuminate\Http\JsonResponse Firmware creato / Created firmware
      */
     public function store(Request $request)
     {
-        // Validazione campi obbligatori firmware
-        // Validate required firmware fields
+        // Validazione con file upload opzionale
+        // Validation with optional file upload
         $validated = $request->validate([
             'version' => 'required|string',
-            'manufacturer' => 'required|string',
+            'manufacturer' => 'nullable|string',
             'model' => 'required|string',
-            'file_path' => 'required|string',
-            'file_hash' => 'required|string',
-            'file_size' => 'required|integer',
+            'file' => 'nullable|file|mimes:bin,img,fw,zip|max:102400', // 100MB max
+            'file_path' => 'required_without:file|string',
+            'file_hash' => 'required_without:file|string',
+            'file_size' => 'required_without:file|integer',
             'release_notes' => 'nullable|string',
+            'description' => 'nullable|string',
             'is_stable' => 'boolean'
         ]);
+        
+        // Se c'è upload file, gestiscilo
+        // If file is uploaded, handle it
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $path = $file->store('firmware', 'local');
+            
+            $validated['file_path'] = $path;
+            $validated['file_hash'] = hash_file('sha256', $file->getRealPath());
+            $validated['file_size'] = $file->getSize();
+        }
+        
+        // Usa description come release_notes se presente
+        // Use description as release_notes if present
+        if (isset($validated['description']) && !isset($validated['release_notes'])) {
+            $validated['release_notes'] = $validated['description'];
+        }
+        unset($validated['description'], $validated['file']);
+        
+        // Default manufacturer se non specificato
+        // Default manufacturer if not specified
+        if (!isset($validated['manufacturer'])) {
+            $validated['manufacturer'] = 'Generic';
+        }
         
         // Crea record firmware nel database
         // Create firmware record in database
@@ -137,6 +163,19 @@ class FirmwareController extends Controller
     }
     
     /**
+     * Elimina versione firmware
+     * Delete firmware version
+     * 
+     * @param FirmwareVersion $firmware Firmware da eliminare / Firmware to delete
+     * @return \Illuminate\Http\JsonResponse Conferma eliminazione / Deletion confirmation
+     */
+    public function destroy(FirmwareVersion $firmware)
+    {
+        $firmware->delete();
+        return response()->json(null, 204);
+    }
+    
+    /**
      * Deploy firmware su dispositivi selezionati
      * Deploy firmware to selected devices
      * 
@@ -157,7 +196,35 @@ class FirmwareController extends Controller
             'scheduled_at' => 'nullable|date'
         ]);
         
+        // Carica dispositivi target
+        // Load target devices
+        $devices = CpeDevice::whereIn('id', $validated['device_ids'])->get();
+        
+        // Validazione: tutti i dispositivi devono essere online
+        // Validation: all devices must be online
+        $offlineDevices = $devices->where('status', '!=', 'online');
+        if ($offlineDevices->count() > 0) {
+            return response()->json([
+                'message' => 'All devices must be online for deployment',
+                'offline_devices' => $offlineDevices->pluck('id')
+            ], 422);
+        }
+        
+        // Validazione: modello firmware deve corrispondere al modello dispositivo
+        // Validation: firmware model must match device model
+        foreach ($devices as $device) {
+            if ($device->model_name && $device->model_name !== $firmware->model) {
+                return response()->json([
+                    'message' => 'Firmware model does not match device model',
+                    'device_id' => $device->id,
+                    'device_model' => $device->model_name,
+                    'firmware_model' => $firmware->model
+                ], 422);
+            }
+        }
+        
         $deployments = [];
+        $firstDeploymentId = null;
         
         // Crea deployment per ogni dispositivo selezionato
         // Create deployment for each selected device
@@ -174,8 +241,20 @@ class FirmwareController extends Controller
             \App\Jobs\ProcessFirmwareDeployment::dispatch($deployment);
             
             $deployments[] = $deployment;
+            
+            if ($firstDeploymentId === null) {
+                $firstDeploymentId = $deployment->id;
+            }
         }
         
-        return $this->successResponse('Firmware deployment scheduled and queued', $deployments);
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'deployment_id' => $firstDeploymentId,
+                'devices_count' => count($deployments),
+                'status' => 'scheduled',
+                'deployments' => $deployments
+            ]
+        ]);
     }
 }
