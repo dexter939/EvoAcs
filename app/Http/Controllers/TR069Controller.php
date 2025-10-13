@@ -457,7 +457,7 @@ class TR069Controller extends Controller
         
         \Log::info('TR-069 response type detected', ['type' => $responseType]);
         
-        // Gestisce risposta in base al tipo (TODO: migrate these handlers to DOMXPath)
+        // Gestisce risposta in base al tipo usando DOMXPath
         switch ($responseType) {
             case 'GetParameterValuesResponse':
                 $this->handleGetParameterValuesResponse($xpath, $session);
@@ -535,23 +535,45 @@ class TR069Controller extends Controller
      * Gestisce GetParameterValuesResponse
      * Handle GetParameterValuesResponse
      * 
-     * @param \SimpleXMLElement $xml Documento XML
+     * @param \DOMXPath $xpath XPath object with registered namespaces
      * @param \App\Models\Tr069Session $session Sessione corrente
      * @return void
      */
-    private function handleGetParameterValuesResponse($xml, $session): void
+    private function handleGetParameterValuesResponse($xpath, $session): void
     {
-        // Estrae parametri dalla risposta
-        $paramList = $xml->xpath('//cwmp:ParameterValueStruct') ?? [];
+        // Estrae parametri dalla risposta usando DOMXPath
+        $paramList = $xpath->query('//cwmp:ParameterValueStruct');
         $parameters = [];
         
         foreach ($paramList as $param) {
-            $name = (string)($param->Name ?? '');
-            $value = (string)($param->Value ?? '');
-            $parameters[$name] = $value;
+            $nameNode = $param->getElementsByTagName('Name')->item(0);
+            $valueNode = $param->getElementsByTagName('Value')->item(0);
+            
+            $name = $nameNode ? $nameNode->textContent : '';
+            $value = $valueNode ? $valueNode->textContent : '';
+            
+            if ($name) {
+                $parameters[$name] = $value;
+            }
         }
         
         \Log::info('TR-069 GetParameterValues response parsed', ['parameters' => $parameters]);
+        
+        // Salva parametri nel database
+        if (!empty($parameters) && $session->cpe_device_id) {
+            foreach ($parameters as $path => $value) {
+                \DB::table('device_parameters')->updateOrInsert(
+                    [
+                        'cpe_device_id' => $session->cpe_device_id,
+                        'parameter_path' => $path
+                    ],
+                    [
+                        'parameter_value' => $value,
+                        'last_updated' => now()
+                    ]
+                );
+            }
+        }
         
         // Aggiorna task associata se presente
         if ($session->last_command_sent && isset($session->last_command_sent['task_id'])) {
@@ -576,15 +598,15 @@ class TR069Controller extends Controller
      * Gestisce SetParameterValuesResponse
      * Handle SetParameterValuesResponse
      * 
-     * @param \SimpleXMLElement $xml Documento XML
+     * @param \DOMXPath $xpath XPath object with registered namespaces
      * @param \App\Models\Tr069Session $session Sessione corrente
      * @return void
      */
-    private function handleSetParameterValuesResponse($xml, $session): void
+    private function handleSetParameterValuesResponse($xpath, $session): void
     {
-        // Estrae status dalla risposta
-        $status = $xml->xpath('//cwmp:Status')[0] ?? null;
-        $statusCode = $status ? (int)((string)$status) : 0;
+        // Estrae status dalla risposta usando DOMXPath
+        $statusNode = $xpath->query('//cwmp:Status')->item(0);
+        $statusCode = $statusNode ? (int)$statusNode->textContent : 0;
         
         $success = $statusCode === 0; // 0 = successo in TR-069
         
@@ -613,11 +635,11 @@ class TR069Controller extends Controller
      * Gestisce RebootResponse
      * Handle RebootResponse
      * 
-     * @param \SimpleXMLElement $xml Documento XML
+     * @param \DOMXPath $xpath XPath object with registered namespaces
      * @param \App\Models\Tr069Session $session Sessione corrente
      * @return void
      */
-    private function handleRebootResponse($xml, $session): void
+    private function handleRebootResponse($xpath, $session): void
     {
         \Log::info('TR-069 Reboot response received');
         
@@ -650,31 +672,37 @@ class TR069Controller extends Controller
      * This is the critical callback for firmware deployment.
      * Device sends it after completing firmware download.
      * 
-     * @param \SimpleXMLElement $xml Documento XML
+     * @param \DOMXPath $xpath XPath object with registered namespaces
      * @param \App\Models\Tr069Session $session Sessione corrente
      * @return void
      */
-    private function handleTransferCompleteResponse($xml, $session): void
+    private function handleTransferCompleteResponse($xpath, $session): void
     {
-        // Estrae informazioni da TransferComplete
-        $commandKey = $xml->xpath('//cwmp:CommandKey')[0] ?? null;
-        $faultStruct = $xml->xpath('//cwmp:FaultStruct')[0] ?? null;
-        $startTime = $xml->xpath('//cwmp:StartTime')[0] ?? null;
-        $completeTime = $xml->xpath('//cwmp:CompleteTime')[0] ?? null;
+        // Estrae informazioni da TransferComplete usando DOMXPath
+        $commandKeyNode = $xpath->query('//cwmp:CommandKey')->item(0);
+        $faultStructNode = $xpath->query('//cwmp:FaultStruct')->item(0);
+        $startTimeNode = $xpath->query('//cwmp:StartTime')->item(0);
+        $completeTimeNode = $xpath->query('//cwmp:CompleteTime')->item(0);
         
-        $success = !$faultStruct; // Se non c'è FaultStruct, è successo
+        $success = !$faultStructNode; // Se non c'è FaultStruct, è successo
         
         $faultCode = null;
         $faultString = null;
         
-        if ($faultStruct) {
-            $faultCode = (string)($faultStruct->FaultCode ?? '');
-            $faultString = (string)($faultStruct->FaultString ?? '');
+        if ($faultStructNode) {
+            $faultCodeNode = $faultStructNode->getElementsByTagName('FaultCode')->item(0);
+            $faultStringNode = $faultStructNode->getElementsByTagName('FaultString')->item(0);
+            $faultCode = $faultCodeNode ? $faultCodeNode->textContent : '';
+            $faultString = $faultStringNode ? $faultStringNode->textContent : '';
         }
+        
+        $commandKeyStr = $commandKeyNode ? $commandKeyNode->textContent : '';
+        $startTimeStr = $startTimeNode ? $startTimeNode->textContent : '';
+        $completeTimeStr = $completeTimeNode ? $completeTimeNode->textContent : '';
         
         \Log::info('TR-069 TransferComplete received', [
             'success' => $success,
-            'command_key' => (string)$commandKey,
+            'command_key' => $commandKeyStr,
             'fault_code' => $faultCode,
             'fault_string' => $faultString
         ]);
@@ -682,7 +710,6 @@ class TR069Controller extends Controller
         // Trova task da aggiornare tramite CommandKey (metodo deterministico)
         // Find task to update via CommandKey (deterministic method)
         $task = null;
-        $commandKeyStr = (string)$commandKey;
         
         // Metodo 1: Via CommandKey (formato: task_<id>)
         // Method 1: Via CommandKey (format: task_<id>)
@@ -730,9 +757,9 @@ class TR069Controller extends Controller
                 'status' => $success ? 'completed' : 'failed',
                 'result' => [
                     'success' => $success,
-                    'command_key' => (string)$commandKey,
-                    'start_time' => (string)$startTime,
-                    'complete_time' => (string)$completeTime,
+                    'command_key' => $commandKeyStr,
+                    'start_time' => $startTimeStr,
+                    'complete_time' => $completeTimeStr,
                     'fault_code' => $faultCode,
                     'fault_string' => $faultString,
                     'completed_at' => now()->toIso8601String()
@@ -763,7 +790,7 @@ class TR069Controller extends Controller
         } else {
             \Log::warning('TR-069 TransferComplete without matching task', [
                 'device_id' => $session->cpe_device_id,
-                'command_key' => (string)$commandKey
+                'command_key' => $commandKeyStr
             ]);
         }
     }
