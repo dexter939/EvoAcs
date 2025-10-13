@@ -66,6 +66,7 @@
                                 <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Dispositivo</th>
                                 <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Protocollo</th>
                                 <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Stato</th>
+                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Servizio</th>
                                 <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">IP Address</th>
                                 <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Ultimo Contatto</th>
                                 <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Azioni</th>
@@ -102,6 +103,19 @@
                                         {{ ucfirst($device->status) }}
                                     </span>
                                 </td>
+                                <td>
+                                    @if($device->service)
+                                        <a href="{{ route('acs.services.detail', $device->service_id) }}" class="text-xs text-primary font-weight-bold">
+                                            {{ $device->service->name }}
+                                        </a>
+                                        <p class="text-xxs text-secondary mb-0">{{ $device->service->customer->name }}</p>
+                                    @else
+                                        <span class="text-xs text-secondary">Non assegnato</span>
+                                    @endif
+                                    <button class="btn btn-link text-success px-1 mb-0" onclick="assignService({{ $device->id }}, '{{ $device->serial_number }}')" title="Assegna a Servizio">
+                                        <i class="fas fa-link text-xs"></i>
+                                    </button>
+                                </td>
                                 <td class="align-middle text-center text-sm">
                                     <span class="text-secondary text-xs font-weight-bold">{{ $device->ip_address ?? 'N/A' }}</span>
                                 </td>
@@ -130,7 +144,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="6" class="text-center text-sm text-muted py-4">
+                                <td colspan="7" class="text-center text-sm text-muted py-4">
                                     Nessun dispositivo registrato. I dispositivi si registreranno automaticamente al primo Inform TR-069 o USP Record TR-369.
                                 </td>
                             </tr>
@@ -351,6 +365,55 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Assegna a Servizio -->
+<div class="modal fade" id="assignServiceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Assegna Dispositivo a Servizio</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="assignServiceForm" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-router me-2"></i>Dispositivo: <strong id="assign_device_sn"></strong>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Cliente *</label>
+                        <select class="form-select" id="assign_customer_id" required>
+                            <option value="">Seleziona cliente...</option>
+                            @foreach(\App\Models\Customer::where('status', 'active')->orderBy('name')->get() as $customer)
+                            <option value="{{ $customer->id }}">{{ $customer->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Servizio *</label>
+                        <select class="form-select" id="assign_service_id" name="service_id" required disabled>
+                            <option value="">Seleziona prima un cliente...</option>
+                        </select>
+                        <small class="text-muted">Il servizio determina il cliente e le configurazioni associate al dispositivo</small>
+                    </div>
+                    
+                    <div id="assign_loading" class="text-center" style="display: none;">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <span class="text-sm ms-2">Caricamento servizi...</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-success">Assegna</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -503,5 +566,92 @@ function pollDiagnosticResults(diagnosticId) {
         .catch(() => clearInterval(pollInterval));
     }, 2000);
 }
+
+// Assign Service Modal
+let currentAssignDeviceId = null;
+
+function assignService(id, sn) {
+    currentAssignDeviceId = id;
+    document.getElementById('assign_device_sn').textContent = sn;
+    document.getElementById('assign_customer_id').value = '';
+    document.getElementById('assign_service_id').innerHTML = '<option value="">Seleziona prima un cliente...</option>';
+    document.getElementById('assign_service_id').disabled = true;
+    document.getElementById('assignServiceForm').action = '/acs/devices/' + id + '/assign-service';
+    new bootstrap.Modal(document.getElementById('assignServiceModal')).show();
+}
+
+// Load services when customer is selected
+document.getElementById('assign_customer_id').addEventListener('change', function() {
+    const customerId = this.value;
+    const serviceSelect = document.getElementById('assign_service_id');
+    const loadingDiv = document.getElementById('assign_loading');
+    
+    if (!customerId) {
+        serviceSelect.innerHTML = '<option value="">Seleziona prima un cliente...</option>';
+        serviceSelect.disabled = true;
+        return;
+    }
+    
+    serviceSelect.disabled = true;
+    loadingDiv.style.display = 'block';
+    
+    fetch(`/acs/customers/${customerId}/services-list`)
+        .then(response => response.json())
+        .then(data => {
+            serviceSelect.innerHTML = '<option value="">Seleziona servizio...</option>';
+            
+            if (data.services && data.services.length > 0) {
+                data.services.forEach(service => {
+                    const option = document.createElement('option');
+                    option.value = service.id;
+                    option.textContent = `${service.name} (${service.service_type})`;
+                    serviceSelect.appendChild(option);
+                });
+                serviceSelect.disabled = false;
+            } else {
+                serviceSelect.innerHTML = '<option value="">Nessun servizio disponibile per questo cliente</option>';
+            }
+            
+            loadingDiv.style.display = 'none';
+        })
+        .catch(error => {
+            serviceSelect.innerHTML = '<option value="">Errore caricamento servizi</option>';
+            loadingDiv.style.display = 'none';
+            console.error('Error loading services:', error);
+        });
+});
+
+// Handle form submission
+document.getElementById('assignServiceForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const serviceId = document.getElementById('assign_service_id').value;
+    
+    if (!serviceId) {
+        alert('Seleziona un servizio');
+        return;
+    }
+    
+    fetch(this.action, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ service_id: serviceId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('assignServiceModal')).hide();
+            window.location.reload();
+        } else {
+            alert('Errore: ' + (data.message || 'Impossibile assegnare servizio'));
+        }
+    })
+    .catch(error => {
+        alert('Errore di rete: ' + error.message);
+    });
+});
 </script>
 @endpush
