@@ -64,6 +64,7 @@ class CpeDevice extends Model
         'status',
         'last_inform',
         'last_contact',
+        'service_id',
         'configuration_profile_id',
         'device_info',
         'wan_info',
@@ -88,6 +89,17 @@ class CpeDevice extends Model
         'websocket_connected_at' => 'datetime',
         'last_websocket_ping' => 'datetime',
     ];
+
+    /**
+     * Relazione con servizio multi-tenant
+     * Relationship with multi-tenant service
+     * 
+     * @return BelongsTo
+     */
+    public function service(): BelongsTo
+    {
+        return $this->belongsTo(Service::class);
+    }
 
     /**
      * Relazione con profilo configurazione

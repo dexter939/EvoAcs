@@ -978,4 +978,53 @@ class AcsController extends Controller
         
         return back()->with('success', 'Parameter discovery queued');
     }
+    
+    /**
+     * Multi-tenant Customers - Lista clienti
+     */
+    public function customers(Request $request)
+    {
+        $query = \App\Models\Customer::query();
+        
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('external_id', 'like', "%{$search}%")
+                  ->orWhere('contact_email', 'like', "%{$search}%");
+            });
+        }
+        
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        
+        $customers = $query->withCount('services')
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+        
+        return view('acs.customers', compact('customers'));
+    }
+    
+    /**
+     * Customer Detail - Dettaglio cliente con servizi
+     */
+    public function customerDetail($customerId)
+    {
+        $customer = \App\Models\Customer::with(['services' => function($query) {
+            $query->withCount('cpeDevices');
+        }])->findOrFail($customerId);
+        
+        return view('acs.customer-detail', compact('customer'));
+    }
+    
+    /**
+     * Service Detail - Dettaglio servizio con dispositivi
+     */
+    public function serviceDetail($serviceId)
+    {
+        $service = \App\Models\Service::with(['customer', 'cpeDevices'])->findOrFail($serviceId);
+        
+        return view('acs.service-detail', compact('service'));
+    }
 }

@@ -97,4 +97,9 @@ Route::prefix('acs')->name('acs.')->group(function () {
     Route::get('/parameters', [AcsController::class, 'parameters'])->name('parameters');
     Route::get('/parameters/{deviceId}', [AcsController::class, 'parametersDevice'])->name('parameters.device');
     Route::post('/parameters/{deviceId}/discover', [AcsController::class, 'parametersDiscover'])->name('parameters.discover');
+    
+    // Multi-tenant Customers & Services
+    Route::get('/customers', [AcsController::class, 'customers'])->name('customers');
+    Route::get('/customers/{customerId}', [AcsController::class, 'customerDetail'])->name('customers.detail');
+    Route::get('/services/{serviceId}', [AcsController::class, 'serviceDetail'])->name('services.detail');
 });
