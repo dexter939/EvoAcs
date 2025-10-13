@@ -1027,4 +1027,116 @@ class AcsController extends Controller
         
         return view('acs.service-detail', compact('service'));
     }
+    
+    /**
+     * Customer Store - Crea nuovo cliente
+     */
+    public function storeCustomer(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'external_id' => 'nullable|string|max:100|unique:customers,external_id',
+            'contact_email' => 'required|email|max:255',
+            'timezone' => 'nullable|string|max:50',
+            'status' => 'required|in:active,inactive,suspended,terminated',
+        ]);
+        
+        \App\Models\Customer::create($validated);
+        
+        return redirect()->route('acs.customers')->with('success', 'Cliente creato con successo!');
+    }
+    
+    /**
+     * Customer Update - Modifica cliente esistente
+     */
+    public function updateCustomer(Request $request, $customerId)
+    {
+        $customer = \App\Models\Customer::findOrFail($customerId);
+        
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'external_id' => 'nullable|string|max:100|unique:customers,external_id,' . $customerId,
+            'contact_email' => 'required|email|max:255',
+            'timezone' => 'nullable|string|max:50',
+            'status' => 'required|in:active,inactive,suspended,terminated',
+        ]);
+        
+        $customer->update($validated);
+        
+        return redirect()->route('acs.customers')->with('success', 'Cliente aggiornato con successo!');
+    }
+    
+    /**
+     * Customer Destroy - Elimina cliente (soft delete)
+     */
+    public function destroyCustomer($customerId)
+    {
+        $customer = \App\Models\Customer::findOrFail($customerId);
+        
+        // Soft delete cascades to services due to Eloquent relations
+        $customer->delete();
+        
+        return redirect()->route('acs.customers')->with('success', 'Cliente eliminato con successo!');
+    }
+    
+    /**
+     * Service Store - Crea nuovo servizio
+     */
+    public function storeService(Request $request)
+    {
+        $validated = $request->validate([
+            'customer_id' => 'required|exists:customers,id',
+            'name' => 'required|string|max:255',
+            'service_type' => 'required|in:FTTH,VoIP,IPTV,IoT,Femtocell,Other',
+            'contract_number' => 'nullable|string|max:100|unique:services,contract_number',
+            'sla_tier' => 'nullable|string|max:50',
+            'status' => 'required|in:provisioned,active,suspended,terminated',
+        ]);
+        
+        $validated['activation_at'] = now();
+        
+        \App\Models\Service::create($validated);
+        
+        return redirect()->route('acs.customers.detail', $validated['customer_id'])
+            ->with('success', 'Servizio creato con successo!');
+    }
+    
+    /**
+     * Service Update - Modifica servizio esistente
+     */
+    public function updateService(Request $request, $serviceId)
+    {
+        $service = \App\Models\Service::findOrFail($serviceId);
+        
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'service_type' => 'required|in:FTTH,VoIP,IPTV,IoT,Femtocell,Other',
+            'contract_number' => 'nullable|string|max:100|unique:services,contract_number,' . $serviceId,
+            'sla_tier' => 'nullable|string|max:50',
+            'status' => 'required|in:provisioned,active,suspended,terminated',
+        ]);
+        
+        $service->update($validated);
+        
+        return redirect()->route('acs.customers.detail', $service->customer_id)
+            ->with('success', 'Servizio aggiornato con successo!');
+    }
+    
+    /**
+     * Service Destroy - Elimina servizio (soft delete)
+     */
+    public function destroyService($serviceId)
+    {
+        $service = \App\Models\Service::findOrFail($serviceId);
+        $customerId = $service->customer_id;
+        
+        // Set service_id to NULL for all associated devices before deleting service
+        \App\Models\CpeDevice::where('service_id', $serviceId)->update(['service_id' => null]);
+        
+        // Soft delete service
+        $service->delete();
+        
+        return redirect()->route('acs.customers.detail', $customerId)
+            ->with('success', 'Servizio eliminato con successo!');
+    }
 }
