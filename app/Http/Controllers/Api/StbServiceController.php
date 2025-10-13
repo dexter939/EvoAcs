@@ -40,7 +40,11 @@ class StbServiceController extends Controller
 
     public function updateQos(Request $request, StreamingSession $session)
     {
-        $validated = $request->validate(['bitrate' => 'nullable|integer']);
+        $validated = $request->validate([
+            'bitrate' => 'nullable|integer',
+            'packet_loss' => 'nullable|numeric',
+            'jitter' => 'nullable|numeric'
+        ]);
         $updated = $this->stbService->updateSessionQos($session, $validated);
         return response()->json(['success' => true, 'session' => $updated]);
     }

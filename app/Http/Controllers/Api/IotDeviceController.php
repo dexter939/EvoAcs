@@ -30,7 +30,7 @@ class IotDeviceController extends Controller
         $validated = $request->validate([
             'device_class' => 'required|string',
             'device_name' => 'required|string',
-            'protocol' => 'required|string',
+            'protocol' => 'required|string|in:ZigBee,Z-Wave,WiFi,BLE,Matter,Thread',
             'ieee_address' => 'nullable|string',
             'capabilities' => 'nullable|array'
         ]);
