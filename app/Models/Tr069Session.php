@@ -155,12 +155,13 @@ class Tr069Session extends Model
      * Aggiorna timestamp ultima attività
      * Update last activity timestamp
      * 
-     * @return void
+     * @param string|null $attribute
+     * @return bool
      */
-    public function touch(): void
+    public function touch($attribute = null): bool
     {
         $this->last_activity = Carbon::now();
-        $this->save();
+        return $this->save();
     }
 
     /**

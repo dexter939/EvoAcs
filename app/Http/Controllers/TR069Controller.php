@@ -47,34 +47,37 @@ class TR069Controller extends Controller
         
         \Log::info('TR-069 SOAP request received', ['body' => $rawBody]);
         
-        // Parsa il messaggio XML SOAP
-        // Parse SOAP XML message
-        $xml = simplexml_load_string($rawBody);
-        if (!$xml) {
+        // Parsa il messaggio XML SOAP usando DOMDocument (carrier-grade namespace support)
+        // Parse SOAP XML message using DOMDocument (carrier-grade namespace support)
+        $dom = new \DOMDocument();
+        if (!$dom->loadXML($rawBody)) {
             return response('Invalid XML', 400);
         }
         
-        // Registra i namespace SOAP e CWMP per XPath
-        // Register SOAP and CWMP namespaces for XPath
-        $xml->registerXPathNamespace('soap', 'http://schemas.xmlsoap.org/soap/envelope/');
-        $xml->registerXPathNamespace('cwmp', 'urn:dslforum-org:cwmp-1-0');
+        // Crea XPath con namespace SOAP e CWMP registrati
+        // Create XPath with SOAP and CWMP namespaces registered
+        $xpath = new \DOMXPath($dom);
+        $xpath->registerNamespace('soap', 'http://schemas.xmlsoap.org/soap/envelope/');
+        $xpath->registerNamespace('cwmp', 'urn:dslforum-org:cwmp-1-0');
         
         // Determina tipo di messaggio (Inform o Response)
         // Determine message type (Inform or Response)
-        $messageType = $this->detectMessageType($xml);
+        $messageType = $this->detectMessageType($xpath);
         
         \Log::info('TR-069 message type detected', ['type' => $messageType]);
         
         // Se è una risposta, gestisce separatamente
         // If it's a response, handle separately
         if ($messageType !== 'Inform') {
-            return $this->handleResponse($request, $xml);
+            return $this->handleResponse($request, $xpath);
         }
         
         // È un Inform, processa normalmente
         // It's an Inform, process normally
-        $deviceId = $xml->xpath('//cwmp:DeviceId')[0] ?? null;
-        $paramList = $xml->xpath('//cwmp:ParameterValueStruct') ?? [];
+        $deviceIdNodes = $xpath->query('//cwmp:DeviceId');
+        $deviceId = $deviceIdNodes->length > 0 ? $deviceIdNodes->item(0) : null;
+        // ParameterValueStruct può essere con o senza namespace
+        $paramList = $xpath->query('//cwmp:ParameterValueStruct | //ParameterValueStruct');
         
         // Variabili per ConnectionRequest (comunicazione bidirezionale ACS->CPE)
         // Variables for ConnectionRequest (bidirectional communication ACS->CPE)
@@ -84,9 +87,13 @@ class TR069Controller extends Controller
         
         // Cerca ConnectionRequestURL nei parametri dell'Inform
         // Search for ConnectionRequestURL in Inform parameters
-        foreach ($paramList as $param) {
-            $name = (string)($param->Name ?? '');
-            $value = (string)($param->Value ?? '');
+        for ($i = 0; $i < $paramList->length; $i++) {
+            $param = $paramList->item($i);
+            $nameNodes = $param->getElementsByTagName('Name');
+            $valueNodes = $param->getElementsByTagName('Value');
+            
+            $name = $nameNodes->length > 0 ? $nameNodes->item(0)->textContent : '';
+            $value = $valueNodes->length > 0 ? $valueNodes->item(0)->textContent : '';
             
             if (str_contains($name, 'ConnectionRequestURL')) {
                 $connectionRequestUrl = $value;
@@ -101,12 +108,23 @@ class TR069Controller extends Controller
         // Register or update CPE device in database
         $device = null;
         if ($deviceId) {
-            // Estrae identificatori dispositivo
-            // Extract device identifiers
-            $serialNumber = (string)($deviceId->SerialNumber ?? '');
-            $oui = (string)($deviceId->OUI ?? '');
-            $productClass = (string)($deviceId->ProductClass ?? '');
-            $manufacturer = (string)($deviceId->Manufacturer ?? '');
+            // Estrae identificatori dispositivo usando DOMDocument
+            // Extract device identifiers using DOMDocument
+            $serialNodes = $deviceId->getElementsByTagName('SerialNumber');
+            $ouiNodes = $deviceId->getElementsByTagName('OUI');
+            $productClassNodes = $deviceId->getElementsByTagName('ProductClass');
+            $manufacturerNodes = $deviceId->getElementsByTagName('Manufacturer');
+            
+            $serialNumber = $serialNodes->length > 0 ? $serialNodes->item(0)->textContent : '';
+            $oui = $ouiNodes->length > 0 ? $ouiNodes->item(0)->textContent : '';
+            $productClass = $productClassNodes->length > 0 ? $productClassNodes->item(0)->textContent : '';
+            $manufacturer = $manufacturerNodes->length > 0 ? $manufacturerNodes->item(0)->textContent : '';
+            
+            // Estrae SoftwareVersion e HardwareVersion se presenti
+            $softwareVersionNodes = $deviceId->getElementsByTagName('SoftwareVersion');
+            $hardwareVersionNodes = $deviceId->getElementsByTagName('HardwareVersion');
+            $softwareVersion = $softwareVersionNodes->length > 0 ? $softwareVersionNodes->item(0)->textContent : null;
+            $hardwareVersion = $hardwareVersionNodes->length > 0 ? $hardwareVersionNodes->item(0)->textContent : null;
             
             // Prepara dati per update/create
             // Prepare data for update/create
@@ -119,6 +137,13 @@ class TR069Controller extends Controller
                 'last_contact' => Carbon::now(),
                 'status' => 'online'
             ];
+            
+            if ($softwareVersion) {
+                $deviceData['software_version'] = $softwareVersion;
+            }
+            if ($hardwareVersion) {
+                $deviceData['hardware_version'] = $hardwareVersion;
+            }
             
             // Aggiunge ConnectionRequest info se disponibili
             // Add ConnectionRequest info if available
@@ -140,6 +165,35 @@ class TR069Controller extends Controller
             );
             
             \Log::info('Device registered/updated', ['serial' => $serialNumber, 'id' => $device->id]);
+            
+            // Salva parametri dell'Inform in device_parameters
+            // Save Inform parameters to device_parameters
+            if ($paramList->length > 0) {
+                for ($i = 0; $i < $paramList->length; $i++) {
+                    $param = $paramList->item($i);
+                    $nameNodes = $param->getElementsByTagName('Name');
+                    $valueNodes = $param->getElementsByTagName('Value');
+                    
+                    if ($nameNodes->length > 0 && $valueNodes->length > 0) {
+                        $paramName = $nameNodes->item(0)->textContent;
+                        $paramValue = $valueNodes->item(0)->textContent;
+                        
+                        // Salva o aggiorna parametro
+                        \DB::table('device_parameters')->updateOrInsert(
+                            [
+                                'cpe_device_id' => $device->id,
+                                'parameter_path' => $paramName
+                            ],
+                            [
+                                'parameter_value' => $paramValue,
+                                'last_updated' => Carbon::now()
+                            ]
+                        );
+                    }
+                }
+                
+                \Log::info('Parameters saved', ['device_id' => $device->id, 'count' => $paramList->length]);
+            }
         }
         
         // SESSION MANAGEMENT: Gestisce sessione TR-069
@@ -357,10 +411,10 @@ class TR069Controller extends Controller
      * - TransferComplete
      * 
      * @param Request $request Richiesta HTTP
-     * @param \SimpleXMLElement $xml Documento XML già parsato
+     * @param \DOMXPath $xpath XPath object with registered namespaces
      * @return \Illuminate\Http\Response Risposta SOAP
      */
-    private function handleResponse(Request $request, $xml)
+    private function handleResponse(Request $request, $xpath)
     {
         \Log::info('TR-069 Response processing');
         
@@ -375,10 +429,12 @@ class TR069Controller extends Controller
         // find device via DeviceId for alternative correlation
         $device = null;
         if (!$session) {
-            $deviceId = $xml->xpath('//cwmp:DeviceId')[0] ?? null;
+            $deviceIdNodes = $xpath->query('//cwmp:DeviceId');
+            $deviceId = $deviceIdNodes->length > 0 ? $deviceIdNodes->item(0) : null;
             
             if ($deviceId) {
-                $serialNumber = (string)($deviceId->SerialNumber ?? '');
+                $serialNodes = $deviceId->getElementsByTagName('SerialNumber');
+                $serialNumber = $serialNodes->length > 0 ? $serialNodes->item(0)->textContent : '';
                 $device = CpeDevice::where('serial_number', $serialNumber)->first();
                 
                 if ($device) {
@@ -397,30 +453,30 @@ class TR069Controller extends Controller
         }
         
         // Determina tipo di risposta
-        $responseType = $this->detectResponseType($xml);
+        $responseType = $this->detectResponseType($xpath);
         
         \Log::info('TR-069 response type detected', ['type' => $responseType]);
         
-        // Gestisce risposta in base al tipo
+        // Gestisce risposta in base al tipo (TODO: migrate these handlers to DOMXPath)
         switch ($responseType) {
             case 'GetParameterValuesResponse':
-                $this->handleGetParameterValuesResponse($xml, $session);
+                $this->handleGetParameterValuesResponse($xpath, $session);
                 break;
                 
             case 'SetParameterValuesResponse':
-                $this->handleSetParameterValuesResponse($xml, $session);
+                $this->handleSetParameterValuesResponse($xpath, $session);
                 break;
                 
             case 'RebootResponse':
-                $this->handleRebootResponse($xml, $session);
+                $this->handleRebootResponse($xpath, $session);
                 break;
                 
             case 'TransferComplete':
-                $this->handleTransferCompleteResponse($xml, $session);
+                $this->handleTransferCompleteResponse($xpath, $session);
                 break;
                 
             default:
-                \Log::warning('TR-069 unknown response type', ['body' => $xml->asXML()]);
+                \Log::warning('TR-069 unknown response type');
                 break;
         }
         
@@ -437,38 +493,38 @@ class TR069Controller extends Controller
      * Rileva tipo di messaggio SOAP (Inform o Response)
      * Detect SOAP message type (Inform or Response)
      * 
-     * @param \SimpleXMLElement $xml Documento XML
+     * @param \DOMXPath $xpath XPath object with registered namespaces
      * @return string Tipo messaggio
      */
-    private function detectMessageType($xml): string
+    private function detectMessageType($xpath): string
     {
         // Prima verifica se è un Inform
-        if ($xml->xpath('//cwmp:Inform')) {
+        if ($xpath->query('//cwmp:Inform')->length > 0) {
             return 'Inform';
         }
         
         // Altrimenti verifica i vari tipi di risposta
-        return $this->detectResponseType($xml);
+        return $this->detectResponseType($xpath);
     }
     
     /**
      * Rileva tipo di risposta SOAP
      * Detect SOAP response type
      * 
-     * @param \SimpleXMLElement $xml Documento XML
+     * @param \DOMXPath $xpath XPath object with registered namespaces
      * @return string Tipo risposta
      */
-    private function detectResponseType($xml): string
+    private function detectResponseType($xpath): string
     {
-        if ($xml->xpath('//cwmp:GetParameterValuesResponse')) {
+        if ($xpath->query('//cwmp:GetParameterValuesResponse')->length > 0) {
             return 'GetParameterValuesResponse';
-        } elseif ($xml->xpath('//cwmp:SetParameterValuesResponse')) {
+        } elseif ($xpath->query('//cwmp:SetParameterValuesResponse')->length > 0) {
             return 'SetParameterValuesResponse';
-        } elseif ($xml->xpath('//cwmp:RebootResponse')) {
+        } elseif ($xpath->query('//cwmp:RebootResponse')->length > 0) {
             return 'RebootResponse';
-        } elseif ($xml->xpath('//cwmp:TransferComplete')) {
+        } elseif ($xpath->query('//cwmp:TransferComplete')->length > 0) {
             return 'TransferComplete';
-        } elseif ($xml->xpath('//cwmp:DownloadResponse')) {
+        } elseif ($xpath->query('//cwmp:DownloadResponse')->length > 0) {
             return 'DownloadResponse';
         }
         

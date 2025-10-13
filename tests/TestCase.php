@@ -80,31 +80,74 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
+     * Post TR-069 SOAP request
+     */
+    protected function postTr069Soap(string $uri, string $soapXml)
+    {
+        return $this->withHeaders([
+            'Content-Type' => 'text/xml; charset=utf-8',
+            'SOAPAction' => ''
+        ])->call('POST', $uri, [], [], [], [], $soapXml);
+    }
+
+    /**
      * Create TR-069 Inform message
      */
     protected function createTr069Inform(array $params = []): string
     {
         $defaults = [
-            'serial' => 'TEST-' . uniqid(),
+            'serial_number' => 'TEST-' . uniqid(),
             'oui' => '00259E',
             'product_class' => 'IGD',
-            'event_code' => '0 BOOTSTRAP',
+            'manufacturer' => 'TestManufacturer',
+            'software_version' => null,
+            'hardware_version' => null,
+            'events' => ['0 BOOTSTRAP'],
+            'parameters' => []
         ];
         
         $params = array_merge($defaults, $params);
         
+        // Build DeviceId section (must have cwmp: prefix)
+        $deviceIdXml = '<cwmp:DeviceId>' . "\n" .
+                       '<Manufacturer>' . $params['manufacturer'] . '</Manufacturer>' . "\n" .
+                       '<OUI>' . $params['oui'] . '</OUI>' . "\n" .
+                       '<ProductClass>' . $params['product_class'] . '</ProductClass>' . "\n" .
+                       '<SerialNumber>' . $params['serial_number'] . '</SerialNumber>' . "\n";
+        
+        if ($params['software_version']) {
+            $deviceIdXml .= '<SoftwareVersion>' . $params['software_version'] . '</SoftwareVersion>' . "\n";
+        }
+        if ($params['hardware_version']) {
+            $deviceIdXml .= '<HardwareVersion>' . $params['hardware_version'] . '</HardwareVersion>' . "\n";
+        }
+        
+        $deviceIdXml .= '</cwmp:DeviceId>' . "\n";
+        
+        // Build Event section (support multiple events)
+        $eventsXml = '<Event>' . "\n";
+        foreach ($params['events'] as $event) {
+            $eventsXml .= '<EventStruct><EventCode>' . $event . '</EventCode><CommandKey></CommandKey></EventStruct>' . "\n";
+        }
+        $eventsXml .= '</Event>' . "\n";
+        
+        // Build ParameterList section
+        $paramListXml = '<ParameterList>' . "\n";
+        foreach ($params['parameters'] as $name => $value) {
+            $paramListXml .= '<ParameterValueStruct>' . "\n" .
+                            '<Name>' . $name . '</Name>' . "\n" .
+                            '<Value>' . $value . '</Value>' . "\n" .
+                            '</ParameterValueStruct>' . "\n";
+        }
+        $paramListXml .= '</ParameterList>' . "\n";
+        
         $body = '<cwmp:Inform>' . "\n" .
-                '<DeviceId>' . "\n" .
-                '<Manufacturer>TestManufacturer</Manufacturer>' . "\n" .
-                '<OUI>' . $params['oui'] . '</OUI>' . "\n" .
-                '<ProductClass>' . $params['product_class'] . '</ProductClass>' . "\n" .
-                '<SerialNumber>' . $params['serial'] . '</SerialNumber>' . "\n" .
-                '</DeviceId>' . "\n" .
-                '<Event><EventStruct><EventCode>' . $params['event_code'] . '</EventCode><CommandKey></CommandKey></EventStruct></Event>' . "\n" .
+                $deviceIdXml .
+                $eventsXml .
                 '<MaxEnvelopes>1</MaxEnvelopes>' . "\n" .
                 '<CurrentTime>2025-01-01T00:00:00Z</CurrentTime>' . "\n" .
                 '<RetryCount>0</RetryCount>' . "\n" .
-                '<ParameterList></ParameterList>' . "\n" .
+                $paramListXml .
                 '</cwmp:Inform>';
         
         return $this->createTr069SoapEnvelope($body);

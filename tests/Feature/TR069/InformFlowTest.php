@@ -28,10 +28,7 @@ class InformFlowTest extends TestCase
             ]
         ]);
 
-        $response = $this->postJson('/tr069', [], [
-            'Content-Type' => 'text/xml; charset=utf-8',
-            'SOAPAction' => ''
-        ])->setContent($soapEnvelope);
+        $response = $this->postTr069Soap('/tr069', $soapEnvelope);
 
         $response->assertStatus(200)
             ->assertHeader('Content-Type', 'text/xml; charset=utf-8');
@@ -42,7 +39,6 @@ class InformFlowTest extends TestCase
             'oui' => '00259E',
             'product_class' => 'IGD',
             'manufacturer' => 'TestVendor',
-            'protocol_type' => 'tr069',
             'status' => 'online'
         ]);
 
@@ -55,7 +51,7 @@ class InformFlowTest extends TestCase
         ]);
 
         // Verify session cookie is set
-        $response->assertCookie('CWMP_SESSION');
+        $response->assertCookie('TR069SessionID');
     }
 
     public function test_inform_response_contains_valid_soap(): void
@@ -68,8 +64,7 @@ class InformFlowTest extends TestCase
             'events' => ['1 BOOT']
         ]);
 
-        $response = $this->postJson('/tr069')
-            ->setContent($soapEnvelope);
+        $response = $this->postTr069Soap('/tr069', $soapEnvelope);
 
         $responseBody = $response->getContent();
         
@@ -109,8 +104,7 @@ class InformFlowTest extends TestCase
             ]
         ]);
 
-        $response = $this->postJson('/tr069')
-            ->setContent($soapEnvelope);
+        $response = $this->postTr069Soap('/tr069', $soapEnvelope);
 
         $response->assertStatus(200);
 
@@ -142,8 +136,7 @@ class InformFlowTest extends TestCase
             ]
         ]);
 
-        $response = $this->postJson('/tr069')
-            ->setContent($soapEnvelope);
+        $response = $this->postTr069Soap('/tr069', $soapEnvelope);
 
         $response->assertStatus(200);
 
@@ -165,8 +158,7 @@ class InformFlowTest extends TestCase
             'parameters' => []
         ]);
 
-        $response = $this->postJson('/tr069')
-            ->setContent($soapEnvelope);
+        $response = $this->postTr069Soap('/tr069', $soapEnvelope);
 
         $response->assertStatus(200);
 
@@ -178,8 +170,10 @@ class InformFlowTest extends TestCase
     {
         $invalidSoap = '<InvalidXML>Not SOAP</InvalidXML>';
 
-        $response = $this->postJson('/tr069')
-            ->setContent($invalidSoap);
+        $response = $this->call('POST', '/tr069', [], [], [], [
+            'CONTENT_TYPE' => 'text/xml; charset=utf-8',
+            'HTTP_SOAPACTION' => ''
+        ], $invalidSoap);
 
         $response->assertStatus(400);
     }
@@ -202,11 +196,9 @@ class InformFlowTest extends TestCase
             'events' => ['1 BOOT']
         ]);
 
-        $response1 = $this->postJson('/tr069')
-            ->setContent($device1Soap);
+        $response1 = $this->postTr069Soap('/tr069', $device1Soap);
 
-        $response2 = $this->postJson('/tr069')
-            ->setContent($device2Soap);
+        $response2 = $this->postTr069Soap('/tr069', $device2Soap);
 
         $response1->assertStatus(200);
         $response2->assertStatus(200);
