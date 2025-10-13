@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Traits\ApiResponse;
 use App\Models\FirmwareVersion;
 use App\Models\FirmwareDeployment;
 use App\Models\CpeDevice;
@@ -17,6 +18,7 @@ use Illuminate\Http\Request;
  */
 class FirmwareController extends Controller
 {
+    use ApiResponse;
     /**
      * Lista versioni firmware attive
      * List active firmware versions
@@ -31,7 +33,7 @@ class FirmwareController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(50);
         
-        return response()->json($firmware);
+        return $this->paginatedResponse($firmware);
     }
     
     /**
@@ -63,7 +65,7 @@ class FirmwareController extends Controller
         // Create firmware record in database
         $firmware = FirmwareVersion::create($validated);
         
-        return response()->json($firmware, 201);
+        return $this->dataResponse($firmware, 201);
     }
     
     /**
@@ -75,7 +77,7 @@ class FirmwareController extends Controller
      */
     public function show(FirmwareVersion $firmware)
     {
-        return response()->json($firmware);
+        return $this->dataResponse($firmware);
     }
     
     /**
@@ -98,7 +100,7 @@ class FirmwareController extends Controller
         
         $firmware->update($validated);
         
-        return response()->json($firmware);
+        return $this->dataResponse($firmware);
     }
     
     /**
@@ -141,9 +143,6 @@ class FirmwareController extends Controller
             $deployments[] = $deployment;
         }
         
-        return response()->json([
-            'message' => 'Firmware deployment scheduled and queued',
-            'deployments' => $deployments
-        ]);
+        return $this->successResponse('Firmware deployment scheduled and queued', $deployments);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Traits\ApiResponse;
 use App\Models\CpeDevice;
 use Illuminate\Http\Request;
 
@@ -15,6 +16,7 @@ use Illuminate\Http\Request;
  */
 class DeviceController extends Controller
 {
+    use ApiResponse;
     /**
      * Lista dispositivi con filtri e paginazione
      * List devices with filters and pagination
@@ -69,25 +71,7 @@ class DeviceController extends Controller
         $perPage = $request->get('per_page', 10);
         $devices = $query->paginate($perPage);
         
-        // Ritorna response con struttura standardizzata Laravel pagination
-        // Return response with standardized Laravel pagination structure
-        return response()->json([
-            'data' => $devices->items(),
-            'meta' => [
-                'current_page' => $devices->currentPage(),
-                'from' => $devices->firstItem(),
-                'last_page' => $devices->lastPage(),
-                'per_page' => $devices->perPage(),
-                'to' => $devices->lastItem(),
-                'total' => $devices->total(),
-            ],
-            'links' => [
-                'first' => $devices->url(1),
-                'last' => $devices->url($devices->lastPage()),
-                'prev' => $devices->previousPageUrl(),
-                'next' => $devices->nextPageUrl(),
-            ]
-        ]);
+        return $this->paginatedResponse($devices);
     }
     
     /**
@@ -102,7 +86,7 @@ class DeviceController extends Controller
         // Carica tutte le relazioni del dispositivo
         // Load all device relationships
         $device->load(['configurationProfile', 'parameters', 'provisioningTasks', 'firmwareDeployments']);
-        return response()->json(['data' => $device]);
+        return $this->dataResponse($device);
     }
     
     /**
@@ -131,7 +115,7 @@ class DeviceController extends Controller
         ]);
         
         $device = CpeDevice::create($validated);
-        return response()->json(['data' => $device], 201);
+        return $this->dataResponse($device, 201);
     }
     
     /**
@@ -156,7 +140,7 @@ class DeviceController extends Controller
         ]);
         
         $device->update($validated);
-        return response()->json(['data' => $device]);
+        return $this->dataResponse($device);
     }
     
     /**
