@@ -77,9 +77,91 @@
                 </a>
             </li>
             
-            <!-- TR-069 -->
+            <!-- Servizi Avanzati -->
             <li class="nav-item mt-3">
-                <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">TR-069</h6>
+                <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">Servizi Avanzati</h6>
+            </li>
+            
+            <li class="nav-item">
+                <a class="nav-link {{ Request::is('acs/diagnostics*') ? 'active' : '' }}" href="{{ route('acs.diagnostics') }}">
+                    <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
+                        <i class="fas fa-stethoscope text-primary text-sm opacity-10"></i>
+                    </div>
+                    <span class="nav-link-text ms-1">Diagnostics</span>
+                </a>
+            </li>
+            
+            <li class="nav-item">
+                <a class="nav-link {{ Request::is('acs/voip*') ? 'active' : '' }}" href="{{ route('acs.voip') }}">
+                    <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
+                        <i class="fas fa-phone text-success text-sm opacity-10"></i>
+                    </div>
+                    <span class="nav-link-text ms-1">VoIP Services</span>
+                </a>
+            </li>
+            
+            <li class="nav-item">
+                <a class="nav-link {{ Request::is('acs/storage*') ? 'active' : '' }}" href="{{ route('acs.storage') }}">
+                    <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
+                        <i class="fas fa-hdd text-warning text-sm opacity-10"></i>
+                    </div>
+                    <span class="nav-link-text ms-1">Storage/NAS</span>
+                </a>
+            </li>
+            
+            <li class="nav-item">
+                <a class="nav-link {{ Request::is('acs/iot*') ? 'active' : '' }}" href="{{ route('acs.iot') }}">
+                    <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
+                        <i class="fas fa-lightbulb text-info text-sm opacity-10"></i>
+                    </div>
+                    <span class="nav-link-text ms-1">IoT Devices</span>
+                </a>
+            </li>
+            
+            <li class="nav-item">
+                <a class="nav-link {{ Request::is('acs/lan-devices*') ? 'active' : '' }}" href="{{ route('acs.lan-devices') }}">
+                    <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
+                        <i class="fas fa-network-wired text-secondary text-sm opacity-10"></i>
+                    </div>
+                    <span class="nav-link-text ms-1">LAN Devices</span>
+                </a>
+            </li>
+            
+            <!-- Servizi Telecomunicazioni -->
+            <li class="nav-item mt-3">
+                <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">Telecom Services</h6>
+            </li>
+            
+            <li class="nav-item">
+                <a class="nav-link {{ Request::is('acs/femtocell*') ? 'active' : '' }}" href="{{ route('acs.femtocell') }}">
+                    <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
+                        <i class="fas fa-broadcast-tower text-danger text-sm opacity-10"></i>
+                    </div>
+                    <span class="nav-link-text ms-1">Femtocell RF</span>
+                </a>
+            </li>
+            
+            <li class="nav-item">
+                <a class="nav-link {{ Request::is('acs/stb*') ? 'active' : '' }}" href="{{ route('acs.stb') }}">
+                    <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
+                        <i class="fas fa-tv text-purple text-sm opacity-10"></i>
+                    </div>
+                    <span class="nav-link-text ms-1">STB/IPTV</span>
+                </a>
+            </li>
+            
+            <li class="nav-item">
+                <a class="nav-link {{ Request::is('acs/parameters*') ? 'active' : '' }}" href="{{ route('acs.parameters') }}">
+                    <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
+                        <i class="fas fa-list-ul text-dark text-sm opacity-10"></i>
+                    </div>
+                    <span class="nav-link-text ms-1">Parameters</span>
+                </a>
+            </li>
+            
+            <!-- TR-369 USP -->
+            <li class="nav-item mt-3">
+                <h6 class="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">TR-369 USP</h6>
             </li>
             
             <li class="nav-item">
@@ -98,8 +180,8 @@
             <div class="full-background" style="background-image: url('/assets/img/curved-images/white-curved.jpeg')"></div>
             <div class="card-body text-start p-3 w-100">
                 <div class="docs-info">
-                    <h6 class="text-white up mb-0">TR-069 Server</h6>
-                    <p class="text-xs font-weight-bold">Endpoint: /tr069</p>
+                    <h6 class="text-white up mb-0">ACS Server</h6>
+                    <p class="text-xs font-weight-bold">TR-069 & TR-369</p>
                 </div>
             </div>
         </div>
