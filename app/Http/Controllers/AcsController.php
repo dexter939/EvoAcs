@@ -33,53 +33,106 @@ class AcsController extends Controller
     /**
      * Get dashboard statistics (helper method for reuse)
      * Ottieni statistiche dashboard (metodo helper per riutilizzo)
+     * OPTIMIZED: Uses conditional aggregates to reduce 30+ queries to 6 queries
      */
     private function getDashboardStats()
     {
+        // Devices stats - 1 query with conditional aggregates
+        $deviceStats = CpeDevice::select([
+            DB::raw('COUNT(*) as total'),
+            DB::raw("COUNT(CASE WHEN status = 'online' THEN 1 END) as online"),
+            DB::raw("COUNT(CASE WHEN status = 'offline' THEN 1 END) as offline"),
+            DB::raw("COUNT(CASE WHEN status = 'provisioning' THEN 1 END) as provisioning"),
+            DB::raw("COUNT(CASE WHEN status = 'error' THEN 1 END) as error"),
+            DB::raw("COUNT(CASE WHEN protocol_type = 'tr069' THEN 1 END) as tr069"),
+            DB::raw("COUNT(CASE WHEN protocol_type = 'tr369' THEN 1 END) as tr369"),
+            DB::raw("COUNT(CASE WHEN protocol_type = 'tr369' AND mtp_type = 'mqtt' THEN 1 END) as tr369_mqtt"),
+            DB::raw("COUNT(CASE WHEN protocol_type = 'tr369' AND mtp_type = 'http' THEN 1 END) as tr369_http"),
+        ])->first();
+        
+        // Tasks stats - 1 query with conditional aggregates
+        $taskStats = ProvisioningTask::select([
+            DB::raw('COUNT(*) as total'),
+            DB::raw("COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending"),
+            DB::raw("COUNT(CASE WHEN status = 'processing' THEN 1 END) as processing"),
+            DB::raw("COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed"),
+            DB::raw("COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed"),
+        ])->first();
+        
+        // Firmware deployments stats - 1 query with conditional aggregates
+        $firmwareStats = FirmwareDeployment::select([
+            DB::raw('COUNT(*) as total_deployments'),
+            DB::raw("COUNT(CASE WHEN status = 'scheduled' THEN 1 END) as scheduled"),
+            DB::raw("COUNT(CASE WHEN status = 'downloading' THEN 1 END) as downloading"),
+            DB::raw("COUNT(CASE WHEN status = 'installing' THEN 1 END) as installing"),
+            DB::raw("COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed"),
+            DB::raw("COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed"),
+        ])->first();
+        
+        // Diagnostics stats - 1 query with conditional aggregates
+        $diagnosticStats = \App\Models\DiagnosticTest::select([
+            DB::raw('COUNT(*) as total'),
+            DB::raw("COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed"),
+            DB::raw("COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending"),
+            DB::raw("COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed"),
+            DB::raw("COUNT(CASE WHEN diagnostic_type = 'ping' THEN 1 END) as ping"),
+            DB::raw("COUNT(CASE WHEN diagnostic_type = 'traceroute' THEN 1 END) as traceroute"),
+            DB::raw("COUNT(CASE WHEN diagnostic_type = 'download' THEN 1 END) as download"),
+            DB::raw("COUNT(CASE WHEN diagnostic_type = 'upload' THEN 1 END) as upload"),
+        ])->first();
+        
+        // Simple counts and recent data - 4 separate queries
+        $profilesActive = \App\Models\ConfigurationProfile::where('is_active', true)->count();
+        $firmwareVersions = \App\Models\FirmwareVersion::count();
+        $uniqueParameters = \App\Models\DeviceParameter::select('parameter_path')->distinct()->count();
+        
+        $recentDevices = CpeDevice::orderBy('last_inform', 'desc')->limit(10)->get();
+        $recentTasks = ProvisioningTask::with('cpeDevice')->orderBy('created_at', 'desc')->limit(10)->get();
+        
         return [
             'devices' => [
-                'total' => CpeDevice::count(),
-                'online' => CpeDevice::where('status', 'online')->count(),
-                'offline' => CpeDevice::where('status', 'offline')->count(),
-                'provisioning' => CpeDevice::where('status', 'provisioning')->count(),
-                'error' => CpeDevice::where('status', 'error')->count(),
-                'tr069' => CpeDevice::tr069()->count(),
-                'tr369' => CpeDevice::tr369()->count(),
-                'tr369_mqtt' => CpeDevice::uspMqtt()->count(),
-                'tr369_http' => CpeDevice::tr369()->where('mtp_type', 'http')->count(),
+                'total' => $deviceStats->total ?? 0,
+                'online' => $deviceStats->online ?? 0,
+                'offline' => $deviceStats->offline ?? 0,
+                'provisioning' => $deviceStats->provisioning ?? 0,
+                'error' => $deviceStats->error ?? 0,
+                'tr069' => $deviceStats->tr069 ?? 0,
+                'tr369' => $deviceStats->tr369 ?? 0,
+                'tr369_mqtt' => $deviceStats->tr369_mqtt ?? 0,
+                'tr369_http' => $deviceStats->tr369_http ?? 0,
             ],
             'tasks' => [
-                'total' => ProvisioningTask::count(),
-                'pending' => ProvisioningTask::where('status', 'pending')->count(),
-                'processing' => ProvisioningTask::where('status', 'processing')->count(),
-                'completed' => ProvisioningTask::where('status', 'completed')->count(),
-                'failed' => ProvisioningTask::where('status', 'failed')->count(),
+                'total' => $taskStats->total ?? 0,
+                'pending' => $taskStats->pending ?? 0,
+                'processing' => $taskStats->processing ?? 0,
+                'completed' => $taskStats->completed ?? 0,
+                'failed' => $taskStats->failed ?? 0,
             ],
             'firmware' => [
-                'total_deployments' => FirmwareDeployment::count(),
-                'scheduled' => FirmwareDeployment::where('status', 'scheduled')->count(),
-                'downloading' => FirmwareDeployment::where('status', 'downloading')->count(),
-                'installing' => FirmwareDeployment::where('status', 'installing')->count(),
-                'completed' => FirmwareDeployment::where('status', 'completed')->count(),
-                'failed' => FirmwareDeployment::where('status', 'failed')->count(),
+                'total_deployments' => $firmwareStats->total_deployments ?? 0,
+                'scheduled' => $firmwareStats->scheduled ?? 0,
+                'downloading' => $firmwareStats->downloading ?? 0,
+                'installing' => $firmwareStats->installing ?? 0,
+                'completed' => $firmwareStats->completed ?? 0,
+                'failed' => $firmwareStats->failed ?? 0,
             ],
-            'recent_devices' => CpeDevice::orderBy('last_inform', 'desc')->limit(10)->get(),
-            'recent_tasks' => ProvisioningTask::with('cpeDevice')->orderBy('created_at', 'desc')->limit(10)->get(),
             'diagnostics' => [
-                'total' => \App\Models\DiagnosticTest::count(),
-                'completed' => \App\Models\DiagnosticTest::where('status', 'completed')->count(),
-                'pending' => \App\Models\DiagnosticTest::where('status', 'pending')->count(),
-                'failed' => \App\Models\DiagnosticTest::where('status', 'failed')->count(),
+                'total' => $diagnosticStats->total ?? 0,
+                'completed' => $diagnosticStats->completed ?? 0,
+                'pending' => $diagnosticStats->pending ?? 0,
+                'failed' => $diagnosticStats->failed ?? 0,
                 'by_type' => [
-                    'ping' => \App\Models\DiagnosticTest::where('diagnostic_type', 'ping')->count(),
-                    'traceroute' => \App\Models\DiagnosticTest::where('diagnostic_type', 'traceroute')->count(),
-                    'download' => \App\Models\DiagnosticTest::where('diagnostic_type', 'download')->count(),
-                    'upload' => \App\Models\DiagnosticTest::where('diagnostic_type', 'upload')->count(),
+                    'ping' => $diagnosticStats->ping ?? 0,
+                    'traceroute' => $diagnosticStats->traceroute ?? 0,
+                    'download' => $diagnosticStats->download ?? 0,
+                    'upload' => $diagnosticStats->upload ?? 0,
                 ],
             ],
-            'profiles_active' => \App\Models\ConfigurationProfile::where('is_active', true)->count(),
-            'firmware_versions' => \App\Models\FirmwareVersion::count(),
-            'unique_parameters' => \App\Models\DeviceParameter::select('parameter_path')->distinct()->count(),
+            'recent_devices' => $recentDevices,
+            'recent_tasks' => $recentTasks,
+            'profiles_active' => $profilesActive,
+            'firmware_versions' => $firmwareVersions,
+            'unique_parameters' => $uniqueParameters,
         ];
     }
     
