@@ -59,4 +59,42 @@ Route::prefix('acs')->name('acs.')->group(function () {
     Route::post('/profiles', [AcsController::class, 'storeProfile'])->name('profiles.store');
     Route::put('/profiles/{id}', [AcsController::class, 'updateProfile'])->name('profiles.update');
     Route::delete('/profiles/{id}', [AcsController::class, 'destroyProfile'])->name('profiles.destroy');
+    
+    // Diagnostics (TR-143)
+    Route::get('/diagnostics', [AcsController::class, 'diagnostics'])->name('diagnostics');
+    Route::get('/diagnostics/{id}/details', [AcsController::class, 'diagnosticDetails'])->name('diagnostics.details');
+    
+    // VoIP Services (TR-104)
+    Route::get('/voip', [AcsController::class, 'voip'])->name('voip');
+    Route::get('/voip/{deviceId}', [AcsController::class, 'voipDevice'])->name('voip.device');
+    Route::post('/voip/{deviceId}/configure', [AcsController::class, 'voipConfigure'])->name('voip.configure');
+    
+    // Storage/NAS Services (TR-140)
+    Route::get('/storage', [AcsController::class, 'storage'])->name('storage');
+    Route::get('/storage/{deviceId}', [AcsController::class, 'storageDevice'])->name('storage.device');
+    Route::post('/storage/{deviceId}/configure', [AcsController::class, 'storageConfigure'])->name('storage.configure');
+    
+    // IoT Devices (TR-181)
+    Route::get('/iot', [AcsController::class, 'iot'])->name('iot');
+    Route::get('/iot/{deviceId}', [AcsController::class, 'iotDevice'])->name('iot.device');
+    Route::post('/iot/{deviceId}/control', [AcsController::class, 'iotControl'])->name('iot.control');
+    
+    // LAN Devices (TR-64)
+    Route::get('/lan-devices', [AcsController::class, 'lanDevices'])->name('lan-devices');
+    Route::get('/lan-devices/{deviceId}', [AcsController::class, 'lanDeviceDetail'])->name('lan-devices.detail');
+    
+    // Femtocell RF Management (TR-196)
+    Route::get('/femtocell', [AcsController::class, 'femtocell'])->name('femtocell');
+    Route::get('/femtocell/{deviceId}', [AcsController::class, 'femtocellDevice'])->name('femtocell.device');
+    Route::post('/femtocell/{deviceId}/configure', [AcsController::class, 'femtocellConfigure'])->name('femtocell.configure');
+    
+    // STB/IPTV Services (TR-135)
+    Route::get('/stb', [AcsController::class, 'stb'])->name('stb');
+    Route::get('/stb/{deviceId}', [AcsController::class, 'stbDevice'])->name('stb.device');
+    Route::post('/stb/{deviceId}/configure', [AcsController::class, 'stbConfigure'])->name('stb.configure');
+    
+    // Parameter Discovery (TR-111)
+    Route::get('/parameters', [AcsController::class, 'parameters'])->name('parameters');
+    Route::get('/parameters/{deviceId}', [AcsController::class, 'parametersDevice'])->name('parameters.device');
+    Route::post('/parameters/{deviceId}/discover', [AcsController::class, 'parametersDiscover'])->name('parameters.discover');
 });

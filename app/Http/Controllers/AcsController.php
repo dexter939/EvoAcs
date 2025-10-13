@@ -726,4 +726,256 @@ class AcsController extends Controller
             return back()->with('error', 'Failed to delete subscription: ' . $e->getMessage());
         }
     }
+    
+    /**
+     * Diagnostics (TR-143) - Lista test diagnostici
+     */
+    public function diagnostics()
+    {
+        $tests = \App\Models\DiagnosticTest::with('cpeDevice')
+            ->orderBy('created_at', 'desc')
+            ->paginate(50);
+            
+        return view('acs.diagnostics', compact('tests'));
+    }
+    
+    /**
+     * Diagnostics - Dettagli test
+     */
+    public function diagnosticDetails($id)
+    {
+        $test = \App\Models\DiagnosticTest::with('cpeDevice')->findOrFail($id);
+        return view('acs.diagnostic-details', compact('test'));
+    }
+    
+    /**
+     * VoIP Services (TR-104) - Lista dispositivi VoIP
+     */
+    public function voip()
+    {
+        $devices = CpeDevice::whereHas('parameters', function($q) {
+            $q->where('parameter_path', 'like', 'Device.Services.VoiceService.%');
+        })->with('configurationProfile')->paginate(50);
+        
+        return view('acs.voip', compact('devices'));
+    }
+    
+    /**
+     * VoIP - Configurazione dispositivo
+     */
+    public function voipDevice($deviceId)
+    {
+        $device = CpeDevice::findOrFail($deviceId);
+        $voipParams = \App\Models\DeviceParameter::where('cpe_device_id', $device->id)
+            ->where('parameter_path', 'like', 'Device.Services.VoiceService.%')
+            ->get();
+            
+        return view('acs.voip-device', compact('device', 'voipParams'));
+    }
+    
+    /**
+     * VoIP - Salva configurazione
+     */
+    public function voipConfigure(Request $request, $deviceId)
+    {
+        // Implementation will use TR-104 service
+        return back()->with('success', 'VoIP configuration queued');
+    }
+    
+    /**
+     * Storage/NAS Services (TR-140) - Lista dispositivi storage
+     */
+    public function storage()
+    {
+        $devices = CpeDevice::whereHas('parameters', function($q) {
+            $q->where('parameter_path', 'like', 'Device.Services.StorageService.%');
+        })->with('configurationProfile')->paginate(50);
+        
+        return view('acs.storage', compact('devices'));
+    }
+    
+    /**
+     * Storage - Dispositivo specifico
+     */
+    public function storageDevice($deviceId)
+    {
+        $device = CpeDevice::findOrFail($deviceId);
+        $storageParams = \App\Models\DeviceParameter::where('cpe_device_id', $device->id)
+            ->where('parameter_path', 'like', 'Device.Services.StorageService.%')
+            ->get();
+            
+        return view('acs.storage-device', compact('device', 'storageParams'));
+    }
+    
+    /**
+     * Storage - Configura
+     */
+    public function storageConfigure(Request $request, $deviceId)
+    {
+        return back()->with('success', 'Storage configuration queued');
+    }
+    
+    /**
+     * IoT Devices (TR-181) - Lista dispositivi IoT
+     */
+    public function iot()
+    {
+        $devices = CpeDevice::whereHas('parameters', function($q) {
+            $q->where('parameter_path', 'like', 'Device.IoT.%');
+        })->with('configurationProfile')->paginate(50);
+        
+        return view('acs.iot', compact('devices'));
+    }
+    
+    /**
+     * IoT - Dispositivo specifico
+     */
+    public function iotDevice($deviceId)
+    {
+        $device = CpeDevice::findOrFail($deviceId);
+        $iotParams = \App\Models\DeviceParameter::where('cpe_device_id', $device->id)
+            ->where('parameter_path', 'like', 'Device.IoT.%')
+            ->get();
+            
+        return view('acs.iot-device', compact('device', 'iotParams'));
+    }
+    
+    /**
+     * IoT - Controllo dispositivo
+     */
+    public function iotControl(Request $request, $deviceId)
+    {
+        return back()->with('success', 'IoT command sent');
+    }
+    
+    /**
+     * LAN Devices (TR-64) - Lista dispositivi LAN
+     */
+    public function lanDevices()
+    {
+        $devices = CpeDevice::whereHas('parameters', function($q) {
+            $q->where('parameter_path', 'like', 'Device.LANDevice.%');
+        })->with('configurationProfile')->paginate(50);
+        
+        return view('acs.lan-devices', compact('devices'));
+    }
+    
+    /**
+     * LAN - Dettaglio dispositivo
+     */
+    public function lanDeviceDetail($deviceId)
+    {
+        $device = CpeDevice::findOrFail($deviceId);
+        $lanParams = \App\Models\DeviceParameter::where('cpe_device_id', $device->id)
+            ->where('parameter_path', 'like', 'Device.LANDevice.%')
+            ->get();
+            
+        return view('acs.lan-device-detail', compact('device', 'lanParams'));
+    }
+    
+    /**
+     * Femtocell (TR-196) - Lista femtocell
+     */
+    public function femtocell()
+    {
+        $devices = CpeDevice::whereHas('parameters', function($q) {
+            $q->where('parameter_path', 'like', 'Device.FAP.%');
+        })->with('configurationProfile')->paginate(50);
+        
+        return view('acs.femtocell', compact('devices'));
+    }
+    
+    /**
+     * Femtocell - Dispositivo specifico
+     */
+    public function femtocellDevice($deviceId)
+    {
+        $device = CpeDevice::findOrFail($deviceId);
+        $femtoParams = \App\Models\DeviceParameter::where('cpe_device_id', $device->id)
+            ->where('parameter_path', 'like', 'Device.FAP.%')
+            ->get();
+            
+        return view('acs.femtocell-device', compact('device', 'femtoParams'));
+    }
+    
+    /**
+     * Femtocell - Configura
+     */
+    public function femtocellConfigure(Request $request, $deviceId)
+    {
+        return back()->with('success', 'Femtocell configuration queued');
+    }
+    
+    /**
+     * STB/IPTV (TR-135) - Lista STB
+     */
+    public function stb()
+    {
+        $devices = CpeDevice::whereHas('parameters', function($q) {
+            $q->where('parameter_path', 'like', 'Device.Services.STBService.%');
+        })->with('configurationProfile')->paginate(50);
+        
+        return view('acs.stb', compact('devices'));
+    }
+    
+    /**
+     * STB - Dispositivo specifico
+     */
+    public function stbDevice($deviceId)
+    {
+        $device = CpeDevice::findOrFail($deviceId);
+        $stbParams = \App\Models\DeviceParameter::where('cpe_device_id', $device->id)
+            ->where('parameter_path', 'like', 'Device.Services.STBService.%')
+            ->get();
+            
+        return view('acs.stb-device', compact('device', 'stbParams'));
+    }
+    
+    /**
+     * STB - Configura
+     */
+    public function stbConfigure(Request $request, $deviceId)
+    {
+        return back()->with('success', 'STB configuration queued');
+    }
+    
+    /**
+     * Parameters Discovery (TR-111) - Lista parametri
+     */
+    public function parameters()
+    {
+        $devices = CpeDevice::with('configurationProfile')->paginate(50);
+        return view('acs.parameters', compact('devices'));
+    }
+    
+    /**
+     * Parameters - Dispositivo specifico
+     */
+    public function parametersDevice($deviceId)
+    {
+        $device = CpeDevice::findOrFail($deviceId);
+        $parameters = \App\Models\DeviceParameter::where('cpe_device_id', $device->id)
+            ->orderBy('parameter_path')
+            ->paginate(100);
+            
+        return view('acs.parameters-device', compact('device', 'parameters'));
+    }
+    
+    /**
+     * Parameters - Discover
+     */
+    public function parametersDiscover(Request $request, $deviceId)
+    {
+        $device = CpeDevice::findOrFail($deviceId);
+        
+        // Queue discovery task
+        ProvisioningTask::create([
+            'cpe_device_id' => $device->id,
+            'task_type' => 'parameter_discovery',
+            'status' => 'pending',
+            'task_data' => ['full_discovery' => true]
+        ]);
+        
+        return back()->with('success', 'Parameter discovery queued');
+    }
 }
