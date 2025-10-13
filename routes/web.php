@@ -37,6 +37,7 @@ Route::prefix('acs')->name('acs.')->group(function () {
     Route::post('/devices/{id}/connection-request', [AcsController::class, 'connectionRequest'])->name('devices.connection-request');
     Route::post('/devices/{id}/diagnostics/{type}', [AcsController::class, 'runDiagnostic'])->name('devices.diagnostic');
     Route::get('/diagnostics/{id}/results', [AcsController::class, 'getDiagnosticResults'])->name('diagnostics.results');
+    Route::post('/devices/{id}/assign-service', [AcsController::class, 'assignDeviceToService'])->name('devices.assign-service');
     
     // USP Event Subscriptions
     Route::get('/devices/{id}/subscriptions', [AcsController::class, 'subscriptions'])->name('devices.subscriptions');
@@ -104,6 +105,7 @@ Route::prefix('acs')->name('acs.')->group(function () {
     Route::post('/customers', [AcsController::class, 'storeCustomer'])->name('customers.store');
     Route::put('/customers/{customerId}', [AcsController::class, 'updateCustomer'])->name('customers.update');
     Route::delete('/customers/{customerId}', [AcsController::class, 'destroyCustomer'])->name('customers.destroy');
+    Route::get('/customers/{customerId}/services-list', [AcsController::class, 'getCustomerServices'])->name('customers.services-list');
     
     Route::get('/services/{serviceId}', [AcsController::class, 'serviceDetail'])->name('services.detail');
     Route::post('/services', [AcsController::class, 'storeService'])->name('services.store');
