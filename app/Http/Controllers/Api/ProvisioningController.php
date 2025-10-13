@@ -17,8 +17,8 @@ use Illuminate\Http\Request;
  * Manages zero-touch provisioning and remote configuration via TR-069
  */
 class ProvisioningController extends Controller
-    use ApiResponse;
 {
+    use ApiResponse;
     /**
      * Provisioning automatico dispositivo con profilo configurazione
      * Automatic device provisioning with configuration profile
@@ -63,7 +63,13 @@ class ProvisioningController extends Controller
         // Dispatch async job for processing
         \App\Jobs\ProcessProvisioningTask::dispatch($task);
         
-        return response()->json(['message' => 'Provisioning task created and queued', 'task' => $task]);
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'task_id' => $task->id,
+                'status' => $task->status
+            ]
+        ]);
     }
     
     /**
@@ -98,7 +104,14 @@ class ProvisioningController extends Controller
         // Dispatch job to send SOAP request to device
         \App\Jobs\ProcessProvisioningTask::dispatch($task);
         
-        return response()->json(['message' => 'Get parameters task created and queued', 'task' => $task]);
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'task_id' => $task->id,
+                'status' => $task->status,
+                'parameters' => $validated['parameters']
+            ]
+        ]);
     }
     
     /**
@@ -133,7 +146,13 @@ class ProvisioningController extends Controller
         // Dispatch async job
         \App\Jobs\ProcessProvisioningTask::dispatch($task);
         
-        return response()->json(['message' => 'Set parameters task created and queued', 'task' => $task]);
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'task_id' => $task->id,
+                'status' => $task->status
+            ]
+        ]);
     }
     
     /**
@@ -148,6 +167,14 @@ class ProvisioningController extends Controller
      */
     public function rebootDevice(CpeDevice $device)
     {
+        // Validazione: dispositivo deve essere online
+        // Validation: device must be online
+        if ($device->status !== 'online') {
+            return response()->json([
+                'message' => 'Device must be online to reboot'
+            ], 422);
+        }
+        
         // Crea task di tipo "reboot"
         // Create task of type "reboot"
         $task = ProvisioningTask::create([
@@ -161,7 +188,13 @@ class ProvisioningController extends Controller
         // Dispatch job to send Reboot SOAP command
         \App\Jobs\ProcessProvisioningTask::dispatch($task);
         
-        return response()->json(['message' => 'Reboot task created and queued', 'task' => $task]);
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'task_id' => $task->id,
+                'message' => 'Reboot task created and queued'
+            ]
+        ]);
     }
 
     /**
@@ -200,7 +233,13 @@ class ProvisioningController extends Controller
         // Return result with appropriate HTTP status
         $statusCode = $result['success'] ? 200 : ($result['error_code'] === 'CONNECTION_ERROR' ? 503 : 400);
 
-        return response()->json($result, $statusCode);
+        return response()->json([
+            'success' => $result['success'],
+            'data' => [
+                'status' => $result['success'] ? 'connected' : 'failed',
+                'message' => $result['message'] ?? ($result['success'] ? 'Connection request sent successfully' : 'Connection request failed')
+            ]
+        ], $statusCode);
     }
     
     /**
@@ -232,7 +271,7 @@ class ProvisioningController extends Controller
         // Order by creation date (most recent first)
         $tasks = $query->orderBy('created_at', 'desc')->paginate(50);
         
-        return response()->json($tasks);
+        return $this->paginatedResponse($tasks);
     }
     
     /**
@@ -247,6 +286,18 @@ class ProvisioningController extends Controller
         // Carica relazione con dispositivo
         // Load device relationship
         $task->load('cpeDevice');
-        return response()->json($task);
+        
+        return response()->json([
+            'data' => [
+                'id' => $task->id,
+                'task_type' => $task->task_type,
+                'status' => $task->status,
+                'parameters' => $task->task_data['parameters'] ?? null,
+                'result' => $task->result ?? null,
+                'cpe_device_id' => $task->cpe_device_id,
+                'created_at' => $task->created_at,
+                'updated_at' => $task->updated_at
+            ]
+        ]);
     }
 }
