@@ -151,7 +151,7 @@ class AcsController extends Controller
      */
     public function devices(Request $request)
     {
-        $query = CpeDevice::with('configurationProfile');
+        $query = CpeDevice::with(['configurationProfile', 'service.customer']);
         
         // Filter by protocol type
         if ($request->has('protocol') && $request->protocol !== 'all') {
@@ -1138,5 +1138,65 @@ class AcsController extends Controller
         
         return redirect()->route('acs.customers.detail', $customerId)
             ->with('success', 'Servizio eliminato con successo!');
+    }
+    
+    /**
+     * Get Customer Services List - API endpoint per ottenere i servizi di un cliente
+     * Used by device assignment modal to dynamically load services
+     */
+    public function getCustomerServices($customerId)
+    {
+        $customer = \App\Models\Customer::findOrFail($customerId);
+        
+        $services = \App\Models\Service::where('customer_id', $customerId)
+            ->where('status', '!=', 'terminated')
+            ->orderBy('name')
+            ->get(['id', 'name', 'service_type', 'status']);
+        
+        return response()->json([
+            'success' => true,
+            'customer' => [
+                'id' => $customer->id,
+                'name' => $customer->name,
+            ],
+            'services' => $services,
+        ]);
+    }
+    
+    /**
+     * Assign Device to Service - Assegna dispositivo CPE a un servizio
+     */
+    public function assignDeviceToService(Request $request, $deviceId)
+    {
+        $device = CpeDevice::findOrFail($deviceId);
+        
+        $validated = $request->validate([
+            'service_id' => 'required|exists:services,id',
+        ]);
+        
+        // Verify service exists and is not terminated
+        $service = \App\Models\Service::findOrFail($validated['service_id']);
+        
+        if ($service->status === 'terminated') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Impossibile assegnare dispositivo a servizio terminato',
+            ], 400);
+        }
+        
+        // Update device service_id
+        $device->update([
+            'service_id' => $validated['service_id'],
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Dispositivo assegnato al servizio con successo',
+            'device' => [
+                'id' => $device->id,
+                'serial_number' => $device->serial_number,
+                'service_id' => $device->service_id,
+            ],
+        ]);
     }
 }
