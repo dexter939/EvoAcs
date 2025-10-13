@@ -84,12 +84,23 @@ abstract class TestCase extends BaseTestCase
     /**
      * Post TR-069 SOAP request
      */
-    protected function postTr069Soap(string $uri, string $soapXml)
+    protected function postTr069Soap(string $uri, string $soapXml, array $cookies = [])
     {
-        return $this->withHeaders([
+        $headers = [
             'Content-Type' => 'text/xml; charset=utf-8',
             'SOAPAction' => ''
-        ])->call('POST', $uri, [], [], [], [], $soapXml);
+        ];
+        
+        // Add cookies as HTTP Cookie header for reliable transmission in tests
+        if (!empty($cookies)) {
+            $cookiePairs = [];
+            foreach ($cookies as $name => $value) {
+                $cookiePairs[] = "{$name}={$value}";
+            }
+            $headers['Cookie'] = implode('; ', $cookiePairs);
+        }
+        
+        return $this->withHeaders($headers)->call('POST', $uri, [], [], [], [], $soapXml);
     }
 
     /**

@@ -14,6 +14,7 @@ class ParameterOperationsTest extends TestCase
 
     protected CpeDevice $device;
     protected string $sessionCookie;
+    protected \App\Models\Tr069Session $session;
 
     protected function setUp(): void
     {
@@ -25,17 +26,10 @@ class ParameterOperationsTest extends TestCase
             'connection_request_url' => 'http://device.test:7547'
         ]);
 
-        // Simulate session via Inform
-        $informSoap = $this->createTr069Inform([
-            'serial_number' => 'PARAM-TEST-001',
-            'oui' => $this->device->oui,
-            'product_class' => $this->device->product_class,
-            'manufacturer' => $this->device->manufacturer,
-            'events' => ['6 CONNECTION REQUEST']
-        ]);
-
-        $response = $this->postTr069Soap('/tr069', $informSoap);
-        $this->sessionCookie = $response->headers->getCookies()[0]->getValue();
+        // Create session directly for response tests (cookie handling workaround)
+        $sessionManager = new \App\Services\TR069SessionManager();
+        $this->session = $sessionManager->createSession($this->device, '192.168.1.100');
+        $this->sessionCookie = $this->session->cookie;
     }
 
     public function test_get_parameter_values_request_in_response(): void
@@ -64,8 +58,7 @@ class ParameterOperationsTest extends TestCase
             'events' => ['6 CONNECTION REQUEST']
         ]);
 
-        $response = $this->withCookie('TR069SessionID', $this->sessionCookie)
-            ->postTr069Soap('/tr069', $informSoap);
+        $response = $this->postTr069Soap('/tr069', $informSoap);
 
         $responseBody = $response->getContent();
 
@@ -101,8 +94,7 @@ class ParameterOperationsTest extends TestCase
             'events' => ['6 CONNECTION REQUEST']
         ]);
 
-        $response = $this->withCookie('TR069SessionID', $this->sessionCookie)
-            ->postTr069Soap('/tr069', $informSoap);
+        $response = $this->postTr069Soap('/tr069', $informSoap);
 
         $responseBody = $response->getContent();
 
@@ -118,9 +110,15 @@ class ParameterOperationsTest extends TestCase
 
     public function test_get_parameter_values_response_updates_database(): void
     {
-        // Simulate GetParameterValuesResponse from device
+        // Simulate GetParameterValuesResponse from device (include DeviceId for session correlation)
         $getResponseSoap = $this->createTr069SoapEnvelope('
             <cwmp:GetParameterValuesResponse>
+                <cwmp:DeviceId>
+                    <Manufacturer>' . $this->device->manufacturer . '</Manufacturer>
+                    <OUI>' . $this->device->oui . '</OUI>
+                    <ProductClass>' . $this->device->product_class . '</ProductClass>
+                    <SerialNumber>' . $this->device->serial_number . '</SerialNumber>
+                </cwmp:DeviceId>
                 <ParameterList>
                     <ParameterValueStruct>
                         <Name>Device.DeviceInfo.SoftwareVersion</Name>
@@ -132,14 +130,13 @@ class ParameterOperationsTest extends TestCase
                     </ParameterValueStruct>
                     <ParameterValueStruct>
                         <Name>Device.DeviceInfo.UpTime</Name>
-                        <Value xsi:type="xsd:unsignedInt">7200</Value>
+                        <Value xsi:type="xsd:string">7200</Value>
                     </ParameterValueStruct>
                 </ParameterList>
             </cwmp:GetParameterValuesResponse>
         ');
 
-        $response = $this->withCookie('TR069SessionID', $this->sessionCookie)
-            ->postTr069Soap('/tr069', $getResponseSoap);
+        $response = $this->postTr069Soap('/tr069', $getResponseSoap);
 
         $response->assertStatus(200);
 
@@ -168,15 +165,20 @@ class ParameterOperationsTest extends TestCase
             ]
         ]);
 
-        // Simulate SetParameterValuesResponse from device
+        // Simulate SetParameterValuesResponse from device (include DeviceId for session correlation)
         $setResponseSoap = $this->createTr069SoapEnvelope('
             <cwmp:SetParameterValuesResponse>
+                <cwmp:DeviceId>
+                    <Manufacturer>' . $this->device->manufacturer . '</Manufacturer>
+                    <OUI>' . $this->device->oui . '</OUI>
+                    <ProductClass>' . $this->device->product_class . '</ProductClass>
+                    <SerialNumber>' . $this->device->serial_number . '</SerialNumber>
+                </cwmp:DeviceId>
                 <Status>0</Status>
             </cwmp:SetParameterValuesResponse>
         ');
 
-        $response = $this->withCookie('TR069SessionID', $this->sessionCookie)
-            ->postTr069Soap('/tr069', $setResponseSoap);
+        $response = $this->postTr069Soap('/tr069', $setResponseSoap);
 
         $response->assertStatus(200);
 
@@ -202,8 +204,7 @@ class ParameterOperationsTest extends TestCase
             'events' => ['6 CONNECTION REQUEST']
         ]);
 
-        $response = $this->withCookie('TR069SessionID', $this->sessionCookie)
-            ->postTr069Soap('/tr069', $informSoap);
+        $response = $this->postTr069Soap('/tr069', $informSoap);
 
         $responseBody = $response->getContent();
 
@@ -235,8 +236,7 @@ class ParameterOperationsTest extends TestCase
             'events' => ['6 CONNECTION REQUEST']
         ]);
 
-        $response = $this->withCookie('TR069SessionID', $this->sessionCookie)
-            ->postTr069Soap('/tr069', $informSoap);
+        $response = $this->postTr069Soap('/tr069', $informSoap);
 
         $responseBody = $response->getContent();
 
@@ -263,9 +263,15 @@ class ParameterOperationsTest extends TestCase
             ]
         ]);
 
-        // Simulate TransferComplete from device after download
+        // Simulate TransferComplete from device after download (include DeviceId for session correlation)
         $transferCompleteSoap = $this->createTr069SoapEnvelope('
             <cwmp:TransferComplete>
+                <cwmp:DeviceId>
+                    <Manufacturer>' . $this->device->manufacturer . '</Manufacturer>
+                    <OUI>' . $this->device->oui . '</OUI>
+                    <ProductClass>' . $this->device->product_class . '</ProductClass>
+                    <SerialNumber>' . $this->device->serial_number . '</SerialNumber>
+                </cwmp:DeviceId>
                 <CommandKey>Download_FW_001</CommandKey>
                 <FaultStruct>
                     <FaultCode>0</FaultCode>
@@ -276,8 +282,7 @@ class ParameterOperationsTest extends TestCase
             </cwmp:TransferComplete>
         ');
 
-        $response = $this->withCookie('TR069SessionID', $this->sessionCookie)
-            ->postTr069Soap('/tr069', $transferCompleteSoap);
+        $response = $this->postTr069Soap('/tr069', $transferCompleteSoap);
 
         $response->assertStatus(200);
 

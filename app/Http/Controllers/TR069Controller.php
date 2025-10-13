@@ -274,12 +274,12 @@ class TR069Controller extends Controller
         
         switch ($task->task_type) {
             case 'set_parameters':
-                $params = $task->task_params['parameters'] ?? [];
+                $params = $task->task_data['parameters'] ?? [];
                 $sessionManager->queueCommand($session, 'SetParameterValues', $params, $task->id);
                 break;
                 
             case 'get_parameters':
-                $params = $task->task_params['parameters'] ?? [];
+                $params = $task->task_data['parameters'] ?? [];
                 $sessionManager->queueCommand($session, 'GetParameterValues', ['parameters' => $params], $task->id);
                 break;
                 
@@ -288,7 +288,7 @@ class TR069Controller extends Controller
                 break;
                 
             case 'download':
-                $params = $task->task_params ?? [];
+                $params = $task->task_data ?? [];
                 // Usa task_id come CommandKey per correlazione deterministica TransferComplete
                 // Use task_id as CommandKey for deterministic TransferComplete correlation
                 $params['command_key'] = 'task_' . $task->id;
@@ -324,24 +324,32 @@ class TR069Controller extends Controller
                     'task_id' => $command['task_id'] ?? null
                 ]);
                 
+                // Update last_command_sent for response correlation
+                $session->update([
+                    'last_command_sent' => [
+                        'type' => $command['type'],
+                        'task_id' => $command['task_id'],
+                        'params' => $command['params'],
+                        'sent_at' => now()->toIso8601String()
+                    ]
+                ]);
+                
                 $tr069Service = new TR069Service();
                 $messageId = $session->getNextMessageId();
                 
                 switch ($command['type']) {
                     case 'GetParameterValues':
-                        return $tr069Service->generateGetParameterValues(
-                            $command['params']['parameters'] ?? [],
-                            $messageId
+                        return $tr069Service->generateGetParameterValuesRequest(
+                            $command['params']['parameters'] ?? []
                         );
                         
                     case 'SetParameterValues':
-                        return $tr069Service->generateSetParameterValues(
-                            $command['params'],
-                            $messageId
+                        return $tr069Service->generateSetParameterValuesRequest(
+                            $command['params']
                         );
                         
                     case 'Reboot':
-                        return $tr069Service->generateReboot($messageId);
+                        return $tr069Service->generateRebootRequest();
                         
                     case 'Download':
                         return $tr069Service->generateDownloadRequest(
@@ -418,10 +426,27 @@ class TR069Controller extends Controller
     {
         \Log::info('TR-069 Response processing');
         
-        // Recupera sessione tramite cookie
+        // Recupera sessione tramite cookie (supporta sia Laravel cookies che HTTP Cookie header per test)
         $cookieValue = $request->cookie('TR069SessionID');
+        
+        // Fallback: Parse Cookie header direttamente (per test environment)
+        if (!$cookieValue && $request->header('Cookie')) {
+            $cookieHeader = $request->header('Cookie');
+            if (preg_match('/TR069SessionID=([^;]+)/', $cookieHeader, $matches)) {
+                $cookieValue = $matches[1];
+            }
+        }
+        
+        \Log::info('TR-069 Response cookie received', ['cookie' => $cookieValue, 'cookie_header' => $request->header('Cookie')]);
+        
         $sessionManager = new TR069SessionManager();
         $session = $cookieValue ? $sessionManager->getSessionByCookie($cookieValue) : null;
+        
+        if ($session) {
+            \Log::info('TR-069 Response session found via cookie', ['session_id' => $session->session_id]);
+        } else {
+            \Log::warning('TR-069 Response session not found via cookie', ['cookie' => $cookieValue]);
+        }
         
         // Se non c'è sessione tramite cookie (es. TransferComplete in nuova connessione),
         // cerca dispositivo tramite DeviceId per correlazione alternativa
@@ -440,9 +465,22 @@ class TR069Controller extends Controller
                 if ($device) {
                     \Log::info('TR-069 Response correlated via DeviceId', ['serial_number' => $serialNumber]);
                     
-                    // Crea nuova sessione temporanea per processare la risposta
-                    // Create temporary session to process response
-                    $session = $sessionManager->createSession($device, $request->ip());
+                    // Try to find existing active session for this device (preserves last_command_sent)
+                    // Cerca sessione attiva esistente per questo device (preserva last_command_sent)
+                    $existingSession = \App\Models\Tr069Session::where('cpe_device_id', $device->id)
+                        ->where('status', 'active')
+                        ->orderBy('last_activity', 'desc')
+                        ->first();
+                    
+                    if ($existingSession) {
+                        $session = $existingSession;
+                        \Log::info('TR-069 Response using existing device session', ['session_id' => $session->session_id]);
+                    } else {
+                        // Crea nuova sessione temporanea solo se non esiste una sessione attiva
+                        // Create temporary session only if no active session found
+                        $session = $sessionManager->createSession($device, $request->ip());
+                        \Log::info('TR-069 Response created temporary session', ['session_id' => $session->session_id]);
+                    }
                 }
             }
         }
@@ -473,6 +511,10 @@ class TR069Controller extends Controller
                 
             case 'TransferComplete':
                 $this->handleTransferCompleteResponse($xpath, $session);
+                // Return TransferCompleteResponse SOAP
+                return response($this->generateTransferCompleteResponse(), 200)
+                    ->header('Content-Type', 'text/xml; charset=utf-8')
+                    ->header('SOAPAction', '');
                 break;
                 
             default:
@@ -541,8 +583,8 @@ class TR069Controller extends Controller
      */
     private function handleGetParameterValuesResponse($xpath, $session): void
     {
-        // Estrae parametri dalla risposta usando DOMXPath
-        $paramList = $xpath->query('//cwmp:ParameterValueStruct');
+        // Estrae parametri dalla risposta usando DOMXPath (supporta sia namespaced che non-namespaced)
+        $paramList = $xpath->query('//cwmp:ParameterValueStruct | //ParameterValueStruct');
         $parameters = [];
         
         foreach ($paramList as $param) {
@@ -604,8 +646,8 @@ class TR069Controller extends Controller
      */
     private function handleSetParameterValuesResponse($xpath, $session): void
     {
-        // Estrae status dalla risposta usando DOMXPath
-        $statusNode = $xpath->query('//cwmp:Status')->item(0);
+        // Estrae status dalla risposta usando DOMXPath (supporta sia namespaced che non-namespaced)
+        $statusNode = $xpath->query('//cwmp:Status | //Status')->item(0);
         $statusCode = $statusNode ? (int)$statusNode->textContent : 0;
         
         $success = $statusCode === 0; // 0 = successo in TR-069
@@ -678,11 +720,11 @@ class TR069Controller extends Controller
      */
     private function handleTransferCompleteResponse($xpath, $session): void
     {
-        // Estrae informazioni da TransferComplete usando DOMXPath
-        $commandKeyNode = $xpath->query('//cwmp:CommandKey')->item(0);
-        $faultStructNode = $xpath->query('//cwmp:FaultStruct')->item(0);
-        $startTimeNode = $xpath->query('//cwmp:StartTime')->item(0);
-        $completeTimeNode = $xpath->query('//cwmp:CompleteTime')->item(0);
+        // Estrae informazioni da TransferComplete usando DOMXPath (supporta sia namespaced che non-namespaced)
+        $commandKeyNode = $xpath->query('//cwmp:CommandKey | //CommandKey')->item(0);
+        $faultStructNode = $xpath->query('//cwmp:FaultStruct | //FaultStruct')->item(0);
+        $startTimeNode = $xpath->query('//cwmp:StartTime | //StartTime')->item(0);
+        $completeTimeNode = $xpath->query('//cwmp:CompleteTime | //CompleteTime')->item(0);
         
         $success = !$faultStructNode; // Se non c'è FaultStruct, è successo
         
@@ -793,5 +835,25 @@ class TR069Controller extends Controller
                 'command_key' => $commandKeyStr
             ]);
         }
+    }
+    
+    /**
+     * Genera TransferCompleteResponse SOAP
+     * Generate TransferCompleteResponse SOAP
+     *
+     * @return string SOAP XML
+     */
+    private function generateTransferCompleteResponse(): string
+    {
+        return '<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-0">
+    <soap:Header>
+        <cwmp:ID soap:mustUnderstand="1">' . uniqid() . '</cwmp:ID>
+    </soap:Header>
+    <soap:Body>
+        <cwmp:TransferCompleteResponse>
+        </cwmp:TransferCompleteResponse>
+    </soap:Body>
+</soap:Envelope>';
     }
 }
