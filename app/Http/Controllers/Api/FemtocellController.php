@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Traits\ApiResponse;
 use App\Models\CpeDevice;
 use App\Models\FemtocellConfig;
 use App\Services\FemtocellManagementService;
 use Illuminate\Http\Request;
 
 class FemtocellController extends Controller
+    use ApiResponse;
 {
     protected $femtoService;
 

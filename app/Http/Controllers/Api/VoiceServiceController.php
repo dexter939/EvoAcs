@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Traits\ApiResponse;
 use App\Models\VoiceService;
 use App\Models\SipProfile;
 use App\Models\VoipLine;
@@ -14,6 +15,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
 class VoiceServiceController extends Controller
+    use ApiResponse;
 {
     public function index(Request $request): JsonResponse
     {

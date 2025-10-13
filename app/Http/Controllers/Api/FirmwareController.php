@@ -20,18 +20,51 @@ class FirmwareController extends Controller
 {
     use ApiResponse;
     /**
-     * Lista versioni firmware attive
-     * List active firmware versions
+     * Lista versioni firmware con filtri
+     * List firmware versions with filters
      * 
+     * Filtri disponibili / Available filters:
+     * - model: Filtra per modello / Filter by model
+     * - manufacturer: Filtra per produttore / Filter by manufacturer
+     * - is_active: Filtra per stato attivo / Filter by active status
+     * - is_stable: Filtra per versione stabile / Filter by stable version
+     * - per_page: Risultati per pagina (default 50) / Results per page
+     * 
+     * @param Request $request Richiesta con filtri / Request with filters
      * @return \Illuminate\Http\JsonResponse Lista firmware paginata / Paginated firmware list
      */
-    public function index()
+    public function index(Request $request)
     {
-        // Query solo firmware attivi, ordinati per data (più recenti prima)
-        // Query only active firmware, ordered by date (most recent first)
-        $firmware = FirmwareVersion::where('is_active', true)
-            ->orderBy('created_at', 'desc')
-            ->paginate(50);
+        $query = FirmwareVersion::query();
+        
+        // Filtro per modello
+        // Filter by model
+        if ($request->has('model')) {
+            $query->where('model', $request->model);
+        }
+        
+        // Filtro per produttore
+        // Filter by manufacturer
+        if ($request->has('manufacturer')) {
+            $query->where('manufacturer', $request->manufacturer);
+        }
+        
+        // Filtro per stato attivo
+        // Filter by active status
+        if ($request->has('is_active')) {
+            $query->where('is_active', filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN));
+        }
+        
+        // Filtro per versione stabile
+        // Filter by stable version
+        if ($request->has('is_stable')) {
+            $query->where('is_stable', filter_var($request->is_stable, FILTER_VALIDATE_BOOLEAN));
+        }
+        
+        // Ordinamento per data (più recenti prima)
+        // Order by date (most recent first)
+        $firmware = $query->orderBy('created_at', 'desc')
+            ->paginate($request->get('per_page', 50));
         
         return $this->paginatedResponse($firmware);
     }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Traits\ApiResponse;
 use App\Models\CpeDevice;
 use App\Models\SmartHomeDevice;
 use App\Models\IotService;
@@ -10,6 +11,7 @@ use App\Services\IotProvisioningService;
 use Illuminate\Http\Request;
 
 class IotDeviceController extends Controller
+    use ApiResponse;
 {
     protected $iotService;
 

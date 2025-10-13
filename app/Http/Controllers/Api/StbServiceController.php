@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Traits\ApiResponse;
 use App\Models\CpeDevice;
 use App\Models\StbService;
 use App\Models\StreamingSession;
@@ -10,6 +11,7 @@ use App\Services\StbProvisioningService;
 use Illuminate\Http\Request;
 
 class StbServiceController extends Controller
+    use ApiResponse;
 {
     protected $stbService;
 

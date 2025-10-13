@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Traits\ApiResponse;
 use App\Models\CpeDevice;
 use App\Models\DiagnosticTest;
 use App\Models\ProvisioningTask;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\DB;
  * Handles diagnostic requests: ping, traceroute, download/upload speed test
  */
 class DiagnosticsController extends Controller
+    use ApiResponse;
 {
     /**
      * Avvia test Ping su dispositivo CPE

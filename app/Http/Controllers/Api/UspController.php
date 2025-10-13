@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Traits\ApiResponse;
 use App\Models\CpeDevice;
 use App\Models\UspPendingRequest;
 use App\Models\UspSubscription;
@@ -21,6 +22,7 @@ use Carbon\Carbon;
  * Supports Get, Set, Operate, Add, and Delete operations via MQTT/HTTP transport
  */
 class UspController extends Controller
+    use ApiResponse;
 {
     protected $uspService;
     protected $mqttService;

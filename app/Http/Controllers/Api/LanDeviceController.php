@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Traits\ApiResponse;
 use App\Models\CpeDevice;
 use App\Models\LanDevice;
 use App\Services\UpnpDiscoveryService;
 use Illuminate\Http\Request;
 
 class LanDeviceController extends Controller
+    use ApiResponse;
 {
     protected $upnpService;
 

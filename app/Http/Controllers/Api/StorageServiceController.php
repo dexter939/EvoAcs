@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Traits\ApiResponse;
 use App\Models\StorageService;
 use App\Models\LogicalVolume;
 use App\Models\FileServer;
@@ -13,6 +14,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
 class StorageServiceController extends Controller
+    use ApiResponse;
 {
     public function index(Request $request): JsonResponse
     {

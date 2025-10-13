@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Traits\ApiResponse;
 use App\Models\CpeDevice;
 use App\Models\ProvisioningTask;
 use App\Services\ConnectionRequestService;
@@ -16,6 +17,7 @@ use Illuminate\Http\Request;
  * Manages zero-touch provisioning and remote configuration via TR-069
  */
 class ProvisioningController extends Controller
+    use ApiResponse;
 {
     /**
      * Provisioning automatico dispositivo con profilo configurazione

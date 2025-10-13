@@ -15,12 +15,14 @@ class FirmwareVersionFactory extends Factory
             'version' => 'v' . $this->faker->numberBetween(1, 10) . '.' . 
                          $this->faker->numberBetween(0, 9) . '.' . 
                          $this->faker->numberBetween(0, 99),
-            'file_path' => 'firmware/' . $this->faker->bothify('fw-????-####.bin'),
-            'file_size' => $this->faker->numberBetween(1000000, 50000000),
-            'checksum' => hash('sha256', $this->faker->uuid()),
+            'manufacturer' => $this->faker->randomElement(['TP-Link', 'Huawei', 'ZTE', 'Nokia', 'Ericsson']),
             'model' => $this->faker->bothify('Model-???-###'),
-            'description' => $this->faker->sentence(),
-            'release_date' => $this->faker->dateTimeBetween('-1 year', 'now'),
+            'file_path' => 'firmware/' . $this->faker->bothify('fw-????-####.bin'),
+            'file_hash' => hash('sha256', $this->faker->uuid()),
+            'file_size' => $this->faker->numberBetween(1000000, 50000000),
+            'release_notes' => $this->faker->sentence(),
+            'changelog' => $this->faker->optional()->paragraph(),
+            'is_stable' => $this->faker->boolean(30),
             'is_active' => $this->faker->boolean(70),
         ];
     }
@@ -36,7 +38,14 @@ class FirmwareVersionFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'is_active' => true,
-            'release_date' => now()->subDays(rand(1, 7)),
+            'is_stable' => true,
+        ]);
+    }
+    
+    public function stable(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_stable' => true,
         ]);
     }
 }
