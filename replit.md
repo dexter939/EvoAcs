@@ -60,6 +60,13 @@ The web interface utilizes the Soft UI Dashboard Laravel template, offering a mo
 - **Validation Order Consistency**: Standardized all 5 diagnostic endpoints (ping, traceroute, download, upload, udpEcho) to validate input fields BEFORE checking device online status, ensuring proper 422 validation error responses
 - **Test Coverage Achievement**: DiagnosticsController now has **10/10 tests passing (100%)** with 78 assertions - up from initial 5/10 (50%)
 
+### Validation Fixes - Completed Modules to 100% (COMPLETED ✅)
+- **FemtocellController Validation Fix**: Added complete validation for neighbor cell fields (neighbor_arfcn, neighbor_pci, rssi, rsrp, rsrq, is_blacklisted, rem_data) in addNeighborCell() method - was only validating neighbor_type, causing null inserts and test failures. FemtocellTest now **5/5 passing (100%)** - up from 3/5 (60%)
+- **IotDeviceController Protocol Validation**: Added enum validation `in:ZigBee,Z-Wave,WiFi,BLE,Matter,Thread` for protocol field in provisionDevice() method - was accepting any string value. IotDeviceTest now **6/6 passing (100%)** - up from 5/6 (83%)
+- **StbServiceController QoS Validation**: Added validation for packet_loss and jitter fields in updateQos() method - was only validating bitrate. StbServiceTest now **5/5 passing (100%)** - up from 4/5 (80%)
+- **Validation Pattern Identified**: Controllers had incomplete validation rules where service layers expected fields that validation didn't accept, causing fields to be saved as null. Fix pattern: add complete validation for all fields expected by service layer
+- **Overall API Test Coverage**: Achieved **60/71 tests passing (85%)** across all API modules - 8 modules at 100%, 2 modules partially complete (Storage 1/6, VoIP 1/7)
+
 ## External Dependencies
 - **PostgreSQL 16+**: Primary database
 - **Redis 7+**: Queue driver for Laravel Horizon and WebSocket message routing
