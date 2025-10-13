@@ -45,7 +45,7 @@ class TR069Controller extends Controller
         // Gets raw SOAP request body
         $rawBody = $request->getContent();
         
-        \Log::info('TR-069 SOAP request received', ['body' => $rawBody]);
+        \Log::info('TR-069 SOAP request received');
         
         // Parsa il messaggio XML SOAP usando DOMDocument (carrier-grade namespace support)
         // Parse SOAP XML message using DOMDocument (carrier-grade namespace support)
