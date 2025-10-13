@@ -32,6 +32,15 @@ class DiagnosticsController extends Controller
      */
     public function ping(Request $request, CpeDevice $device)
     {
+        // Prima valida i campi input
+        // First validate input fields
+        $validated = $request->validate([
+            'host' => 'required|string|max:255',
+            'number_of_repetitions' => 'integer|min:1|max:100',
+            'timeout' => 'integer|min:100|max:10000',
+            'data_block_size' => 'integer|min:32|max:1500'
+        ]);
+        
         // Validazione: dispositivo deve essere online
         // Validation: device must be online
         if ($device->status !== 'online') {
@@ -39,13 +48,6 @@ class DiagnosticsController extends Controller
                 'message' => 'Device must be online to run diagnostics'
             ], 422);
         }
-        
-        $validated = $request->validate([
-            'host' => 'required|string|max:255',
-            'number_of_repetitions' => 'integer|min:1|max:100',
-            'timeout' => 'integer|min:100|max:10000',
-            'data_block_size' => 'integer|min:32|max:1500'
-        ]);
 
         try {
             // Transazione atomica per consistenza dati
@@ -70,10 +72,11 @@ class DiagnosticsController extends Controller
                 // Create provisioning task to send TR-069 command
                 $task = ProvisioningTask::create([
                     'cpe_device_id' => $device->id,
-                    'task_type' => 'diagnostic_ping',
+                    'task_type' => 'diagnostic',
                     'status' => 'pending',
                     'task_data' => [
                         'diagnostic_id' => $diagnostic->id,
+                        'diagnostic_type' => 'IPPing',
                         'host' => $validated['host'],
                         'number_of_repetitions' => $validated['number_of_repetitions'] ?? 4,
                         'timeout' => $validated['timeout'] ?? 1000,
@@ -143,10 +146,11 @@ class DiagnosticsController extends Controller
 
                 $task = ProvisioningTask::create([
                     'cpe_device_id' => $device->id,
-                    'task_type' => 'diagnostic_traceroute',
+                    'task_type' => 'diagnostic',
                     'status' => 'pending',
                     'task_data' => [
                         'diagnostic_id' => $diagnostic->id,
+                        'diagnostic_type' => 'TraceRoute',
                         'host' => $validated['host'],
                         'number_of_tries' => $validated['number_of_tries'] ?? 3,
                         'timeout' => $validated['timeout'] ?? 5000,
@@ -211,10 +215,11 @@ class DiagnosticsController extends Controller
 
                 $task = ProvisioningTask::create([
                     'cpe_device_id' => $device->id,
-                    'task_type' => 'diagnostic_download',
+                    'task_type' => 'diagnostic',
                     'status' => 'pending',
                     'task_data' => [
                         'diagnostic_id' => $diagnostic->id,
+                        'diagnostic_type' => 'DownloadDiagnostics',
                         'download_url' => $validated['download_url'],
                         'test_file_length' => $validated['test_file_length'] ?? 0,
                         'connections' => $validated['connections'] ?? 1
@@ -279,10 +284,11 @@ class DiagnosticsController extends Controller
 
                 $task = ProvisioningTask::create([
                     'cpe_device_id' => $device->id,
-                    'task_type' => 'diagnostic_upload',
+                    'task_type' => 'diagnostic',
                     'status' => 'pending',
                     'task_data' => [
                         'diagnostic_id' => $diagnostic->id,
+                        'diagnostic_type' => 'UploadDiagnostics',
                         'upload_url' => $validated['upload_url'],
                         'test_file_length' => $validated['test_file_length'] ?? 1048576,
                         'connections' => $validated['connections'] ?? 1
@@ -329,7 +335,7 @@ class DiagnosticsController extends Controller
             [$diagnostic, $task] = DB::transaction(function () use ($device, $validated) {
                 $diagnostic = DiagnosticTest::create([
                     'cpe_device_id' => $device->id,
-                    'diagnostic_type' => 'udpecho',
+                    'diagnostic_type' => 'UDPEcho',
                     'status' => 'pending',
                     'parameters' => [
                         'host' => $validated['host'],
@@ -344,10 +350,11 @@ class DiagnosticsController extends Controller
 
                 $task = ProvisioningTask::create([
                     'cpe_device_id' => $device->id,
-                    'task_type' => 'diagnostic_udpecho',
+                    'task_type' => 'diagnostic',
                     'status' => 'pending',
                     'task_data' => [
                         'diagnostic_id' => $diagnostic->id,
+                        'diagnostic_type' => 'UDPEcho',
                         'host' => $validated['host'],
                         'port' => $validated['port'],
                         'packets' => $validated['packets'] ?? 10,
