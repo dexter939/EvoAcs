@@ -24,6 +24,7 @@ Route::match(['get', 'post'], '/usp', [UspController::class, 'handleUspMessage']
 // ACS Web Dashboard
 Route::prefix('acs')->name('acs.')->group(function () {
     Route::get('/dashboard', [AcsController::class, 'dashboard'])->name('dashboard');
+    Route::get('/dashboard/stats-api', [AcsController::class, 'dashboardStatsApi'])->name('dashboard.stats');
     
     // Dispositivi
     Route::get('/devices', [AcsController::class, 'devices'])->name('devices');

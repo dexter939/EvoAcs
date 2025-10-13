@@ -3,6 +3,10 @@
 @section('breadcrumb', 'Dashboard')
 @section('page-title', 'Dashboard ACS')
 
+@push('styles')
+<link href="/assets/css/dashboard-enhancements.css" rel="stylesheet" />
+@endpush
+
 @section('content')
 <!-- Statistics Cards -->
 <div class="row">
@@ -14,8 +18,8 @@
                         <div class="numbers">
                             <p class="text-sm mb-0 text-capitalize font-weight-bold">Dispositivi Online</p>
                             <h5 class="font-weight-bolder mb-0">
-                                {{ $stats['devices']['online'] ?? 0 }}
-                                <span class="text-sm text-muted">/ {{ $stats['devices']['total'] ?? 0 }}</span>
+                                <span class="stat-devices-online">{{ $stats['devices']['online'] ?? 0 }}</span>
+                                <span class="text-sm text-muted">/ <span class="stat-devices-total">{{ $stats['devices']['total'] ?? 0 }}</span></span>
                             </h5>
                         </div>
                     </div>
@@ -37,7 +41,7 @@
                         <div class="numbers">
                             <p class="text-sm mb-0 text-capitalize font-weight-bold">Task Pending</p>
                             <h5 class="font-weight-bolder mb-0">
-                                {{ $stats['tasks']['pending'] ?? 0 }}
+                                <span class="stat-tasks-pending">{{ $stats['tasks']['pending'] ?? 0 }}</span>
                                 <span class="text-sm text-warning">in coda</span>
                             </h5>
                         </div>
@@ -60,7 +64,7 @@
                         <div class="numbers">
                             <p class="text-sm mb-0 text-capitalize font-weight-bold">Firmware Deploy</p>
                             <h5 class="font-weight-bolder mb-0">
-                                {{ $stats['firmware']['total_deployments'] ?? 0 }}
+                                <span class="stat-firmware-total">{{ $stats['firmware']['total_deployments'] ?? 0 }}</span>
                                 <span class="text-sm text-info">totali</span>
                             </h5>
                         </div>
@@ -83,8 +87,8 @@
                         <div class="numbers">
                             <p class="text-sm mb-0 text-capitalize font-weight-bold">Task Completati</p>
                             <h5 class="font-weight-bolder mb-0">
-                                {{ $stats['tasks']['completed'] ?? 0 }}
-                                <span class="text-success text-sm font-weight-bolder">
+                                <span class="stat-tasks-completed">{{ $stats['tasks']['completed'] ?? 0 }}</span>
+                                <span class="text-success text-sm font-weight-bolder stat-tasks-completion">
                                     @if(($stats['tasks']['total'] ?? 0) > 0)
                                         {{ round(($stats['tasks']['completed'] / $stats['tasks']['total']) * 100) }}%
                                     @else
@@ -115,8 +119,8 @@
                         <div class="numbers">
                             <p class="text-sm mb-0 text-capitalize font-weight-bold">Test Diagnostici</p>
                             <h5 class="font-weight-bolder mb-0">
-                                {{ $stats['diagnostics']['completed'] ?? 0 }}
-                                <span class="text-sm text-muted">/ {{ $stats['diagnostics']['total'] ?? 0 }}</span>
+                                <span class="stat-diagnostics-completed">{{ $stats['diagnostics']['completed'] ?? 0 }}</span>
+                                <span class="text-sm text-muted">/ <span class="stat-diagnostics-total">{{ $stats['diagnostics']['total'] ?? 0 }}</span></span>
                             </h5>
                         </div>
                     </div>
@@ -138,7 +142,7 @@
                         <div class="numbers">
                             <p class="text-sm mb-0 text-capitalize font-weight-bold">Profili Attivi</p>
                             <h5 class="font-weight-bolder mb-0">
-                                {{ $stats['profiles_active'] ?? 0 }}
+                                <span class="stat-profiles-active">{{ $stats['profiles_active'] ?? 0 }}</span>
                             </h5>
                         </div>
                     </div>
@@ -160,7 +164,7 @@
                         <div class="numbers">
                             <p class="text-sm mb-0 text-capitalize font-weight-bold">Versioni Firmware</p>
                             <h5 class="font-weight-bolder mb-0">
-                                {{ $stats['firmware_versions'] ?? 0 }}
+                                <span class="stat-firmware-versions">{{ $stats['firmware_versions'] ?? 0 }}</span>
                             </h5>
                         </div>
                     </div>
@@ -182,7 +186,7 @@
                         <div class="numbers">
                             <p class="text-sm mb-0 text-capitalize font-weight-bold">Parametri TR-181</p>
                             <h5 class="font-weight-bolder mb-0">
-                                {{ $stats['unique_parameters'] ?? 0 }}
+                                <span class="stat-parameters-count">{{ $stats['unique_parameters'] ?? 0 }}</span>
                             </h5>
                         </div>
                     </div>
@@ -207,7 +211,7 @@
                         <div class="numbers">
                             <p class="text-sm mb-0 text-capitalize font-weight-bold">Dispositivi TR-069</p>
                             <h5 class="font-weight-bolder mb-0">
-                                {{ $stats['devices']['tr069'] ?? 0 }}
+                                <span class="stat-tr069-devices">{{ $stats['devices']['tr069'] ?? 0 }}</span>
                                 <span class="text-sm text-muted">CWMP</span>
                             </h5>
                         </div>
@@ -230,7 +234,7 @@
                         <div class="numbers">
                             <p class="text-sm mb-0 text-capitalize font-weight-bold">Dispositivi TR-369</p>
                             <h5 class="font-weight-bolder mb-0">
-                                {{ $stats['devices']['tr369'] ?? 0 }}
+                                <span class="stat-tr369-devices">{{ $stats['devices']['tr369'] ?? 0 }}</span>
                                 <span class="text-sm text-success">USP</span>
                             </h5>
                         </div>
@@ -253,7 +257,7 @@
                         <div class="numbers">
                             <p class="text-sm mb-0 text-capitalize font-weight-bold">USP via MQTT</p>
                             <h5 class="font-weight-bolder mb-0">
-                                {{ $stats['devices']['tr369_mqtt'] ?? 0 }}
+                                <span class="stat-tr369-mqtt">{{ $stats['devices']['tr369_mqtt'] ?? 0 }}</span>
                                 <span class="text-sm text-warning">broker</span>
                             </h5>
                         </div>
@@ -276,7 +280,7 @@
                         <div class="numbers">
                             <p class="text-sm mb-0 text-capitalize font-weight-bold">USP via HTTP</p>
                             <h5 class="font-weight-bolder mb-0">
-                                {{ $stats['devices']['tr369_http'] ?? 0 }}
+                                <span class="stat-tr369-http">{{ $stats['devices']['tr369_http'] ?? 0 }}</span>
                                 <span class="text-sm text-info">diretto</span>
                             </h5>
                         </div>
@@ -572,11 +576,11 @@ new Chart(firmwareCtx, {
     }
 });
 
-// Auto-refresh dashboard every 30 seconds
-setInterval(function() {
-    location.reload();
-}, 30000);
+// Legacy auto-refresh removed - now using dashboard-realtime.js for smooth updates
 </script>
+
+<!-- Real-time Dashboard Updates -->
+<script src="/assets/js/dashboard-realtime.js"></script>
 @endpush
 
 @endsection

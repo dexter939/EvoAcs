@@ -1,0 +1,350 @@
+/**
+ * ACS Dashboard UI Enhancements
+ * Modern animations, transitions, and responsive improvements
+ */
+
+/* ========== Smooth Animations ========== */
+.stat-updated {
+    animation: stat-pulse 0.8s ease-out;
+}
+
+@keyframes stat-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+.pulse-animation {
+    animation: pulse-glow 1s ease-in-out;
+}
+
+@keyframes pulse-glow {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; box-shadow: 0 0 20px rgba(130, 214, 22, 0.6); }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ========== Card Enhancements ========== */
+.card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    background: linear-gradient(to bottom, #ffffff, #f8f9fa);
+}
+
+/* ========== Statistics Cards Modern Style ========== */
+.icon-shape {
+    transition: all 0.3s ease;
+}
+
+.card:hover .icon-shape {
+    transform: rotate(10deg) scale(1.1);
+}
+
+.numbers h5 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0;
+}
+
+.numbers p {
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+    color: #67748e;
+}
+
+/* ========== Badge Improvements ========== */
+.badge {
+    padding: 0.5em 0.85em;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+}
+
+.badge.badge-sm {
+    padding: 0.35em 0.65em;
+    font-size: 0.7rem;
+}
+
+/* ========== Table Enhancements ========== */
+.table tbody tr {
+    transition: all 0.2s ease;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+    transform: translateX(4px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.table thead th {
+    background: linear-gradient(to bottom, #f8f9fa, #ffffff);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #dee2e6;
+}
+
+/* ========== Chart Container ========== */
+.card-body canvas {
+    transition: opacity 0.3s ease;
+}
+
+.card:hover .card-body canvas {
+    opacity: 1;
+}
+
+/* ========== Loading Indicator ========== */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    border-radius: 0.75rem;
+}
+
+.spinner-border-sm {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+/* ========== Gradient Backgrounds Enhanced ========== */
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #cb0c9f 0%, #7928ca 100%);
+}
+
+.bg-gradient-success {
+    background: linear-gradient(135deg, #82d616 0%, #17ad37 100%);
+}
+
+.bg-gradient-danger {
+    background: linear-gradient(135deg, #ea0606 0%, #d32f2f 100%);
+}
+
+.bg-gradient-warning {
+    background: linear-gradient(135deg, #fbcf33 0%, #f5bd1f 100%);
+}
+
+.bg-gradient-info {
+    background: linear-gradient(135deg, #17c1e8 0%, #0288d1 100%);
+}
+
+.bg-gradient-dark {
+    background: linear-gradient(135deg, #344767 0%, #1a2035 100%);
+}
+
+/* ========== Mobile Responsive Improvements ========== */
+@media (max-width: 768px) {
+    .card {
+        margin-bottom: 1rem;
+    }
+    
+    .numbers h5 {
+        font-size: 1.5rem;
+    }
+    
+    .icon-shape {
+        width: 48px !important;
+        height: 48px !important;
+    }
+    
+    .table-responsive {
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .col-sm-6 {
+        margin-bottom: 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .card-header h6 {
+        font-size: 0.95rem;
+    }
+    
+    .numbers h5 {
+        font-size: 1.25rem;
+    }
+    
+    .numbers p {
+        font-size: 0.75rem;
+    }
+}
+
+/* ========== Touch-Friendly Mobile Elements ========== */
+@media (hover: none) and (pointer: coarse) {
+    .card:hover {
+        transform: none;
+    }
+    
+    .table tbody tr:hover {
+        transform: none;
+    }
+    
+    /* Larger tap targets for mobile */
+    .btn {
+        min-height: 44px;
+        padding: 0.75rem 1.5rem;
+    }
+    
+    .badge {
+        padding: 0.6em 1em;
+        font-size: 0.85rem;
+    }
+}
+
+/* ========== Status Indicator Dot ========== */
+.status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+    animation: status-blink 2s infinite;
+}
+
+.status-dot.online {
+    background-color: #82d616;
+    box-shadow: 0 0 8px rgba(130, 214, 22, 0.6);
+}
+
+.status-dot.offline {
+    background-color: #8392ab;
+}
+
+@keyframes status-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* ========== Notification Toast ========== */
+#toast-container .alert {
+    min-width: 250px;
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* ========== Last Refresh Indicator ========== */
+#last-refresh-indicator {
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+#last-refresh-indicator:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+}
+
+/* ========== Scrollbar Styling ========== */
+.table-responsive::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #a0aec0;
+}
+
+/* ========== Chart Loading State ========== */
+.chart-loading {
+    position: relative;
+}
+
+.chart-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 40px;
+    height: 40px;
+    margin: -20px 0 0 -20px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #cb0c9f;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ========== Empty State Styling ========== */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #8392ab;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.3;
+}
+
+.empty-state p {
+    font-size: 0.95rem;
+}
+
+/* ========== Accessibility Improvements ========== */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Focus visible for keyboard navigation */
+.btn:focus-visible,
+.card:focus-visible {
+    outline: 2px solid #cb0c9f;
+    outline-offset: 2px;
+}

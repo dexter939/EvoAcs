@@ -26,7 +26,17 @@ class AcsController extends Controller
      */
     public function dashboard()
     {
-        $stats = [
+        $stats = $this->getDashboardStats();
+        return view('acs.dashboard', compact('stats'));
+    }
+    
+    /**
+     * Get dashboard statistics (helper method for reuse)
+     * Ottieni statistiche dashboard (metodo helper per riutilizzo)
+     */
+    private function getDashboardStats()
+    {
+        return [
             'devices' => [
                 'total' => CpeDevice::count(),
                 'online' => CpeDevice::where('status', 'online')->count(),
@@ -71,8 +81,15 @@ class AcsController extends Controller
             'firmware_versions' => \App\Models\FirmwareVersion::count(),
             'unique_parameters' => \App\Models\DeviceParameter::select('parameter_path')->distinct()->count(),
         ];
-        
-        return view('acs.dashboard', compact('stats'));
+    }
+    
+    /**
+     * API endpoint for real-time dashboard stats
+     * Endpoint API per statistiche dashboard in real-time
+     */
+    public function dashboardStatsApi()
+    {
+        return response()->json($this->getDashboardStats());
     }
     
     /**
