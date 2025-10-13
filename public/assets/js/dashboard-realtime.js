@@ -7,7 +7,7 @@ class DashboardRealtime {
     constructor() {
         this.refreshInterval = 30000; // 30 seconds
         this.charts = {};
-        this.statsEndpoint = '/acs/dashboard/stats-api';
+        this.statsEndpoint = '/acs/dashboard/stats-api'; // Existing API endpoint
         this.init();
     }
 

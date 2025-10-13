@@ -28,7 +28,10 @@ Route::prefix('acs')->name('acs.')->group(function () {
     
     // Dispositivi
     Route::get('/devices', [AcsController::class, 'devices'])->name('devices');
+    Route::post('/devices', [AcsController::class, 'storeDevice'])->name('devices.store');
     Route::get('/devices/{id}', [AcsController::class, 'showDevice'])->name('devices.show');
+    Route::put('/devices/{id}', [AcsController::class, 'updateDevice'])->name('devices.update');
+    Route::delete('/devices/{id}', [AcsController::class, 'destroyDevice'])->name('devices.destroy');
     Route::post('/devices/{id}/provision', [AcsController::class, 'provisionDevice'])->name('devices.provision');
     Route::post('/devices/{id}/reboot', [AcsController::class, 'rebootDevice'])->name('devices.reboot');
     Route::post('/devices/{id}/connection-request', [AcsController::class, 'connectionRequest'])->name('devices.connection-request');

@@ -127,6 +127,69 @@ class AcsController extends Controller
     }
     
     /**
+     * Store new CPE device (for testing/manual registration)
+     * Salva nuovo dispositivo CPE (per test/registrazione manuale)
+     */
+    public function storeDevice(Request $request)
+    {
+        $validated = $request->validate([
+            'serial_number' => 'required|string|max:255|unique:cpe_devices',
+            'manufacturer' => 'nullable|string|max:255',
+            'model_name' => 'nullable|string|max:255',
+            'oui' => 'nullable|string|max:6',
+            'product_class' => 'nullable|string|max:255',
+        ]);
+        
+        $device = CpeDevice::create(array_merge($validated, [
+            'status' => 'offline',
+            'protocol' => 'tr069', // Default to TR-069
+        ]));
+        
+        return redirect()->route('acs.dashboard')
+            ->with('success', 'Dispositivo creato con successo');
+    }
+    
+    /**
+     * Update CPE device information
+     * Aggiorna informazioni dispositivo CPE
+     */
+    public function updateDevice(Request $request, $id)
+    {
+        $device = CpeDevice::findOrFail($id);
+        
+        $validated = $request->validate([
+            'serial_number' => 'required|string|max:255|unique:cpe_devices,serial_number,' . $id,
+            'manufacturer' => 'nullable|string|max:255',
+            'model_name' => 'nullable|string|max:255',
+            'status' => 'required|in:online,offline,provisioning,error',
+        ]);
+        
+        $device->update($validated);
+        
+        return redirect()->route('acs.dashboard')
+            ->with('success', 'Dispositivo aggiornato con successo');
+    }
+    
+    /**
+     * Delete CPE device
+     * Elimina dispositivo CPE
+     */
+    public function destroyDevice($id)
+    {
+        $device = CpeDevice::findOrFail($id);
+        $serial = $device->serial_number;
+        
+        // Delete related data
+        $device->deviceParameters()->delete();
+        $device->provisioningTasks()->delete();
+        $device->firmwareDeployments()->delete();
+        $device->delete();
+        
+        return redirect()->route('acs.dashboard')
+            ->with('success', "Dispositivo $serial eliminato con successo");
+    }
+    
+    /**
      * Pagina provisioning
      * Provisioning page
      */

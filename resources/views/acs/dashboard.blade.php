@@ -301,12 +301,17 @@
     <!-- Recent Devices -->
     <div class="col-lg-7 mb-lg-0 mb-4">
         <div class="card h-100">
-            <div class="card-header pb-0">
-                <h6><i class="fas fa-history me-2 text-success"></i>Ultimi Dispositivi Attivi</h6>
-                <p class="text-sm">
-                    <i class="fa fa-check text-success" aria-hidden="true"></i>
-                    <span class="font-weight-bold ms-1">{{ count($stats['recent_devices'] ?? []) }}</span> dispositivi nelle ultime ore
-                </p>
+            <div class="card-header pb-0 d-flex justify-content-between align-items-center">
+                <div>
+                    <h6><i class="fas fa-history me-2 text-success"></i>Ultimi Dispositivi Attivi</h6>
+                    <p class="text-sm mb-0">
+                        <i class="fa fa-check text-success" aria-hidden="true"></i>
+                        <span class="font-weight-bold ms-1">{{ count($stats['recent_devices'] ?? []) }}</span> dispositivi nelle ultime ore
+                    </p>
+                </div>
+                <button class="btn btn-sm btn-primary mb-0" data-bs-toggle="modal" data-bs-target="#addDeviceModal">
+                    <i class="fas fa-plus me-1"></i> Aggiungi
+                </button>
             </div>
             <div class="card-body p-3">
                 <div class="table-responsive">
@@ -316,6 +321,7 @@
                                 <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Dispositivo</th>
                                 <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Stato</th>
                                 <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Ultimo Inform</th>
+                                <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Azioni</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -340,10 +346,31 @@
                                 <td class="align-middle text-center text-sm">
                                     <span class="text-xs font-weight-bold">{{ $device->last_inform ? $device->last_inform->diffForHumans() : 'Mai' }}</span>
                                 </td>
+                                <td class="align-middle text-center">
+                                    <button class="btn btn-link text-info px-2 mb-0" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#editDeviceModal"
+                                            data-device-id="{{ $device->id }}"
+                                            data-device-serial="{{ $device->serial_number }}"
+                                            data-device-manufacturer="{{ $device->manufacturer }}"
+                                            data-device-model="{{ $device->model_name }}"
+                                            data-device-status="{{ $device->status }}"
+                                            title="Modifica">
+                                        <i class="fas fa-edit text-sm"></i>
+                                    </button>
+                                    <button class="btn btn-link text-danger px-2 mb-0" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#deleteDeviceModal"
+                                            data-device-id="{{ $device->id }}"
+                                            data-device-serial="{{ $device->serial_number }}"
+                                            title="Elimina">
+                                        <i class="fas fa-trash text-sm"></i>
+                                    </button>
+                                </td>
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="3" class="text-center text-sm text-muted py-4">
+                                <td colspan="4" class="text-center text-sm text-muted py-4">
                                     Nessun dispositivo registrato
                                 </td>
                             </tr>
@@ -577,10 +604,181 @@ new Chart(firmwareCtx, {
 });
 
 // Legacy auto-refresh removed - now using dashboard-realtime.js for smooth updates
+
+// Modal handlers for CRUD operations
+document.addEventListener('DOMContentLoaded', function() {
+    // Edit Device Modal - populate with data and set form action
+    const editModal = document.getElementById('editDeviceModal');
+    if (editModal) {
+        editModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const deviceId = button.getAttribute('data-device-id');
+            const serial = button.getAttribute('data-device-serial');
+            const manufacturer = button.getAttribute('data-device-manufacturer');
+            const model = button.getAttribute('data-device-model');
+            const status = button.getAttribute('data-device-status');
+            
+            // Set form action URL dynamically
+            const form = editModal.querySelector('#editDeviceForm');
+            form.action = `/acs/devices/${deviceId}`;
+            
+            // Populate form fields
+            editModal.querySelector('#edit_device_id').value = deviceId;
+            editModal.querySelector('#edit_serial_number').value = serial;
+            editModal.querySelector('#edit_manufacturer').value = manufacturer;
+            editModal.querySelector('#edit_model_name').value = model;
+            editModal.querySelector('#edit_status').value = status;
+        });
+    }
+    
+    // Delete Device Modal - populate with data and set form action
+    const deleteModal = document.getElementById('deleteDeviceModal');
+    if (deleteModal) {
+        deleteModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const deviceId = button.getAttribute('data-device-id');
+            const serial = button.getAttribute('data-device-serial');
+            
+            // Set form action URL dynamically
+            const form = deleteModal.querySelector('#deleteDeviceForm');
+            form.action = `/acs/devices/${deviceId}`;
+            
+            // Populate modal content
+            deleteModal.querySelector('#delete_device_id').value = deviceId;
+            deleteModal.querySelector('#delete_device_serial').textContent = serial;
+        });
+    }
+});
 </script>
 
 <!-- Real-time Dashboard Updates -->
 <script src="/assets/js/dashboard-realtime.js"></script>
 @endpush
+
+<!-- CRUD Modals -->
+<!-- Add Device Modal -->
+<div class="modal fade" id="addDeviceModal" tabindex="-1" aria-labelledby="addDeviceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-primary">
+                <h5 class="modal-title text-white" id="addDeviceModalLabel">
+                    <i class="fas fa-plus-circle me-2"></i>Aggiungi Nuovo Dispositivo
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="/acs/devices" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="serial_number" class="form-label">Serial Number <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="serial_number" name="serial_number" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="manufacturer" class="form-label">Produttore</label>
+                        <input type="text" class="form-control" id="manufacturer" name="manufacturer" placeholder="es. TP-Link">
+                    </div>
+                    <div class="mb-3">
+                        <label for="model_name" class="form-label">Modello</label>
+                        <input type="text" class="form-control" id="model_name" name="model_name" placeholder="es. Archer C6">
+                    </div>
+                    <div class="mb-3">
+                        <label for="oui" class="form-label">OUI</label>
+                        <input type="text" class="form-control" id="oui" name="oui" placeholder="es. 001234">
+                    </div>
+                    <div class="mb-3">
+                        <label for="product_class" class="form-label">Product Class</label>
+                        <input type="text" class="form-control" id="product_class" name="product_class">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Salva Dispositivo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Device Modal -->
+<div class="modal fade" id="editDeviceModal" tabindex="-1" aria-labelledby="editDeviceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-info">
+                <h5 class="modal-title text-white" id="editDeviceModalLabel">
+                    <i class="fas fa-edit me-2"></i>Modifica Dispositivo
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editDeviceForm" method="POST">
+                @csrf
+                @method('PUT')
+                <input type="hidden" id="edit_device_id" name="device_id">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_serial_number" class="form-label">Serial Number <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="edit_serial_number" name="serial_number" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_manufacturer" class="form-label">Produttore</label>
+                        <input type="text" class="form-control" id="edit_manufacturer" name="manufacturer">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_model_name" class="form-label">Modello</label>
+                        <input type="text" class="form-control" id="edit_model_name" name="model_name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_status" class="form-label">Stato</label>
+                        <select class="form-select" id="edit_status" name="status">
+                            <option value="online">Online</option>
+                            <option value="offline">Offline</option>
+                            <option value="provisioning">Provisioning</option>
+                            <option value="error">Error</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-info">
+                        <i class="fas fa-save me-1"></i>Aggiorna
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Device Modal -->
+<div class="modal fade" id="deleteDeviceModal" tabindex="-1" aria-labelledby="deleteDeviceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-danger">
+                <h5 class="modal-title text-white" id="deleteDeviceModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Conferma Eliminazione
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="deleteDeviceForm" method="POST">
+                @csrf
+                @method('DELETE')
+                <input type="hidden" id="delete_device_id" name="device_id">
+                <div class="modal-body">
+                    <p class="text-center">
+                        <i class="fas fa-trash fa-3x text-danger mb-3"></i>
+                    </p>
+                    <p class="text-center">Sei sicuro di voler eliminare il dispositivo <strong id="delete_device_serial"></strong>?</p>
+                    <p class="text-center text-muted text-sm">Questa azione non può essere annullata.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-1"></i>Elimina
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 @endsection
