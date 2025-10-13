@@ -1199,4 +1199,69 @@ class AcsController extends Controller
             ],
         ]);
     }
+    
+    /**
+     * Get Unassigned Devices List - API endpoint per ottenere dispositivi non assegnati
+     * Used by service detail page to show available devices for assignment
+     */
+    public function getUnassignedDevices()
+    {
+        $devices = CpeDevice::whereNull('service_id')
+            ->orderBy('serial_number')
+            ->get(['id', 'serial_number', 'manufacturer', 'model_name', 'protocol_type', 'status', 'ip_address']);
+        
+        return response()->json([
+            'success' => true,
+            'devices' => $devices,
+            'count' => $devices->count(),
+        ]);
+    }
+    
+    /**
+     * Assign Multiple Devices to Service - Assegna multipli dispositivi CPE a un servizio
+     */
+    public function assignMultipleDevices(Request $request, $serviceId)
+    {
+        $service = \App\Models\Service::findOrFail($serviceId);
+        
+        $validated = $request->validate([
+            'device_ids' => 'required|array|min:1',
+            'device_ids.*' => 'required|exists:cpe_devices,id',
+        ]);
+        
+        // Verify service is not terminated
+        if ($service->status === 'terminated') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Impossibile assegnare dispositivi a servizio terminato',
+            ], 400);
+        }
+        
+        // Verify all devices are unassigned (service_id = NULL)
+        $alreadyAssignedDevices = CpeDevice::whereIn('id', $validated['device_ids'])
+            ->whereNotNull('service_id')
+            ->get(['id', 'serial_number', 'service_id']);
+        
+        if ($alreadyAssignedDevices->count() > 0) {
+            $assignedList = $alreadyAssignedDevices->pluck('serial_number')->toArray();
+            return response()->json([
+                'success' => false,
+                'message' => 'Alcuni dispositivi sono già assegnati ad altri servizi',
+                'already_assigned' => $assignedList,
+                'already_assigned_count' => $alreadyAssignedDevices->count(),
+            ], 422);
+        }
+        
+        // Update all devices with service_id
+        $updatedCount = CpeDevice::whereIn('id', $validated['device_ids'])
+            ->whereNull('service_id')
+            ->update(['service_id' => $serviceId]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => "Assegnati {$updatedCount} dispositivi al servizio con successo",
+            'service_id' => $serviceId,
+            'devices_count' => $updatedCount,
+        ]);
+    }
 }

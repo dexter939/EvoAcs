@@ -29,6 +29,7 @@ Route::prefix('acs')->name('acs.')->group(function () {
     // Dispositivi
     Route::get('/devices', [AcsController::class, 'devices'])->name('devices');
     Route::post('/devices', [AcsController::class, 'storeDevice'])->name('devices.store');
+    Route::get('/devices/unassigned-list', [AcsController::class, 'getUnassignedDevices'])->name('devices.unassigned-list');
     Route::get('/devices/{id}', [AcsController::class, 'showDevice'])->name('devices.show');
     Route::put('/devices/{id}', [AcsController::class, 'updateDevice'])->name('devices.update');
     Route::delete('/devices/{id}', [AcsController::class, 'destroyDevice'])->name('devices.destroy');
@@ -111,4 +112,5 @@ Route::prefix('acs')->name('acs.')->group(function () {
     Route::post('/services', [AcsController::class, 'storeService'])->name('services.store');
     Route::put('/services/{serviceId}', [AcsController::class, 'updateService'])->name('services.update');
     Route::delete('/services/{serviceId}', [AcsController::class, 'destroyService'])->name('services.destroy');
+    Route::post('/services/{serviceId}/assign-devices', [AcsController::class, 'assignMultipleDevices'])->name('services.assign-devices');
 });

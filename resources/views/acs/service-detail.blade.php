@@ -54,8 +54,11 @@
             </div>
             
             <div class="card">
-                <div class="card-header pb-0">
+                <div class="card-header pb-0 d-flex justify-content-between align-items-center">
                     <h6>Dispositivi del Servizio</h6>
+                    <button class="btn btn-sm btn-success" onclick="openAssignDevicesModal({{ $service->id }}, '{{ $service->name }}')">
+                        <i class="fas fa-plus me-1"></i> Assegna Dispositivi
+                    </button>
                 </div>
                 <div class="card-body px-0 pt-0 pb-2">
                     <div class="table-responsive p-0">
@@ -132,4 +135,188 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Assegna Dispositivi al Servizio -->
+<div class="modal fade" id="assignDevicesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Assegna Dispositivi al Servizio</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="assignDevicesForm" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-link me-2"></i>Servizio: <strong id="modal_service_name"></strong>
+                    </div>
+                    
+                    <p class="text-sm text-muted mb-3">Seleziona i dispositivi non assegnati da associare a questo servizio:</p>
+                    
+                    <div id="devices_loading" class="text-center py-4" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="text-sm text-muted mt-2">Caricamento dispositivi...</p>
+                    </div>
+                    
+                    <div id="devices_list">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                    
+                    <div id="no_devices_message" class="text-center py-4" style="display: none;">
+                        <i class="fas fa-info-circle text-muted fa-2x mb-2"></i>
+                        <p class="text-sm text-muted">Nessun dispositivo disponibile per l'assegnazione</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-success" id="assign_devices_btn">
+                        <i class="fas fa-check me-1"></i> Assegna Selezionati
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
+
+@push('scripts')
+<script>
+let currentServiceId = null;
+
+function openAssignDevicesModal(serviceId, serviceName) {
+    currentServiceId = serviceId;
+    document.getElementById('modal_service_name').textContent = serviceName;
+    document.getElementById('assignDevicesForm').action = `/acs/services/${serviceId}/assign-devices`;
+    
+    // Reset UI
+    document.getElementById('devices_list').innerHTML = '';
+    document.getElementById('devices_loading').style.display = 'block';
+    document.getElementById('no_devices_message').style.display = 'none';
+    document.getElementById('assign_devices_btn').disabled = true;
+    
+    // Open modal
+    const modal = new bootstrap.Modal(document.getElementById('assignDevicesModal'));
+    modal.show();
+    
+    // Load unassigned devices
+    fetch('/acs/devices/unassigned-list')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('devices_loading').style.display = 'none';
+            
+            if (data.devices && data.devices.length > 0) {
+                renderDevicesList(data.devices);
+                document.getElementById('assign_devices_btn').disabled = false;
+            } else {
+                document.getElementById('no_devices_message').style.display = 'block';
+                document.getElementById('assign_devices_btn').disabled = true;
+            }
+        })
+        .catch(error => {
+            document.getElementById('devices_loading').style.display = 'none';
+            document.getElementById('devices_list').innerHTML = 
+                '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i>Errore caricamento dispositivi</div>';
+            console.error('Error loading unassigned devices:', error);
+        });
+}
+
+function renderDevicesList(devices) {
+    const listContainer = document.getElementById('devices_list');
+    let html = '<div class="list-group">';
+    
+    devices.forEach(device => {
+        html += `
+            <label class="list-group-item d-flex align-items-center">
+                <input class="form-check-input me-3" type="checkbox" name="device_ids[]" value="${device.id}">
+                <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-0 text-sm">${device.serial_number}</h6>
+                            <p class="text-xs text-secondary mb-0">
+                                ${device.manufacturer || 'N/A'} - ${device.model_name || 'N/A'}
+                            </p>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge badge-sm bg-gradient-${device.protocol_type === 'tr069' ? 'primary' : 'info'}">
+                                ${device.protocol_type.toUpperCase()}
+                            </span>
+                            <span class="badge badge-sm bg-gradient-${device.status === 'online' ? 'success' : 'secondary'}">
+                                ${device.status}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </label>
+        `;
+    });
+    
+    html += '</div>';
+    html += `<div class="mt-3 text-center">
+        <button type="button" class="btn btn-link btn-sm" onclick="selectAllDevices(true)">Seleziona Tutti</button>
+        <button type="button" class="btn btn-link btn-sm" onclick="selectAllDevices(false)">Deseleziona Tutti</button>
+    </div>`;
+    
+    listContainer.innerHTML = html;
+}
+
+function selectAllDevices(select) {
+    const checkboxes = document.querySelectorAll('input[name="device_ids[]"]');
+    checkboxes.forEach(cb => cb.checked = select);
+}
+
+// Handle form submission
+document.getElementById('assignDevicesForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const deviceIds = formData.getAll('device_ids[]');
+    
+    if (deviceIds.length === 0) {
+        alert('Seleziona almeno un dispositivo da assegnare');
+        return;
+    }
+    
+    const submitBtn = document.getElementById('assign_devices_btn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Assegnazione...';
+    
+    fetch(this.action, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ device_ids: deviceIds })
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => Promise.reject(err));
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('assignDevicesModal')).hide();
+            window.location.reload();
+        } else {
+            alert('Errore: ' + (data.message || 'Impossibile assegnare dispositivi'));
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-check me-1"></i> Assegna Selezionati';
+        }
+    })
+    .catch(error => {
+        let errorMsg = 'Errore: ' + (error.message || 'Impossibile assegnare dispositivi');
+        
+        if (error.already_assigned && error.already_assigned.length > 0) {
+            errorMsg = error.message + '\n\nDispositivi già assegnati:\n' + error.already_assigned.join(', ');
+        }
+        
+        alert(errorMsg);
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-check me-1"></i> Assegna Selezionati';
+    });
+});
+</script>
+@endpush
