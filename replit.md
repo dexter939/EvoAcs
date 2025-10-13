@@ -98,3 +98,45 @@ The web interface uses the Soft UI Dashboard Laravel template, providing a moder
   - Customer deletion uses soft delete which cascades to services via Eloquent relationships
   - All forms redirect back to appropriate pages with success flash messages
 - **Testing Status**: Manual testing verified all CRUD operations functional, buttons visible, modals working, server running without errors
+
+### Device-to-Service Assignment Feature (October 13, 2025)
+- **Single Device Assignment** from Devices Page (`/acs/devices`):
+  - Added "Servizio" column in CPE devices table showing assigned service name (as link) and customer name
+  - Displays "Non assegnato" for unassigned devices
+  - Assignment button (link icon) on each device row opens assignment modal
+  - Modal with cascading dropdowns: select customer, then service (dynamically loaded)
+  - JavaScript dynamically loads services via API endpoint `/acs/customers/{customerId}/services-list`
+  - Submit assigns device to selected service via POST `/acs/devices/{id}/assign-service`
+- **Multiple Devices Assignment** from Service Detail Page (`/acs/services/{id}`):
+  - "Assegna Dispositivi" button in service devices card header (green button)
+  - Modal displays list of all unassigned devices (service_id=NULL) with checkboxes
+  - Device list loaded via API endpoint GET `/acs/devices/unassigned-list`
+  - Shows device serial number, manufacturer, model, protocol badge, and status badge
+  - "Seleziona Tutti" / "Deseleziona Tutti" buttons for bulk selection
+  - Submit assigns multiple selected devices to service via POST `/acs/services/{serviceId}/assign-devices`
+- **Controller Methods** (AcsController.php):
+  - `assignDeviceToService(Request, $deviceId)`: Assigns single device to service with validation (service not terminated)
+  - `getCustomerServices($customerId)`: API endpoint returning JSON list of non-terminated services for a customer
+  - `getUnassignedDevices()`: API endpoint returning JSON list of devices where service_id IS NULL
+  - `assignMultipleDevices(Request, $serviceId)`: Assigns multiple devices to service with security validations
+  - Updated `devices()` method to eager load `service.customer` relation (prevents N+1 queries)
+- **Routes** (routes/web.php): 4 new routes added:
+  - GET `/acs/customers/{customerId}/services-list` → `getCustomerServices` (API endpoint)
+  - POST `/acs/devices/{id}/assign-service` → `assignDeviceToService`
+  - GET `/acs/devices/unassigned-list` → `getUnassignedDevices` (API endpoint, placed before `/devices/{id}` to avoid routing conflict)
+  - POST `/acs/services/{serviceId}/assign-devices` → `assignMultipleDevices`
+- **Security & Validation**:
+  - CSRF protection on all POST requests via Laravel tokens
+  - `assignMultipleDevices` validates all device IDs are unassigned before processing
+  - Returns HTTP 422 with list of already-assigned device serial numbers if validation fails
+  - Double safeguard: UPDATE query also includes `whereNull('service_id')` to prevent race conditions
+  - Prevents "stealing" devices from other services via crafted requests
+  - Frontend displays detailed error messages showing which devices are already assigned
+- **Bug Fixes**:
+  - Fixed column name bug: changed `last_contact_at` to `last_contact` in devices query and view (matches actual database schema)
+- **Testing Status**: 
+  - Manual testing verified single device assignment working correctly
+  - API endpoint `/acs/devices/unassigned-list` tested and returns correct JSON
+  - "Assegna Dispositivi" button visible on service detail page
+  - Security validation reviewed and approved by architect (prevents device stealing)
+  - Frontend error handling tested for 422 responses
