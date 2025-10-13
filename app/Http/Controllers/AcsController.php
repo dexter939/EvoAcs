@@ -172,7 +172,7 @@ class AcsController extends Controller
             $query->where('status', $request->status);
         }
         
-        $devices = $query->orderBy('last_contact_at', 'desc')
+        $devices = $query->orderBy('last_contact', 'desc')
             ->paginate(25)
             ->appends($request->all());
         

@@ -121,7 +121,7 @@
                                 </td>
                                 <td class="align-middle text-center">
                                     <span class="text-secondary text-xs font-weight-bold">
-                                        {{ ($device->last_contact_at ?? $device->last_inform) ? ($device->last_contact_at ?? $device->last_inform)->format('d/m/Y H:i') : 'Mai' }}
+                                        {{ ($device->last_contact ?? $device->last_inform) ? ($device->last_contact ?? $device->last_inform)->format('d/m/Y H:i') : 'Mai' }}
                                     </span>
                                 </td>
                                 <td class="align-middle text-center">
