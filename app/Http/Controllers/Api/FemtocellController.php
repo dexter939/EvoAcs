@@ -33,7 +33,16 @@ class FemtocellController extends Controller
 
     public function addNeighborCell(Request $request, FemtocellConfig $config)
     {
-        $validated = $request->validate(['neighbor_type' => 'required|string']);
+        $validated = $request->validate([
+            'neighbor_type' => 'required|string',
+            'neighbor_arfcn' => 'nullable|integer',
+            'neighbor_pci' => 'nullable|integer',
+            'rssi' => 'nullable|integer',
+            'rsrp' => 'nullable|integer',
+            'rsrq' => 'nullable|integer',
+            'is_blacklisted' => 'nullable|boolean',
+            'rem_data' => 'nullable|array'
+        ]);
         $cell = $this->femtoService->updateNeighborCell($config, $validated);
         return response()->json(['success' => true, 'cell' => $cell], 201);
     }
