@@ -34,7 +34,7 @@ class ParameterOperationsTest extends TestCase
             'events' => ['6 CONNECTION REQUEST']
         ]);
 
-        $response = $this->postJson('/tr069')->setContent($informSoap);
+        $response = $this->postTr069Soap('/tr069', $informSoap);
         $this->sessionCookie = $response->headers->getCookies()[0]->getValue();
     }
 
@@ -47,10 +47,12 @@ class ParameterOperationsTest extends TestCase
             'cpe_device_id' => $this->device->id,
             'task_type' => 'get_parameters',
             'status' => 'pending',
-            'parameters' => json_encode([
-                'Device.DeviceInfo.SoftwareVersion',
-                'Device.WiFi.SSID.1.SSID'
-            ])
+            'task_data' => [
+                'parameters' => [
+                    'Device.DeviceInfo.SoftwareVersion',
+                    'Device.WiFi.SSID.1.SSID'
+                ]
+            ]
         ]);
 
         // Send Inform to trigger task processing
@@ -62,9 +64,8 @@ class ParameterOperationsTest extends TestCase
             'events' => ['6 CONNECTION REQUEST']
         ]);
 
-        $response = $this->withCookie('CWMP_SESSION', $this->sessionCookie)
-            ->postJson('/tr069')
-            ->setContent($informSoap);
+        $response = $this->withCookie('TR069SessionID', $this->sessionCookie)
+            ->postTr069Soap('/tr069', $informSoap);
 
         $responseBody = $response->getContent();
 
@@ -84,10 +85,12 @@ class ParameterOperationsTest extends TestCase
             'cpe_device_id' => $this->device->id,
             'task_type' => 'set_parameters',
             'status' => 'pending',
-            'parameters' => json_encode([
-                'Device.ManagementServer.PeriodicInformInterval' => '600',
-                'Device.WiFi.SSID.1.SSID' => 'NewNetwork'
-            ])
+            'task_data' => [
+                'parameters' => [
+                    'Device.ManagementServer.PeriodicInformInterval' => '600',
+                    'Device.WiFi.SSID.1.SSID' => 'NewNetwork'
+                ]
+            ]
         ]);
 
         $informSoap = $this->createTr069Inform([
@@ -98,9 +101,8 @@ class ParameterOperationsTest extends TestCase
             'events' => ['6 CONNECTION REQUEST']
         ]);
 
-        $response = $this->withCookie('CWMP_SESSION', $this->sessionCookie)
-            ->postJson('/tr069')
-            ->setContent($informSoap);
+        $response = $this->withCookie('TR069SessionID', $this->sessionCookie)
+            ->postTr069Soap('/tr069', $informSoap);
 
         $responseBody = $response->getContent();
 
@@ -136,9 +138,8 @@ class ParameterOperationsTest extends TestCase
             </cwmp:GetParameterValuesResponse>
         ');
 
-        $response = $this->withCookie('CWMP_SESSION', $this->sessionCookie)
-            ->postJson('/tr069')
-            ->setContent($getResponseSoap);
+        $response = $this->withCookie('TR069SessionID', $this->sessionCookie)
+            ->postTr069Soap('/tr069', $getResponseSoap);
 
         $response->assertStatus(200);
 
@@ -162,7 +163,9 @@ class ParameterOperationsTest extends TestCase
             'cpe_device_id' => $this->device->id,
             'task_type' => 'set_parameters',
             'status' => 'in_progress',
-            'parameters' => json_encode(['Device.Test' => 'value'])
+            'task_data' => [
+                'parameters' => ['Device.Test' => 'value']
+            ]
         ]);
 
         // Simulate SetParameterValuesResponse from device
@@ -172,9 +175,8 @@ class ParameterOperationsTest extends TestCase
             </cwmp:SetParameterValuesResponse>
         ');
 
-        $response = $this->withCookie('CWMP_SESSION', $this->sessionCookie)
-            ->postJson('/tr069')
-            ->setContent($setResponseSoap);
+        $response = $this->withCookie('TR069SessionID', $this->sessionCookie)
+            ->postTr069Soap('/tr069', $setResponseSoap);
 
         $response->assertStatus(200);
 
@@ -188,7 +190,8 @@ class ParameterOperationsTest extends TestCase
         $task = ProvisioningTask::create([
             'cpe_device_id' => $this->device->id,
             'task_type' => 'reboot',
-            'status' => 'pending'
+            'status' => 'pending',
+            'task_data' => []
         ]);
 
         $informSoap = $this->createTr069Inform([
@@ -199,9 +202,8 @@ class ParameterOperationsTest extends TestCase
             'events' => ['6 CONNECTION REQUEST']
         ]);
 
-        $response = $this->withCookie('CWMP_SESSION', $this->sessionCookie)
-            ->postJson('/tr069')
-            ->setContent($informSoap);
+        $response = $this->withCookie('TR069SessionID', $this->sessionCookie)
+            ->postTr069Soap('/tr069', $informSoap);
 
         $responseBody = $response->getContent();
 
@@ -218,11 +220,11 @@ class ParameterOperationsTest extends TestCase
             'cpe_device_id' => $this->device->id,
             'task_type' => 'download',
             'status' => 'pending',
-            'parameters' => json_encode([
+            'task_data' => [
                 'url' => 'https://firmware.test/update.bin',
                 'file_type' => '1 Firmware Upgrade Image',
                 'file_size' => 10485760
-            ])
+            ]
         ]);
 
         $informSoap = $this->createTr069Inform([
@@ -233,9 +235,8 @@ class ParameterOperationsTest extends TestCase
             'events' => ['6 CONNECTION REQUEST']
         ]);
 
-        $response = $this->withCookie('CWMP_SESSION', $this->sessionCookie)
-            ->postJson('/tr069')
-            ->setContent($informSoap);
+        $response = $this->withCookie('TR069SessionID', $this->sessionCookie)
+            ->postTr069Soap('/tr069', $informSoap);
 
         $responseBody = $response->getContent();
 
@@ -255,11 +256,11 @@ class ParameterOperationsTest extends TestCase
             'cpe_device_id' => $this->device->id,
             'task_type' => 'download',
             'status' => 'in_progress',
-            'command_key' => 'Download_FW_001',
-            'parameters' => json_encode([
+            'task_data' => [
+                'command_key' => 'Download_FW_001',
                 'url' => 'https://firmware.test/update.bin',
                 'file_type' => '1 Firmware Upgrade Image'
-            ])
+            ]
         ]);
 
         // Simulate TransferComplete from device after download
@@ -275,9 +276,8 @@ class ParameterOperationsTest extends TestCase
             </cwmp:TransferComplete>
         ');
 
-        $response = $this->withCookie('CWMP_SESSION', $this->sessionCookie)
-            ->postJson('/tr069')
-            ->setContent($transferCompleteSoap);
+        $response = $this->withCookie('TR069SessionID', $this->sessionCookie)
+            ->postTr069Soap('/tr069', $transferCompleteSoap);
 
         $response->assertStatus(200);
 

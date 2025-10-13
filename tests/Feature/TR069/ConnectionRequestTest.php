@@ -133,8 +133,7 @@ class ConnectionRequestTest extends TestCase
             'events' => ['6 CONNECTION REQUEST']
         ]);
 
-        $informResponse = $this->postJson('/tr069')
-            ->setContent($informSoap);
+        $informResponse = $this->postTr069Soap('/tr069', $informSoap);
 
         $informResponse->assertStatus(200);
 

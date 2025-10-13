@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\CpeDevice;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use GuzzleHttp\Client as GuzzleClient;
 
 /**
  * ConnectionRequestService
@@ -186,66 +185,11 @@ class ConnectionRequestService
     private function sendRequestWithAuth(string $url, string $username, string $password, string $authMethod)
     {
         if ($authMethod === 'digest') {
-            // HTTP Digest Auth richiede Guzzle diretto per handshake 2-step
-            // HTTP Digest Auth requires direct Guzzle for 2-step handshake
-            try {
-                $client = new GuzzleClient([
-                    'timeout' => self::REQUEST_TIMEOUT,
-                    'http_errors' => false, // Non lanciare eccezione su 4xx/5xx
-                ]);
-
-                $response = $client->get($url, [
-                    'auth' => [$username, $password, 'digest']
-                ]);
-
-                // Crea oggetto response-like per compatibilità
-                // Create response-like object for compatibility
-                return new class($response) {
-                    private $guzzleResponse;
-
-                    public function __construct($response) {
-                        $this->guzzleResponse = $response;
-                    }
-
-                    public function status() {
-                        return $this->guzzleResponse->getStatusCode();
-                    }
-
-                    public function successful() {
-                        $status = $this->status();
-                        return $status >= 200 && $status < 300;
-                    }
-
-                    public function body() {
-                        return $this->guzzleResponse->getBody()->getContents();
-                    }
-                };
-
-            } catch (\GuzzleHttp\Exception\RequestException $e) {
-                // Ritorna response 500 simulata in caso di errore
-                // Return simulated 500 response on error
-                return new class($e) {
-                    private $exception;
-
-                    public function __construct($e) {
-                        $this->exception = $e;
-                    }
-
-                    public function status() {
-                        return $this->exception->hasResponse() 
-                            ? $this->exception->getResponse()->getStatusCode() 
-                            : 500;
-                    }
-
-                    public function successful() {
-                        return false;
-                    }
-
-                    public function body() {
-                        return $this->exception->getMessage();
-                    }
-                };
-            }
+            // HTTP Digest Auth usa Laravel HTTP client (supporta withDigestAuth dal Laravel 7+)
+            // HTTP Digest Auth uses Laravel HTTP client (supports withDigestAuth since Laravel 7+)
+            return Http::timeout(self::REQUEST_TIMEOUT)
+                ->withDigestAuth($username, $password)
+                ->get($url);
         } else {
             // HTTP Basic Auth usa Laravel HTTP client
             // HTTP Basic Auth uses Laravel HTTP client
