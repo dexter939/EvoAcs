@@ -131,22 +131,146 @@ class DashboardRealtime {
     }
 
     updateRecentDevices(devices) {
-        // Table update logic would go here
-        // For now, we'll just indicate new data is available
-        const badge = document.querySelector('.recent-devices-badge');
-        if (badge) {
-            badge.classList.add('pulse-animation');
-            setTimeout(() => badge.classList.remove('pulse-animation'), 1000);
+        const tbody = document.querySelector('.recent-devices-table tbody');
+        if (!tbody || !devices) return;
+        
+        // Clear and rebuild table rows
+        tbody.innerHTML = '';
+        
+        if (devices.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center text-sm text-muted py-4">
+                        Nessun dispositivo recente
+                    </td>
+                </tr>
+            `;
+            return;
         }
+        
+        devices.forEach(device => {
+            const statusColors = {
+                online: 'success',
+                offline: 'secondary',
+                provisioning: 'warning',
+                error: 'danger'
+            };
+            
+            const statusColor = statusColors[device.status] || 'secondary';
+            const lastInform = this.formatTimeAgo(device.last_inform);
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>
+                    <div class="d-flex px-2 py-1">
+                        <div>
+                            <i class="fas fa-router text-primary me-2"></i>
+                        </div>
+                        <div class="d-flex flex-column justify-content-center">
+                            <h6 class="mb-0 text-sm">${this.escapeHtml(device.serial_number)}</h6>
+                            <p class="text-xs text-secondary mb-0">${this.escapeHtml(device.manufacturer || 'N/A')}</p>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <span class="badge badge-sm bg-gradient-${statusColor}">${this.escapeHtml(device.status)}</span>
+                </td>
+                <td class="align-middle text-center text-sm">
+                    <span class="text-xs font-weight-bold">${lastInform}</span>
+                </td>
+                <td class="align-middle text-center">
+                    <a href="/acs/devices/${device.id}" class="text-secondary font-weight-bold text-xs" title="Dettagli">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+        
+        // Add fade-in animation
+        tbody.classList.add('fade-in');
+        setTimeout(() => tbody.classList.remove('fade-in'), 500);
     }
 
     updateRecentTasks(tasks) {
-        // Similar to updateRecentDevices
-        const badge = document.querySelector('.recent-tasks-badge');
-        if (badge) {
-            badge.classList.add('pulse-animation');
-            setTimeout(() => badge.classList.remove('pulse-animation'), 1000);
+        const listGroup = document.querySelector('.recent-tasks-list');
+        if (!listGroup || !tasks) return;
+        
+        // Clear and rebuild list items
+        listGroup.innerHTML = '';
+        
+        if (tasks.length === 0) {
+            listGroup.innerHTML = `
+                <li class="list-group-item border-0 text-center text-sm text-muted py-4">
+                    Nessun task recente
+                </li>
+            `;
+            return;
         }
+        
+        tasks.forEach(task => {
+            const statusConfig = {
+                completed: { color: 'success', icon: 'check' },
+                failed: { color: 'danger', icon: 'times' },
+                pending: { color: 'warning', icon: 'clock' },
+                processing: { color: 'info', icon: 'spinner' }
+            };
+            
+            const config = statusConfig[task.status] || statusConfig.pending;
+            const taskType = task.task_type ? task.task_type.replace(/_/g, ' ') : 'Unknown';
+            const deviceSerial = task.cpe_device?.serial_number || task.device_serial || 'N/A';
+            
+            const li = document.createElement('li');
+            li.className = 'list-group-item border-0 d-flex justify-content-between ps-0 mb-2 border-radius-lg';
+            li.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <div class="icon icon-shape icon-sm me-3 bg-gradient-${config.color} shadow text-center">
+                        <i class="fas fa-${config.icon} opacity-10"></i>
+                    </div>
+                    <div class="d-flex flex-column">
+                        <h6 class="mb-1 text-dark text-sm">${this.capitalize(this.escapeHtml(taskType))}</h6>
+                        <span class="text-xs">${this.escapeHtml(deviceSerial)}</span>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center text-${config.color} text-gradient text-sm font-weight-bold">
+                    ${this.capitalize(this.escapeHtml(task.status))}
+                </div>
+            `;
+            listGroup.appendChild(li);
+        });
+        
+        // Add fade-in animation
+        listGroup.classList.add('fade-in');
+        setTimeout(() => listGroup.classList.remove('fade-in'), 500);
+    }
+    
+    // Helper methods
+    formatTimeAgo(dateString) {
+        if (!dateString) return 'N/A';
+        
+        const date = new Date(dateString);
+        const now = new Date();
+        const seconds = Math.floor((now - date) / 1000);
+        
+        if (seconds < 60) return 'Pochi secondi fa';
+        if (seconds < 3600) return `${Math.floor(seconds / 60)} minuti fa`;
+        if (seconds < 86400) return `${Math.floor(seconds / 3600)} ore fa`;
+        return `${Math.floor(seconds / 86400)} giorni fa`;
+    }
+    
+    escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return String(text).replace(/[&<>"']/g, m => map[m]);
+    }
+    
+    capitalize(str) {
+        return str.charAt(0).toUpperCase() + str.slice(1);
     }
 
     animateNumber(selector, newValue) {

@@ -315,7 +315,7 @@
             </div>
             <div class="card-body p-3">
                 <div class="table-responsive">
-                    <table class="table align-items-center mb-0">
+                    <table class="table align-items-center mb-0 recent-devices-table">
                         <thead>
                             <tr>
                                 <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Dispositivo</th>
@@ -389,7 +389,7 @@
                 <h6 class="mb-0"><i class="fas fa-clock me-2 text-warning"></i>Task Recenti</h6>
             </div>
             <div class="card-body p-3">
-                <ul class="list-group">
+                <ul class="list-group recent-tasks-list">
                     @forelse($stats['recent_tasks'] ?? [] as $task)
                     <li class="list-group-item border-0 d-flex justify-content-between ps-0 mb-2 border-radius-lg">
                         <div class="d-flex align-items-center">
