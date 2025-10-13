@@ -8,6 +8,9 @@
                 <div class="card-header pb-0 d-flex justify-content-between align-items-center">
                     <h6>Clienti</h6>
                     <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
+                            <i class="fas fa-plus"></i> Nuovo Cliente
+                        </button>
                         <form method="GET" action="{{ route('acs.customers') }}" class="d-flex gap-2">
                             <input type="text" name="search" class="form-control form-control-sm" 
                                    placeholder="Cerca cliente..." value="{{ request('search') }}">
@@ -75,9 +78,27 @@
                                     </td>
                                     <td class="align-middle">
                                         <a href="{{ route('acs.customers.detail', $customer->id) }}" 
-                                           class="btn btn-link text-secondary mb-0" data-toggle="tooltip" data-original-title="Vedi dettagli">
-                                            <i class="fa fa-eye text-xs"></i> Dettagli
+                                           class="btn btn-link text-secondary mb-0 px-2" data-toggle="tooltip" data-original-title="Vedi dettagli">
+                                            <i class="fa fa-eye text-xs"></i>
                                         </a>
+                                        <button type="button" class="btn btn-link text-dark mb-0 px-2" 
+                                                data-bs-toggle="modal" data-bs-target="#editCustomerModal"
+                                                data-customer-id="{{ $customer->id }}"
+                                                data-customer-name="{{ $customer->name }}"
+                                                data-customer-external-id="{{ $customer->external_id }}"
+                                                data-customer-email="{{ $customer->contact_email }}"
+                                                data-customer-timezone="{{ $customer->timezone }}"
+                                                data-customer-status="{{ $customer->status }}"
+                                                data-toggle="tooltip" data-original-title="Modifica">
+                                            <i class="fas fa-pencil-alt text-xs"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-link text-danger mb-0 px-2" 
+                                                data-bs-toggle="modal" data-bs-target="#deleteCustomerModal"
+                                                data-customer-id="{{ $customer->id }}"
+                                                data-customer-name="{{ $customer->name }}"
+                                                data-toggle="tooltip" data-original-title="Elimina">
+                                            <i class="fas fa-trash text-xs"></i>
+                                        </button>
                                     </td>
                                 </tr>
                                 @empty
@@ -100,4 +121,164 @@
         </div>
     </div>
 </div>
+
+<!-- Add Customer Modal -->
+<div class="modal fade" id="addCustomerModal" tabindex="-1" aria-labelledby="addCustomerModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addCustomerModalLabel">Nuovo Cliente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('acs.customers.store') }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="add_name" class="form-label">Nome Cliente *</label>
+                        <input type="text" class="form-control" id="add_name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="add_external_id" class="form-label">ID Esterno</label>
+                        <input type="text" class="form-control" id="add_external_id" name="external_id" placeholder="Es: CUST-12345">
+                        <small class="text-muted">Identificatore univoco per sistemi esterni</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="add_contact_email" class="form-label">Email Contatto *</label>
+                        <input type="email" class="form-control" id="add_contact_email" name="contact_email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="add_timezone" class="form-label">Fuso Orario</label>
+                        <select class="form-select" id="add_timezone" name="timezone">
+                            <option value="Europe/Rome" selected>Europe/Rome</option>
+                            <option value="Europe/London">Europe/London</option>
+                            <option value="America/New_York">America/New_York</option>
+                            <option value="Asia/Tokyo">Asia/Tokyo</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="add_status" class="form-label">Stato *</label>
+                        <select class="form-select" id="add_status" name="status" required>
+                            <option value="active" selected>Attivo</option>
+                            <option value="inactive">Inattivo</option>
+                            <option value="suspended">Sospeso</option>
+                            <option value="terminated">Terminato</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-success">Crea Cliente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Customer Modal -->
+<div class="modal fade" id="editCustomerModal" tabindex="-1" aria-labelledby="editCustomerModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editCustomerModalLabel">Modifica Cliente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editCustomerForm" method="POST">
+                @csrf
+                @method('PUT')
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_name" class="form-label">Nome Cliente *</label>
+                        <input type="text" class="form-control" id="edit_name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_external_id" class="form-label">ID Esterno</label>
+                        <input type="text" class="form-control" id="edit_external_id" name="external_id">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_contact_email" class="form-label">Email Contatto *</label>
+                        <input type="email" class="form-control" id="edit_contact_email" name="contact_email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_timezone" class="form-label">Fuso Orario</label>
+                        <select class="form-select" id="edit_timezone" name="timezone">
+                            <option value="Europe/Rome">Europe/Rome</option>
+                            <option value="Europe/London">Europe/London</option>
+                            <option value="America/New_York">America/New_York</option>
+                            <option value="Asia/Tokyo">Asia/Tokyo</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_status" class="form-label">Stato *</label>
+                        <select class="form-select" id="edit_status" name="status" required>
+                            <option value="active">Attivo</option>
+                            <option value="inactive">Inattivo</option>
+                            <option value="suspended">Sospeso</option>
+                            <option value="terminated">Terminato</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-primary">Salva Modifiche</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Customer Modal -->
+<div class="modal fade" id="deleteCustomerModal" tabindex="-1" aria-labelledby="deleteCustomerModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteCustomerModalLabel">Elimina Cliente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="deleteCustomerForm" method="POST">
+                @csrf
+                @method('DELETE')
+                <div class="modal-body">
+                    <p>Sei sicuro di voler eliminare il cliente <strong id="delete_customer_name"></strong>?</p>
+                    <div class="alert alert-warning" role="alert">
+                        <i class="fas fa-exclamation-triangle"></i> Attenzione: Verranno eliminati anche tutti i servizi e le associazioni ai dispositivi di questo cliente.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-danger">Elimina Cliente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Populate Edit Modal
+document.getElementById('editCustomerModal').addEventListener('show.bs.modal', function (event) {
+    var button = event.relatedTarget;
+    var customerId = button.getAttribute('data-customer-id');
+    var customerName = button.getAttribute('data-customer-name');
+    var externalId = button.getAttribute('data-customer-external-id');
+    var email = button.getAttribute('data-customer-email');
+    var timezone = button.getAttribute('data-customer-timezone');
+    var status = button.getAttribute('data-customer-status');
+    
+    document.getElementById('editCustomerForm').action = '/acs/customers/' + customerId;
+    document.getElementById('edit_name').value = customerName;
+    document.getElementById('edit_external_id').value = externalId || '';
+    document.getElementById('edit_contact_email').value = email || '';
+    document.getElementById('edit_timezone').value = timezone || 'Europe/Rome';
+    document.getElementById('edit_status').value = status;
+});
+
+// Populate Delete Modal
+document.getElementById('deleteCustomerModal').addEventListener('show.bs.modal', function (event) {
+    var button = event.relatedTarget;
+    var customerId = button.getAttribute('data-customer-id');
+    var customerName = button.getAttribute('data-customer-name');
+    
+    document.getElementById('deleteCustomerForm').action = '/acs/customers/' + customerId;
+    document.getElementById('delete_customer_name').textContent = customerName;
+});
+</script>
 @endsection
