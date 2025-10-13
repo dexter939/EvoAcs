@@ -69,7 +69,9 @@ abstract class TestCase extends BaseTestCase
     {
         return '<?xml version="1.0" encoding="UTF-8"?>' . "\n" .
                '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" ' .
-               'xmlns:cwmp="urn:dslforum-org:cwmp-1-0">' . "\n" .
+               'xmlns:cwmp="urn:dslforum-org:cwmp-1-0" ' .
+               'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ' .
+               'xmlns:xsd="http://www.w3.org/2001/XMLSchema">' . "\n" .
                '<soap:Header>' . "\n" .
                '<cwmp:ID soap:mustUnderstand="1">test-id-' . uniqid() . '</cwmp:ID>' . "\n" .
                '</soap:Header>' . "\n" .

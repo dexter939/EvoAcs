@@ -76,7 +76,7 @@ class ParameterOperationsTest extends TestCase
 
         // Verify task status updated
         $task->refresh();
-        $this->assertEquals('in_progress', $task->status);
+        $this->assertEquals('processing', $task->status);
     }
 
     public function test_set_parameter_values_request_in_response(): void
@@ -113,7 +113,7 @@ class ParameterOperationsTest extends TestCase
         $this->assertStringContainsString('NewNetwork', $responseBody);
 
         $task->refresh();
-        $this->assertEquals('in_progress', $task->status);
+        $this->assertEquals('processing', $task->status);
     }
 
     public function test_get_parameter_values_response_updates_database(): void
@@ -162,7 +162,7 @@ class ParameterOperationsTest extends TestCase
         $task = ProvisioningTask::create([
             'cpe_device_id' => $this->device->id,
             'task_type' => 'set_parameters',
-            'status' => 'in_progress',
+            'status' => 'processing',
             'task_data' => [
                 'parameters' => ['Device.Test' => 'value']
             ]
@@ -211,7 +211,7 @@ class ParameterOperationsTest extends TestCase
         $this->assertStringContainsString('Reboot', $responseBody);
 
         $task->refresh();
-        $this->assertEquals('in_progress', $task->status);
+        $this->assertEquals('processing', $task->status);
     }
 
     public function test_download_request_for_firmware_upgrade(): void
@@ -246,7 +246,7 @@ class ParameterOperationsTest extends TestCase
         $this->assertStringContainsString('1 Firmware Upgrade Image', $responseBody);
 
         $task->refresh();
-        $this->assertEquals('in_progress', $task->status);
+        $this->assertEquals('processing', $task->status);
     }
 
     public function test_transfer_complete_updates_firmware_status(): void
@@ -255,7 +255,7 @@ class ParameterOperationsTest extends TestCase
         $task = ProvisioningTask::create([
             'cpe_device_id' => $this->device->id,
             'task_type' => 'download',
-            'status' => 'in_progress',
+            'status' => 'processing',
             'task_data' => [
                 'command_key' => 'Download_FW_001',
                 'url' => 'https://firmware.test/update.bin',
