@@ -31,6 +31,7 @@ class CpeDeviceFactory extends Factory
             'ip_address' => $this->faker->ipv4(),
             'mac_address' => $this->faker->macAddress(),
             'mtp_type' => null, // TR-069 usa sempre null
+            'auth_method' => 'basic', // Default basic auth for compatibility
         ];
     }
 

@@ -58,6 +58,7 @@ class CpeDevice extends Model
         'connection_request_url',
         'connection_request_username',
         'connection_request_password',
+        'auth_method',
         'ip_address',
         'mac_address',
         'status',

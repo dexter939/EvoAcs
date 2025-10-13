@@ -215,14 +215,20 @@ class ProvisioningController extends Controller
      */
     public function connectionRequest(CpeDevice $device, ConnectionRequestService $service)
     {
-        // Verifica se dispositivo supporta Connection Request
-        // Check if device supports Connection Request
+        // Verifica se dispositivo è online
+        // Check if device is online
+        if ($device->status !== 'online') {
+            return response()->json([
+                'message' => 'Device must be online'
+            ], 422);
+        }
+
+        // Verifica se dispositivo ha ConnectionRequestURL configurato
+        // Check if device has ConnectionRequestURL configured
         if (!$service->isConnectionRequestSupported($device)) {
             return response()->json([
-                'success' => false,
-                'message' => 'Device does not have a ConnectionRequestURL configured',
-                'error_code' => 'NOT_SUPPORTED'
-            ], 400);
+                'message' => 'Connection Request URL not configured'
+            ], 422);
         }
 
         // Invia Connection Request con test POST fallback
@@ -231,14 +237,26 @@ class ProvisioningController extends Controller
 
         // Ritorna risultato con status HTTP appropriato
         // Return result with appropriate HTTP status
-        $statusCode = $result['success'] ? 200 : ($result['error_code'] === 'CONNECTION_ERROR' ? 503 : 400);
+        if ($result['success']) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'status' => 'connected',
+                    'message' => $result['message'] ?? 'Connection request sent successfully'
+                ]
+            ], 200);
+        }
+
+        // Gestione errori con status code corretti
+        // Handle errors with correct status codes
+        $statusCode = 500; // Default server error
+        if ($result['error_code'] === 'CONNECTION_ERROR') {
+            $statusCode = 500; // Network/connection errors
+        }
 
         return response()->json([
-            'success' => $result['success'],
-            'data' => [
-                'status' => $result['success'] ? 'connected' : 'failed',
-                'message' => $result['message'] ?? ($result['success'] ? 'Connection request sent successfully' : 'Connection request failed')
-            ]
+            'success' => false,
+            'message' => $result['message'] ?? 'Connection request failed'
         ], $statusCode);
     }
     

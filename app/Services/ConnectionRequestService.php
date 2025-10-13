@@ -60,41 +60,44 @@ class ConnectionRequestService
         ]);
 
         try {
-            // Prova prima con HTTP Digest Auth (comune nei CPE TR-069)
-            // Try first with HTTP Digest Auth (common in TR-069 CPE)
+            // Usa metodo di autenticazione specificato o prova digest se non specificato
+            // Use specified auth method or try digest if not specified
             if (!empty($username) && !empty($password)) {
-                $response = $this->sendRequestWithAuth($url, $username, $password, 'digest');
+                $authMethod = $device->auth_method ?? 'digest';
+                
+                $response = $this->sendRequestWithAuth($url, $username, $password, $authMethod);
                 
                 if ($response->successful()) {
-                    Log::info("Connection Request successful (Digest Auth) for device {$device->serial_number}", [
+                    Log::info("Connection Request successful ({$authMethod} Auth) for device {$device->serial_number}", [
                         'status' => $response->status()
                     ]);
 
                     return [
                         'success' => true,
-                        'message' => 'Connection Request sent successfully (Digest Auth)',
+                        'message' => "Connection Request sent successfully (" . ucfirst($authMethod) . " Auth)",
                         'http_status' => $response->status(),
-                        'auth_method' => 'digest'
+                        'auth_method' => $authMethod
                     ];
                 }
 
-                // Se Digest Auth fallisce con 401, prova Basic Auth
-                // If Digest Auth fails with 401, try Basic Auth
+                // Se metodo configurato fallisce con 401, prova l'altro metodo come fallback
+                // If configured method fails with 401, try the other method as fallback
                 if ($response->status() === 401) {
-                    Log::info("Retrying with Basic Auth for device {$device->serial_number}");
+                    $fallbackMethod = $authMethod === 'digest' ? 'basic' : 'digest';
+                    Log::info("Retrying with {$fallbackMethod} Auth for device {$device->serial_number}");
                     
-                    $response = $this->sendRequestWithAuth($url, $username, $password, 'basic');
+                    $response = $this->sendRequestWithAuth($url, $username, $password, $fallbackMethod);
                     
                     if ($response->successful()) {
-                        Log::info("Connection Request successful (Basic Auth) for device {$device->serial_number}", [
+                        Log::info("Connection Request successful ({$fallbackMethod} Auth) for device {$device->serial_number}", [
                             'status' => $response->status()
                         ]);
 
                         return [
                             'success' => true,
-                            'message' => 'Connection Request sent successfully (Basic Auth)',
+                            'message' => "Connection Request sent successfully (" . ucfirst($fallbackMethod) . " Auth)",
                             'http_status' => $response->status(),
-                            'auth_method' => 'basic'
+                            'auth_method' => $fallbackMethod
                         ];
                     }
                 }
