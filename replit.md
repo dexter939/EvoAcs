@@ -58,3 +58,43 @@ The web interface uses the Soft UI Dashboard Laravel template, providing a moder
 - **FontAwesome**: Icon library
 - **Nginx**: Reverse proxy and web server (production)
 - **Supervisor/Systemd**: Process management (production)
+
+## Recent Development History
+
+### Multi-Tenant CRUD Operations Implementation (October 2025)
+- **Customer CRUD Web Interface**: Full Create/Read/Update/Delete operations for customers via web UI with Bootstrap 5 modals
+  - "Nuovo Cliente" button on `/acs/customers` page opens Add Customer modal
+  - Edit/Delete icon buttons in customer table rows
+  - 3 modals: Add Customer (POST), Edit Customer (PUT), Delete Customer (DELETE with confirmation)
+  - Form fields: name (required), external_id (unique), contact_email (required email), timezone (select), status (enum select)
+  - JavaScript handlers populate Edit/Delete modals with customer data using data attributes
+- **Service CRUD Web Interface**: Full Create/Read/Update/Delete operations for services via web UI with Bootstrap 5 modals
+  - "Nuovo Servizio" button on `/acs/customers/{id}` customer detail page opens Add Service modal
+  - Edit/Delete icon buttons in service table rows
+  - 3 modals: Add Service (POST), Edit Service (PUT), Delete Service (DELETE with confirmation)
+  - Form fields: name (required), service_type (enum: FTTH/VoIP/IPTV/IoT/Femtocell/Other), contract_number (unique), sla_tier (Standard/Premium/Enterprise), status (enum select)
+  - Hidden input field `customer_id` auto-populated from current customer context
+- **Controller CRUD Methods** (AcsController.php):
+  - `storeCustomer(Request)`: POST handler with validation, creates customer, redirects to `/acs/customers` with success message
+  - `updateCustomer(Request, $customerId)`: PUT handler with validation including unique check excluding current customer ID, updates customer, redirects back
+  - `destroyCustomer($customerId)`: DELETE handler, soft deletes customer (cascades to services via Eloquent), redirects with success message
+  - `storeService(Request)`: POST handler with validation including customer_id FK check, auto-sets activation_at to now(), redirects to customer detail page
+  - `updateService(Request, $serviceId)`: PUT handler with validation, updates service, redirects to customer detail page
+  - `destroyService($serviceId)`: DELETE handler, sets service_id=NULL for all associated devices before soft delete (preserves devices), redirects to customer detail page
+- **Routes** (routes/web.php): 6 new RESTful routes added to `/acs` prefix group:
+  - POST `/acs/customers` → `storeCustomer` (route: `acs.customers.store`)
+  - PUT `/acs/customers/{customerId}` → `updateCustomer` (route: `acs.customers.update`)
+  - DELETE `/acs/customers/{customerId}` → `destroyCustomer` (route: `acs.customers.destroy`)
+  - POST `/acs/services` → `storeService` (route: `acs.services.store`)
+  - PUT `/acs/services/{serviceId}` → `updateService` (route: `acs.services.update`)
+  - DELETE `/acs/services/{serviceId}` → `destroyService` (route: `acs.services.destroy`)
+- **Validation & Security**:
+  - Laravel validation rules enforce required fields, email format, unique constraints (external_id, contract_number)
+  - CSRF protection automatic via `@csrf` tokens in all forms
+  - Soft deletes used for both customers and services, preserving data integrity and audit trail
+  - Unique constraint validation includes current record ID exclusion for updates (e.g., `unique:customers,external_id,$customerId`)
+- **Data Integrity**:
+  - Service deletion safely handles device associations by setting `service_id=NULL` before delete (devices not orphaned)
+  - Customer deletion uses soft delete which cascades to services via Eloquent relationships
+  - All forms redirect back to appropriate pages with success flash messages
+- **Testing Status**: Manual testing verified all CRUD operations functional, buttons visible, modals working, server running without errors
