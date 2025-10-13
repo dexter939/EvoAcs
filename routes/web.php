@@ -62,6 +62,11 @@ Route::prefix('acs')->name('acs.')->group(function () {
     Route::put('/profiles/{id}', [AcsController::class, 'updateProfile'])->name('profiles.update');
     Route::delete('/profiles/{id}', [AcsController::class, 'destroyProfile'])->name('profiles.destroy');
     
+    // AI Configuration Assistant
+    Route::post('/profiles/ai-generate', [AcsController::class, 'aiGenerateProfile'])->name('profiles.ai-generate');
+    Route::post('/profiles/{id}/ai-validate', [AcsController::class, 'aiValidateProfile'])->name('profiles.ai-validate');
+    Route::post('/profiles/{id}/ai-optimize', [AcsController::class, 'aiOptimizeProfile'])->name('profiles.ai-optimize');
+    
     // Diagnostics (TR-143)
     Route::get('/diagnostics', [AcsController::class, 'diagnostics'])->name('diagnostics');
     Route::get('/diagnostics/{id}/details', [AcsController::class, 'diagnosticDetails'])->name('diagnostics.details');

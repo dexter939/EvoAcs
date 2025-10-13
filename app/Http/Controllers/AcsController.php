@@ -356,6 +356,91 @@ class AcsController extends Controller
         return redirect()->route('acs.profiles')->with('success', 'Profilo eliminato con successo');
     }
     
+    /**
+     * AI: Genera profilo configurazione automaticamente
+     * AI: Generate configuration profile automatically
+     */
+    public function aiGenerateProfile(Request $request, \App\Services\AITemplateService $aiService)
+    {
+        $validated = $request->validate([
+            'device_type' => 'required|string',
+            'manufacturer' => 'nullable|string',
+            'model' => 'nullable|string',
+            'services' => 'nullable|array'
+        ]);
+        
+        $result = $aiService->generateTemplate($validated);
+        
+        if (!$result['success']) {
+            return response()->json([
+                'success' => false,
+                'error' => $result['error']
+            ], 500);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'template' => $result['template_data'],
+            'confidence_score' => $result['confidence_score'],
+            'suggestions' => $result['suggestions'],
+            'model_used' => $result['model_used']
+        ]);
+    }
+    
+    /**
+     * AI: Valida profilo configurazione esistente
+     * AI: Validate existing configuration profile
+     */
+    public function aiValidateProfile($id, \App\Services\AITemplateService $aiService)
+    {
+        $profile = ConfigurationProfile::findOrFail($id);
+        
+        $result = $aiService->validateConfiguration($profile);
+        
+        if (isset($result['error'])) {
+            return response()->json([
+                'success' => false,
+                'error' => $result['error']
+            ], 500);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'is_valid' => $result['is_valid'],
+            'issues' => $result['issues'],
+            'recommendations' => $result['recommendations']
+        ]);
+    }
+    
+    /**
+     * AI: Suggerisce ottimizzazioni per profilo
+     * AI: Suggest optimizations for profile
+     */
+    public function aiOptimizeProfile(Request $request, $id, \App\Services\AITemplateService $aiService)
+    {
+        $profile = ConfigurationProfile::findOrFail($id);
+        
+        $validated = $request->validate([
+            'focus' => 'nullable|in:performance,security,stability,all'
+        ]);
+        
+        $focus = $validated['focus'] ?? 'all';
+        
+        $result = $aiService->suggestOptimizations($profile, $focus);
+        
+        if (isset($result['error'])) {
+            return response()->json([
+                'success' => false,
+                'error' => $result['error']
+            ], 500);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'suggestions' => $result['suggestions']
+        ]);
+    }
+    
     public function uploadFirmware(Request $request)
     {
         $validated = $request->validate([
