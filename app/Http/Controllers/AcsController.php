@@ -590,10 +590,20 @@ class AcsController extends Controller
     
     public function showDevice($id)
     {
-        $device = CpeDevice::with(['configurationProfile', 'deviceParameters', 'provisioningTasks', 'firmwareDeployments.firmwareVersion'])
-            ->findOrFail($id);
+        $device = CpeDevice::with([
+            'configurationProfile', 
+            'parameters', 
+            'firmwareDeployments.firmwareVersion'
+        ])->findOrFail($id);
         
-        return view('acs.device-detail', compact('device'));
+        $recentTasks = $device->provisioningTasks()
+            ->latest()
+            ->take(10)
+            ->get();
+        
+        $activeProfiles = ConfigurationProfile::where('is_active', true)->get();
+        
+        return view('acs.device-detail', compact('device', 'recentTasks', 'activeProfiles'));
     }
     
     /**

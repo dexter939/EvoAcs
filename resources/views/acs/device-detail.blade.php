@@ -78,9 +78,9 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse($device->deviceParameters as $param)
+                            @forelse($device->parameters as $param)
                             <tr>
-                                <td class="text-xs px-3">{{ $param->parameter_name }}</td>
+                                <td class="text-xs px-3">{{ $param->parameter_path }}</td>
                                 <td class="text-xs">{{ $param->parameter_value }}</td>
                                 <td class="text-xs text-center">{{ $param->parameter_type }}</td>
                             </tr>
@@ -112,7 +112,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse($device->provisioningTasks()->latest()->take(10)->get() as $task)
+                            @forelse($recentTasks as $task)
                             <tr>
                                 <td class="text-xs px-3">{{ ucfirst(str_replace('_', ' ', $task->task_type)) }}</td>
                                 <td class="text-center">
@@ -155,7 +155,7 @@
                         <label class="form-label">Profilo Configurazione *</label>
                         <select class="form-select" name="profile_id" required>
                             <option value="">Seleziona profilo...</option>
-                            @foreach(App\Models\ConfigurationProfile::where('is_active', true)->get() as $profile)
+                            @foreach($activeProfiles as $profile)
                             <option value="{{ $profile->id }}">{{ $profile->name }}</option>
                             @endforeach
                         </select>

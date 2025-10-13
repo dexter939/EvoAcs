@@ -74,8 +74,11 @@ class TR069Controller extends Controller
         
         // È un Inform, processa normalmente
         // It's an Inform, process normally
-        $deviceIdNodes = $xpath->query('//cwmp:DeviceId');
+        $deviceIdNodes = $xpath->query('//cwmp:DeviceId | //DeviceId');
         $deviceId = $deviceIdNodes->length > 0 ? $deviceIdNodes->item(0) : null;
+        
+        \Log::info('TR-069 DeviceId parsed', ['found' => $deviceId !== null, 'node_count' => $deviceIdNodes->length]);
+        
         // ParameterValueStruct può essere con o senza namespace
         $paramList = $xpath->query('//cwmp:ParameterValueStruct | //ParameterValueStruct');
         
@@ -120,6 +123,13 @@ class TR069Controller extends Controller
             $productClass = $productClassNodes->length > 0 ? $productClassNodes->item(0)->textContent : '';
             $manufacturer = $manufacturerNodes->length > 0 ? $manufacturerNodes->item(0)->textContent : '';
             
+            \Log::info('TR-069 Device Info Parsed', [
+                'serial' => $serialNumber,
+                'oui' => $oui,
+                'product_class' => $productClass,
+                'manufacturer' => $manufacturer
+            ]);
+            
             // Estrae SoftwareVersion e HardwareVersion se presenti
             $softwareVersionNodes = $deviceId->getElementsByTagName('SoftwareVersion');
             $hardwareVersionNodes = $deviceId->getElementsByTagName('HardwareVersion');
@@ -132,6 +142,8 @@ class TR069Controller extends Controller
                 'oui' => $oui,
                 'product_class' => $productClass,
                 'manufacturer' => $manufacturer,
+                'model_name' => $productClass,
+                'protocol_type' => 'tr069',
                 'ip_address' => $request->ip(),
                 'last_inform' => Carbon::now(),
                 'last_contact' => Carbon::now(),
