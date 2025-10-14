@@ -441,6 +441,74 @@ class AcsController extends Controller
         ]);
     }
     
+    /**
+     * AI: Analizza risultato diagnostico e propone soluzioni
+     * AI: Analyze diagnostic result and propose solutions
+     */
+    public function aiAnalyzeDiagnostic($diagnosticId, \App\Services\AITemplateService $aiService)
+    {
+        $diagnostic = DiagnosticTest::with('cpeDevice')->findOrFail($diagnosticId);
+        
+        $result = $aiService->analyzeDiagnosticResults($diagnostic);
+        
+        if (isset($result['error'])) {
+            return response()->json([
+                'success' => false,
+                'error' => $result['error']
+            ], 500);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'analysis' => $result['analysis'],
+            'issues' => $result['issues'],
+            'solutions' => $result['solutions'],
+            'severity' => $result['severity'],
+            'root_cause' => $result['root_cause']
+        ]);
+    }
+    
+    /**
+     * AI: Analizza storico diagnostici dispositivo per pattern
+     * AI: Analyze device diagnostic history for patterns
+     */
+    public function aiAnalyzeDeviceDiagnostics($deviceId, \App\Services\AITemplateService $aiService)
+    {
+        $device = CpeDevice::findOrFail($deviceId);
+        
+        // Ultimi 20 test diagnostici del dispositivo
+        $diagnostics = DiagnosticTest::where('cpe_device_id', $deviceId)
+            ->orderBy('created_at', 'desc')
+            ->limit(20)
+            ->get();
+        
+        if ($diagnostics->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'error' => 'No diagnostic history available for this device'
+            ], 404);
+        }
+        
+        $result = $aiService->analyzeDeviceDiagnosticHistory($diagnostics->toArray());
+        
+        if (isset($result['error'])) {
+            return response()->json([
+                'success' => false,
+                'error' => $result['error']
+            ], 500);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'patterns' => $result['patterns'],
+            'root_cause' => $result['root_cause'],
+            'recommendations' => $result['recommendations'],
+            'trend' => $result['trend'],
+            'confidence' => $result['confidence'],
+            'tests_analyzed' => $diagnostics->count()
+        ]);
+    }
+    
     public function uploadFirmware(Request $request)
     {
         $validated = $request->validate([

@@ -67,6 +67,10 @@ Route::prefix('acs')->name('acs.')->group(function () {
     Route::post('/profiles/{id}/ai-validate', [AcsController::class, 'aiValidateProfile'])->name('profiles.ai-validate');
     Route::post('/profiles/{id}/ai-optimize', [AcsController::class, 'aiOptimizeProfile'])->name('profiles.ai-optimize');
     
+    // AI Diagnostic Troubleshooting
+    Route::post('/diagnostics/{diagnosticId}/ai-analyze', [AcsController::class, 'aiAnalyzeDiagnostic'])->name('diagnostics.ai-analyze');
+    Route::post('/devices/{deviceId}/ai-analyze-diagnostics', [AcsController::class, 'aiAnalyzeDeviceDiagnostics'])->name('devices.ai-analyze-diagnostics');
+    
     // Diagnostics (TR-143)
     Route::get('/diagnostics', [AcsController::class, 'diagnostics'])->name('diagnostics');
     Route::get('/diagnostics/{id}/details', [AcsController::class, 'diagnosticDetails'])->name('diagnostics.details');
