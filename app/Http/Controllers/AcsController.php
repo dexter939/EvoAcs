@@ -916,7 +916,22 @@ class AcsController extends Controller
      */
     public function manufacturers(Request $request)
     {
-        $query = \App\Models\RouterManufacturer::query();
+        $query = \App\Models\RouterManufacturer::with(['products' => function($q) use ($request) {
+            // Apply product filters if provided
+            if ($request->filled('wifi')) {
+                $q->where('wifi_standard', $request->wifi);
+            }
+            if ($request->filled('year')) {
+                $q->where('release_year', $request->year);
+            }
+            if ($request->filled('gaming')) {
+                $q->where('gaming_features', true);
+            }
+            if ($request->filled('mesh')) {
+                $q->where('mesh_support', true);
+            }
+            $q->orderBy('release_year', 'desc')->orderBy('model_name');
+        }]);
         
         if ($request->filled('category')) {
             $query->where('category', $request->category);
@@ -945,14 +960,29 @@ class AcsController extends Controller
             ->whereNotNull('category')
             ->pluck('category');
         
+        // Get available WiFi standards and years for product filters
+        $wifiStandards = \App\Models\RouterProduct::select('wifi_standard')
+            ->distinct()
+            ->whereNotNull('wifi_standard')
+            ->orderBy('wifi_standard', 'desc')
+            ->pluck('wifi_standard');
+            
+        $years = \App\Models\RouterProduct::select('release_year')
+            ->distinct()
+            ->whereNotNull('release_year')
+            ->orderBy('release_year', 'desc')
+            ->pluck('release_year');
+        
         $stats = [
             'total' => \App\Models\RouterManufacturer::count(),
             'tr069' => \App\Models\RouterManufacturer::where('tr069_support', true)->count(),
             'tr369' => \App\Models\RouterManufacturer::where('tr369_support', true)->count(),
-            'countries' => \App\Models\RouterManufacturer::select('country')->distinct()->count()
+            'countries' => \App\Models\RouterManufacturer::select('country')->distinct()->count(),
+            'total_products' => \App\Models\RouterProduct::count(),
+            'wifi7' => \App\Models\RouterProduct::where('wifi_standard', 'WiFi 7')->count()
         ];
         
-        return view('acs.manufacturers', compact('manufacturers', 'categories', 'stats'));
+        return view('acs.manufacturers', compact('manufacturers', 'categories', 'stats', 'wifiStandards', 'years'));
     }
     
     /**
