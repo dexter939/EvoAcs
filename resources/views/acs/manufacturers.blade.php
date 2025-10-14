@@ -219,7 +219,7 @@
                                         </div>
                                     </div>
                                     <div class="text-end me-3">
-                                        <span class="badge bg-gradient-dark">{{ $manufacturer->products->count() }} modelli</span>
+                                        <span class="badge bg-gradient-dark">{{ $manufacturer->products_count }} modelli</span>
                                     </div>
                                 </div>
                             </button>
@@ -247,7 +247,7 @@
                                 
                                 <hr class="horizontal dark mt-2 mb-3">
                                 
-                                @if($manufacturer->products->count() > 0)
+                                @if($manufacturer->products_count > 0)
                                 <div class="table-responsive">
                                     <table class="table table-sm align-items-center mb-0">
                                         <thead>

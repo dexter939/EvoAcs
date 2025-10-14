@@ -916,8 +916,8 @@ class AcsController extends Controller
      */
     public function manufacturers(Request $request)
     {
-        $query = \App\Models\RouterManufacturer::with(['products' => function($q) use ($request) {
-            // Apply product filters if provided
+        // Build product filters closure
+        $productFilters = function($q) use ($request) {
             if ($request->filled('wifi')) {
                 $q->where('wifi_standard', $request->wifi);
             }
@@ -931,7 +931,10 @@ class AcsController extends Controller
                 $q->where('mesh_support', true);
             }
             $q->orderBy('release_year', 'desc')->orderBy('model_name');
-        }]);
+        };
+        
+        $query = \App\Models\RouterManufacturer::withCount(['products' => $productFilters])
+            ->with(['products' => $productFilters]);
         
         if ($request->filled('category')) {
             $query->where('category', $request->category);
