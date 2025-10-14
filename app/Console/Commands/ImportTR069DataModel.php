@@ -107,8 +107,8 @@ class ImportTR069DataModel extends Command
             );
             $paramCount++;
 
-            // Parse child parameters
-            $parameters = $object->xpath('.//dm:parameter') ?: [];
+            // Parse child parameters (direct children only, no namespace)
+            $parameters = $object->xpath('./parameter') ?: [];
             foreach ($parameters as $param) {
                 $paramName = (string)$param['name'];
                 $fullPath = $paramPath . $paramName;

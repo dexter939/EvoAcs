@@ -5,6 +5,7 @@ use App\Http\Controllers\TR069Controller;
 use App\Http\Controllers\UspController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AcsController;
+use App\Http\Controllers\DataModelController;
 
 // Home - Redirect to Dashboard
 Route::get('/', function () {
@@ -112,6 +113,10 @@ Route::prefix('acs')->name('acs.')->group(function () {
     Route::get('/parameters', [AcsController::class, 'parameters'])->name('parameters');
     Route::get('/parameters/{deviceId}', [AcsController::class, 'parametersDevice'])->name('parameters.device');
     Route::post('/parameters/{deviceId}/discover', [AcsController::class, 'parametersDiscover'])->name('parameters.discover');
+    
+    // Data Models (TR-069/369)
+    Route::get('/data-models', [DataModelController::class, 'index'])->name('data-models');
+    Route::get('/data-models/{id}/parameters', [DataModelController::class, 'showParameters'])->name('data-models.parameters');
     
     // Multi-tenant Customers & Services
     Route::get('/customers', [AcsController::class, 'customers'])->name('customers');
