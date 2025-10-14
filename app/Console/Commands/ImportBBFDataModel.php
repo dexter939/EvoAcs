@@ -184,8 +184,8 @@ class ImportBBFDataModel extends Command
 
     private function parseObject($node, $prefix, $dataModelId, &$batch, &$parameters, $batchSize = 100)
     {
-        // Parse objects
-        foreach ($node->xpath('.//object') as $object) {
+        // Parse direct child objects only (not descendants)
+        foreach ($node->object as $object) {
             $objectName = (string)$object['name'];
             $fullPath = $prefix . $objectName;
             $access = (string)$object['access'];
@@ -237,7 +237,8 @@ class ImportBBFDataModel extends Command
 
     private function parseParameters($node, $prefix, $dataModelId, &$batch, &$parameters, $batchSize = 100)
     {
-        foreach ($node->xpath('.//parameter') as $parameter) {
+        // Parse direct child parameters only (not descendants)
+        foreach ($node->parameter as $parameter) {
             $paramName = (string)$parameter['name'];
             $fullPath = $prefix . $paramName;
             $access = (string)$parameter['access'];
