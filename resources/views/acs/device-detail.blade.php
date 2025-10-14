@@ -102,6 +102,36 @@
         
         <div class="card mb-4">
             <div class="card-header pb-0">
+                <h6>Remote Diagnostics (TR-143)</h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <button class="btn btn-outline-primary btn-sm w-100" onclick="openDiagnosticModal('ping', {{ $device->id }})">
+                            <i class="fas fa-network-wired me-2"></i>Ping Test
+                        </button>
+                    </div>
+                    <div class="col-6">
+                        <button class="btn btn-outline-primary btn-sm w-100" onclick="openDiagnosticModal('traceroute', {{ $device->id }})">
+                            <i class="fas fa-route me-2"></i>Traceroute
+                        </button>
+                    </div>
+                    <div class="col-6">
+                        <button class="btn btn-outline-primary btn-sm w-100" onclick="openDiagnosticModal('download', {{ $device->id }})">
+                            <i class="fas fa-download me-2"></i>Download Test
+                        </button>
+                    </div>
+                    <div class="col-6">
+                        <button class="btn btn-outline-primary btn-sm w-100" onclick="openDiagnosticModal('upload', {{ $device->id }})">
+                            <i class="fas fa-upload me-2"></i>Upload Test
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header pb-0">
                 <h6>Task Recenti</h6>
             </div>
             <div class="card-body px-0 pt-0 pb-2">
@@ -190,6 +220,28 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
                     <button type="submit" class="btn btn-warning">Riavvia</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Diagnostic Test -->
+<div class="modal fade" id="diagnosticModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="diagnosticModalTitle">Diagnostic Test</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="diagnosticForm">
+                @csrf
+                <div class="modal-body">
+                    <div id="diagnosticFormFields"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-primary">Avvia Test</button>
                 </div>
             </form>
         </div>
@@ -341,6 +393,115 @@ async function aiAnalyzeDeviceHistory(deviceId) {
             <i class="fas fa-exclamation-triangle me-2"></i>Errore di connessione: ${error.message}
         </div>`;
     }
+}
+
+function openDiagnosticModal(type, deviceId) {
+    const titles = {
+        ping: 'Ping Test (IPPing)',
+        traceroute: 'Traceroute Test',
+        download: 'Download Speed Test',
+        upload: 'Upload Speed Test'
+    };
+    
+    const forms = {
+        ping: `
+            <div class="mb-3">
+                <label class="form-label">Host / IP Address *</label>
+                <input type="text" class="form-control" name="host" placeholder="8.8.8.8 or google.com" required>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Numero Pacchetti</label>
+                    <input type="number" class="form-control" name="packets" value="4" min="1" max="100">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Timeout (ms)</label>
+                    <input type="number" class="form-control" name="timeout" value="1000" min="100" max="10000">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Dimensione Pacchetto (bytes)</label>
+                <input type="number" class="form-control" name="size" value="64" min="32" max="1500">
+            </div>
+        `,
+        traceroute: `
+            <div class="mb-3">
+                <label class="form-label">Host / IP Address *</label>
+                <input type="text" class="form-control" name="host" placeholder="8.8.8.8 or google.com" required>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Numero Tentativi</label>
+                    <input type="number" class="form-control" name="tries" value="3" min="1" max="10">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Timeout (ms)</label>
+                    <input type="number" class="form-control" name="timeout" value="5000" min="100" max="30000">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Max Hop Count</label>
+                <input type="number" class="form-control" name="max_hops" value="30" min="1" max="64">
+            </div>
+        `,
+        download: `
+            <div class="mb-3">
+                <label class="form-label">Download URL *</label>
+                <input type="url" class="form-control" name="url" placeholder="http://example.com/test.bin" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">File Size (bytes, 0=auto)</label>
+                <input type="number" class="form-control" name="file_size" value="0" min="0">
+            </div>
+        `,
+        upload: `
+            <div class="mb-3">
+                <label class="form-label">Upload URL *</label>
+                <input type="url" class="form-control" name="url" placeholder="http://example.com/upload" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">File Size (bytes)</label>
+                <input type="number" class="form-control" name="file_size" value="1048576" min="0" max="104857600">
+                <small class="text-muted">Max 100MB</small>
+            </div>
+        `
+    };
+    
+    document.getElementById('diagnosticModalTitle').textContent = titles[type] || 'Diagnostic Test';
+    document.getElementById('diagnosticFormFields').innerHTML = forms[type] || '';
+    
+    const form = document.getElementById('diagnosticForm');
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        
+        try {
+            const response = await fetch(`/acs/devices/${deviceId}/diagnostics/${type}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                bootstrap.Modal.getInstance(document.getElementById('diagnosticModal')).hide();
+                alert(`✅ ${titles[type]} avviato con successo! ID: ${result.diagnostic.id}`);
+                location.reload();
+            } else {
+                alert(`❌ Errore: ${result.message}`);
+            }
+        } catch (error) {
+            alert(`❌ Errore connessione: ${error.message}`);
+        }
+    };
+    
+    new bootstrap.Modal(document.getElementById('diagnosticModal')).show();
 }
 </script>
 @endpush
