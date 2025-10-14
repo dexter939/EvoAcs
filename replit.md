@@ -43,11 +43,12 @@ The web interface uses the Soft UI Dashboard Laravel template, providing a moder
 - **Device-to-Service Assignment**: Functionality for assigning single or multiple devices to specific services via the web interface.
 
 ### Router Manufacturers & Products Database
-- **Router Manufacturers**: Database completo di 21 produttori di router domestici mappati con OUI Prefix (MAC Address), categorie (premium, mainstream, budget, mesh, telco, etc.), supporto protocolli TR-069/369, paese di origine
-- **Router Products**: Catalogo di 40 modelli di router recenti (2023-2025) con specifiche tecniche, standard WiFi (WiFi 7/6E/6), velocità massima, prezzo, caratteristiche chiave, supporto mesh/gaming
-- **Web Interface**: Pagine dedicate `/acs/manufacturers` e `/acs/products` con statistiche in tempo reale, filtri avanzati (produttore, WiFi standard, anno, gaming, mesh), ricerca full-text e paginazione
-- **Statistics Cards**: Totale produttori/prodotti, supporto TR-069/369, WiFi 7, Gaming, Mesh Systems con visualizzazione badge colorati
-- **Advanced Filters**: Ricerca per nome/modello, filtro per produttore, standard WiFi, anno di rilascio, features gaming/mesh con query ottimizzate
+- **Unified Hierarchical View**: Pagina `/acs/manufacturers` con struttura gerarchica integrata - produttori in card collapsibili che espandono per mostrare i modelli
+- **Router Manufacturers**: 21 produttori di router domestici con OUI Prefix, categorie (premium, mainstream, budget, mesh, telco), supporto TR-069/369, paese di origine
+- **Router Products**: 40 modelli (2023-2025) con WiFi 7/6E/6, velocità, prezzo, caratteristiche gaming/mesh organizzati per produttore
+- **Statistics Cards**: 6 card con totale produttori, modelli, WiFi 7, TR-069, TR-369, paesi
+- **Dual-Level Filtering**: Filtri produttori (ricerca, categoria, TR-069/369) + filtri modelli (WiFi standard, anno, gaming, mesh) con query ottimizzate eager loading
+- **Bootstrap Accordion UI**: Card espandibili per ogni produttore con tabella inline dei prodotti filtrati, badge count dinamici
 
 ## External Dependencies
 - **PostgreSQL 16+**: Primary database
