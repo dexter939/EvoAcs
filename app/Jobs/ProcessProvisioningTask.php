@@ -88,10 +88,11 @@ class ProcessProvisioningTask implements ShouldQueue
             return;
         }
 
-        // I task diagnostici vengono processati durante Periodic Inform, non via Connection Request
-        // Diagnostic tasks are processed during Periodic Inform, not via Connection Request
-        if ($this->task->task_type === 'diagnostic') {
-            \Log::info('Diagnostic task will be sent via Periodic Inform', [
+        // I task diagnostici e network_scan vengono processati durante Periodic Inform, non via Connection Request
+        // Diagnostic and network_scan tasks are processed during Periodic Inform, not via Connection Request
+        if (in_array($this->task->task_type, ['diagnostic', 'network_scan'])) {
+            \Log::info('Task will be sent via Periodic Inform', [
+                'task_type' => $this->task->task_type,
                 'task_id' => $this->task->id,
                 'device_id' => $this->task->cpe_device_id
             ]);

@@ -312,6 +312,11 @@ class TR069Controller extends Controller
                 $params = $task->task_data ?? [];
                 $sessionManager->queueCommand($session, 'Diagnostic_' . $diagnosticType, $params, $task->id);
                 break;
+
+            case 'network_scan':
+                $dataModel = $task->task_data['data_model'] ?? 'tr098';
+                $sessionManager->queueCommand($session, 'NetworkScan', ['data_model' => $dataModel], $task->id);
+                break;
         }
     }
     
@@ -405,6 +410,11 @@ class TR069Controller extends Controller
                         return $tr069Service->generateUploadDiagnosticsRequest(
                             $command['params']['upload_url'] ?? '',
                             $command['params']['test_file_size'] ?? 1048576
+                        );
+
+                    case 'NetworkScan':
+                        return $tr069Service->generateNetworkClientsRequest(
+                            $command['params']['data_model'] ?? 'tr098'
                         );
                         
                     default:
