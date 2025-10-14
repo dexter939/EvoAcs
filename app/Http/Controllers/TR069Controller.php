@@ -306,6 +306,12 @@ class TR069Controller extends Controller
                 $params['command_key'] = 'task_' . $task->id;
                 $sessionManager->queueCommand($session, 'Download', $params, $task->id);
                 break;
+            
+            case 'diagnostic':
+                $diagnosticType = $task->task_data['diagnostic_type'] ?? '';
+                $params = $task->task_data ?? [];
+                $sessionManager->queueCommand($session, 'Diagnostic_' . $diagnosticType, $params, $task->id);
+                break;
         }
     }
     
@@ -370,6 +376,35 @@ class TR069Controller extends Controller
                             $command['params']['file_size'] ?? 0,
                             $messageId,
                             $command['params']['command_key'] ?? ''
+                        );
+                    
+                    case 'Diagnostic_IPPing':
+                        return $tr069Service->generateIPPingDiagnosticsRequest(
+                            $command['params']['host'] ?? '',
+                            $command['params']['count'] ?? 4,
+                            $command['params']['timeout'] ?? 1000,
+                            $command['params']['packet_size'] ?? 64
+                        );
+                    
+                    case 'Diagnostic_TraceRoute':
+                        return $tr069Service->generateTraceRouteDiagnosticsRequest(
+                            $command['params']['host'] ?? '',
+                            $command['params']['number_of_tries'] ?? 3,
+                            $command['params']['timeout'] ?? 5000,
+                            $command['params']['data_block_size'] ?? 38,
+                            $command['params']['max_hops'] ?? 30
+                        );
+                    
+                    case 'Diagnostic_DownloadDiagnostics':
+                        return $tr069Service->generateDownloadDiagnosticsRequest(
+                            $command['params']['download_url'] ?? '',
+                            $command['params']['test_file_size'] ?? 0
+                        );
+                    
+                    case 'Diagnostic_UploadDiagnostics':
+                        return $tr069Service->generateUploadDiagnosticsRequest(
+                            $command['params']['upload_url'] ?? '',
+                            $command['params']['test_file_size'] ?? 1048576
                         );
                         
                     default:
