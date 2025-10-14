@@ -131,6 +131,63 @@
         </div>
         
         <div class="card mb-4">
+            <div class="card-header pb-0 d-flex justify-content-between align-items-center">
+                <h6>Network Topology Map</h6>
+                <button class="btn btn-sm btn-primary" onclick="triggerNetworkScan({{ $device->id }})">
+                    <i class="fas fa-sync me-2"></i>Scan Network
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="network-stats" class="row mb-3">
+                    <div class="col-3 text-center">
+                        <div class="text-sm text-muted">Total</div>
+                        <div class="h5 mb-0" id="stats-total">0</div>
+                    </div>
+                    <div class="col-3 text-center">
+                        <div class="text-sm text-muted">LAN</div>
+                        <div class="h5 mb-0" id="stats-lan">0</div>
+                    </div>
+                    <div class="col-3 text-center">
+                        <div class="text-sm text-muted">WiFi 2.4GHz</div>
+                        <div class="h5 mb-0" id="stats-wifi24">0</div>
+                    </div>
+                    <div class="col-3 text-center">
+                        <div class="text-sm text-muted">WiFi 5GHz</div>
+                        <div class="h5 mb-0" id="stats-wifi5">0</div>
+                    </div>
+                </div>
+                
+                <div id="network-topology-container" style="position: relative; height: 400px; border: 1px solid #e9ecef; border-radius: 0.5rem; background: #f8f9fa;">
+                    <div class="d-flex justify-content-center align-items-center h-100">
+                        <div class="text-center text-muted">
+                            <i class="fas fa-network-wired fa-3x mb-3"></i>
+                            <p>Click "Scan Network" to visualize connected clients</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="network-clients-list" class="mt-3" style="display: none;">
+                    <h6 class="text-sm font-weight-bold mb-2">Connected Clients</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-items-center mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Device</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">IP Address</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Connection</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Signal</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Last Seen</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clients-table-body">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
             <div class="card-header pb-0">
                 <h6>Task Recenti</h6>
             </div>
@@ -503,5 +560,172 @@ function openDiagnosticModal(type, deviceId) {
     
     new bootstrap.Modal(document.getElementById('diagnosticModal')).show();
 }
+
+// Network Topology Map Functions
+async function triggerNetworkScan(deviceId) {
+    try {
+        const response = await fetch(`/acs/devices/${deviceId}/trigger-network-scan`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ data_model: 'tr098' })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('✅ ' + result.message);
+            // Wait 3 seconds then load network map
+            setTimeout(() => loadNetworkMap(deviceId), 3000);
+        } else {
+            alert('❌ Errore: ' + result.message);
+        }
+    } catch (error) {
+        alert('❌ Errore connessione: ' + error.message);
+    }
+}
+
+async function loadNetworkMap(deviceId) {
+    try {
+        const response = await fetch(`/acs/devices/${deviceId}/network-map`);
+        const result = await response.json();
+        
+        if (result.success && result.clients.length > 0) {
+            updateNetworkStats(result.stats);
+            renderNetworkTopology(result.device, result.clients);
+            renderClientsList(result.clients);
+        } else {
+            document.getElementById('network-topology-container').innerHTML = 
+                '<div class="d-flex justify-content-center align-items-center h-100"><div class="text-center text-muted"><i class="fas fa-exclamation-circle fa-3x mb-3"></i><p>No clients found. Try scanning again.</p></div></div>';
+        }
+    } catch (error) {
+        console.error('Error loading network map:', error);
+    }
+}
+
+function updateNetworkStats(stats) {
+    document.getElementById('stats-total').textContent = stats.total;
+    document.getElementById('stats-lan').textContent = stats.lan;
+    document.getElementById('stats-wifi24').textContent = stats.wifi_2_4ghz;
+    document.getElementById('stats-wifi5').textContent = stats.wifi_5ghz;
+}
+
+function renderNetworkTopology(device, clients) {
+    const container = document.getElementById('network-topology-container');
+    container.innerHTML = '';
+    
+    // Create SVG canvas
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', '100%');
+    svg.style.position = 'absolute';
+    svg.style.top = '0';
+    svg.style.left = '0';
+    
+    // Draw router (center)
+    const routerX = container.offsetWidth / 2;
+    const routerY = 80;
+    
+    const routerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    routerCircle.setAttribute('cx', routerX);
+    routerCircle.setAttribute('cy', routerY);
+    routerCircle.setAttribute('r', '30');
+    routerCircle.setAttribute('fill', '#5e72e4');
+    svg.appendChild(routerCircle);
+    
+    // Router icon (text)
+    const routerText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    routerText.setAttribute('x', routerX);
+    routerText.setAttribute('y', routerY + 5);
+    routerText.setAttribute('text-anchor', 'middle');
+    routerText.setAttribute('fill', 'white');
+    routerText.setAttribute('font-size', '14');
+    routerText.textContent = '🛜';
+    svg.appendChild(routerText);
+    
+    // Draw clients in circle around router
+    const radius = 150;
+    const angleStep = (2 * Math.PI) / clients.length;
+    
+    clients.forEach((client, index) => {
+        const angle = angleStep * index - Math.PI / 2;
+        const x = routerX + radius * Math.cos(angle);
+        const y = routerY + radius * Math.sin(angle);
+        
+        // Draw connection line
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', routerX);
+        line.setAttribute('y1', routerY);
+        line.setAttribute('x2', x);
+        line.setAttribute('y2', y);
+        line.setAttribute('stroke', client.connection_type === 'lan' ? '#2dce89' : '#11cdef');
+        line.setAttribute('stroke-width', '2');
+        line.setAttribute('stroke-dasharray', client.connection_type === 'lan' ? '0' : '5,5');
+        svg.appendChild(line);
+        
+        // Draw client circle
+        const clientCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        clientCircle.setAttribute('cx', x);
+        clientCircle.setAttribute('cy', y);
+        clientCircle.setAttribute('r', '20');
+        clientCircle.setAttribute('fill', client.connection_type === 'lan' ? '#2dce89' : '#11cdef');
+        clientCircle.setAttribute('data-bs-toggle', 'tooltip');
+        clientCircle.setAttribute('title', `${client.hostname}\\n${client.ip_address}\\nMAC: ${client.mac_address}${client.signal_strength ? '\\nSignal: ' + client.signal_strength + ' dBm' : ''}`);
+        svg.appendChild(clientCircle);
+        
+        // Client icon
+        const clientIcon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        clientIcon.setAttribute('x', x);
+        clientIcon.setAttribute('y', y + 5);
+        clientIcon.setAttribute('text-anchor', 'middle');
+        clientIcon.setAttribute('fill', 'white');
+        clientIcon.setAttribute('font-size', '12');
+        clientIcon.textContent = client.connection_type === 'lan' ? '💻' : '📱';
+        svg.appendChild(clientIcon);
+    });
+    
+    container.appendChild(svg);
+}
+
+function renderClientsList(clients) {
+    const tbody = document.getElementById('clients-table-body');
+    tbody.innerHTML = '';
+    
+    clients.forEach(client => {
+        const signalBadge = client.signal_strength ? 
+            `<span class="badge badge-sm bg-gradient-${client.signal_quality === 'excellent' ? 'success' : client.signal_quality === 'good' ? 'info' : client.signal_quality === 'fair' ? 'warning' : 'danger'}">
+                ${client.signal_strength} dBm
+            </span>` : 
+            '<span class="text-muted">-</span>';
+            
+        const connectionBadge = `<span class="badge badge-sm bg-gradient-${client.connection_type === 'lan' ? 'success' : 'info'}">
+            <i class="fas ${client.connection_icon} me-1"></i>${client.connection_type.replace('_', ' ')}
+        </span>`;
+        
+        const row = `
+            <tr>
+                <td class="text-xs px-3">
+                    <strong>${client.hostname}</strong><br>
+                    <small class="text-muted">${client.mac_address}</small>
+                </td>
+                <td class="text-xs">${client.ip_address}</td>
+                <td class="text-xs">${connectionBadge}</td>
+                <td class="text-xs">${signalBadge}</td>
+                <td class="text-xs">${client.last_seen}</td>
+            </tr>
+        `;
+        tbody.innerHTML += row;
+    });
+    
+    document.getElementById('network-clients-list').style.display = 'block';
+}
+
+// Auto-load network map on page load if data exists
+document.addEventListener('DOMContentLoaded', () => {
+    const deviceId = {{ $device->id }};
+    loadNetworkMap(deviceId);
+});
 </script>
 @endpush
