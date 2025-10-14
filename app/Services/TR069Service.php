@@ -543,4 +543,53 @@ class TR069Service
 
         return $this->generateGetParameterValuesRequest($parameters);
     }
+
+    /**
+     * Genera richiesta SOAP per ottenere lista network clients connessi (LAN + WiFi)
+     * Generate SOAP request to get connected network clients list (LAN + WiFi)
+     * 
+     * @param string $dataModel 'tr098' o 'tr181'
+     * @return string SOAP XML request
+     */
+    public function generateNetworkClientsRequest($dataModel = 'tr098')
+    {
+        if ($dataModel === 'tr181') {
+            // Device:2 data model (TR-181)
+            $parameters = [
+                'Device.Hosts.',
+                'Device.WiFi.AccessPoint.',
+            ];
+        } else {
+            // InternetGatewayDevice:1 data model (TR-098)
+            $parameters = [
+                'InternetGatewayDevice.LANDevice.1.Hosts.',
+                'InternetGatewayDevice.LANDevice.1.WLANConfiguration.',
+            ];
+        }
+
+        return $this->generateGetParameterValuesRequest($parameters);
+    }
+
+    /**
+     * Genera richiesta SOAP specifica per WiFi associated devices
+     * Generate specific SOAP request for WiFi associated devices
+     * 
+     * @param string $ssidIndex Indice SSID (es: '1', '2')
+     * @param string $dataModel 'tr098' o 'tr181'
+     * @return string SOAP XML request
+     */
+    public function generateWifiClientsRequest($ssidIndex = '1', $dataModel = 'tr098')
+    {
+        if ($dataModel === 'tr181') {
+            $parameters = [
+                "Device.WiFi.AccessPoint.{$ssidIndex}.AssociatedDevice.",
+            ];
+        } else {
+            $parameters = [
+                "InternetGatewayDevice.LANDevice.1.WLANConfiguration.{$ssidIndex}.AssociatedDevice.",
+            ];
+        }
+
+        return $this->generateGetParameterValuesRequest($parameters);
+    }
 }
