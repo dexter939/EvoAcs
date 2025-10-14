@@ -42,6 +42,12 @@ The web interface uses the Soft UI Dashboard Laravel template, providing a moder
 - **Multi-Tenant Architecture**: Supports multiple customers and services with dedicated database tables and a 3-level web hierarchy (Customers, Customer Detail, Service Detail).
 - **Device-to-Service Assignment**: Functionality for assigning single or multiple devices to specific services via the web interface.
 
+### Router Manufacturers & Products Database
+- **Router Manufacturers**: Database completo di 21 produttori di router domestici mappati con OUI Prefix (MAC Address), categorie (premium, mainstream, budget, mesh, telco, etc.), supporto protocolli TR-069/369, paese di origine
+- **Router Products**: Catalogo di 40+ modelli di router recenti (2023-2025) con specifiche tecniche, standard WiFi (WiFi 7/6E/6), velocità massima, prezzo, caratteristiche chiave, supporto mesh/gaming
+- **Search & Filters**: Ricerca avanzata per produttore, categoria, protocollo, anno, caratteristiche (gaming, mesh)
+- **Web Interface**: Pagine dedicate per visualizzare produttori, modelli, e prodotti per produttore con filtri e paginazione
+
 ## External Dependencies
 - **PostgreSQL 16+**: Primary database
 - **Redis 7+**: Queue driver for Laravel Horizon and WebSocket message routing

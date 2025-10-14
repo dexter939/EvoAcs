@@ -41,4 +41,9 @@ class RouterManufacturer extends Model
             default => 'bg-gradient-secondary'
         };
     }
+
+    public function products()
+    {
+        return $this->hasMany(RouterProduct::class, 'manufacturer_id');
+    }
 }
