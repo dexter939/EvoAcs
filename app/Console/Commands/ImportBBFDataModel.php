@@ -39,20 +39,28 @@ class ImportBBFDataModel extends Command
             'description' => 'BBF InternetGatewayDevice:1.8 Data Model - Legacy root data model for backward compatibility'
         ],
         'tr-104' => [
-            'file' => 'tr-104-2-0-0.xml',
+            'file' => 'tr-104-2-0-2-cwmp-full.xml',
             'vendor' => 'Broadband Forum',
             'model_name' => 'VoiceService:2.0',
             'protocol' => 'TR-104',
-            'spec' => 'TR-104 Issue 2',
-            'description' => 'BBF VoiceService Data Model - VoIP service provisioning parameters'
+            'spec' => 'TR-104 Issue 2 Corrigendum 2',
+            'description' => 'BBF VoiceService Data Model - VoIP service provisioning and management'
+        ],
+        'tr-140' => [
+            'file' => 'tr-140-1-3-0-full.xml',
+            'vendor' => 'Broadband Forum',
+            'model_name' => 'StorageService:1.3',
+            'protocol' => 'TR-140',
+            'spec' => 'TR-140 Amendment 3',
+            'description' => 'BBF Storage Service Data Model - NAS and file sharing parameters'
         ],
         'tr-143' => [
-            'file' => 'tr-143-1-1-0.xml',
+            'file' => 'tr-143-1-0-2-full.xml',
             'vendor' => 'Broadband Forum',
-            'model_name' => 'DownloadDiagnostics',
+            'model_name' => 'PerformanceDiagnostics:1.0.2',
             'protocol' => 'TR-143',
-            'spec' => 'TR-143 Amendment 1',
-            'description' => 'BBF Network Throughput Performance Test Data Model'
+            'spec' => 'TR-143 Corrigendum 2',
+            'description' => 'BBF Network Performance Diagnostics - Ping, Traceroute, Download, Upload tests'
         ],
     ];
 
