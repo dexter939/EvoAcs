@@ -354,4 +354,245 @@ PROMPT;
     {
         return empty($services) ? 'None specified' : implode(', ', $services);
     }
+
+    /**
+     * Analizza risultati diagnostici e propone soluzioni
+     * Analyze diagnostic results and propose solutions
+     * 
+     * @param \App\Models\DiagnosticTest $diagnosticTest
+     * @return array [analysis, issues, solutions, severity]
+     */
+    public function analyzeDiagnosticResults(\App\Models\DiagnosticTest $diagnosticTest): array
+    {
+        $prompt = $this->buildDiagnosticAnalysisPrompt($diagnosticTest);
+        
+        try {
+            $response = $this->callOpenAI($prompt, [
+                'temperature' => 0.2,
+                'max_tokens' => 2000
+            ]);
+            
+            $result = $this->parseDiagnosticAnalysisResponse($response);
+            
+            Log::info('AI Diagnostic analysis completed', [
+                'diagnostic_id' => $diagnosticTest->id,
+                'type' => $diagnosticTest->diagnostic_type,
+                'severity' => $result['severity'],
+                'issues_count' => count($result['issues'])
+            ]);
+            
+            return $result;
+            
+        } catch (\Exception $e) {
+            Log::error('AI Diagnostic analysis failed', [
+                'error' => $e->getMessage(),
+                'diagnostic_id' => $diagnosticTest->id
+            ]);
+            
+            return [
+                'analysis' => 'Analysis unavailable',
+                'issues' => [],
+                'solutions' => [],
+                'severity' => 'unknown',
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Analizza serie di test diagnostici per identificare pattern
+     * Analyze series of diagnostic tests to identify patterns
+     * 
+     * @param array $diagnosticTests Array di DiagnosticTest
+     * @return array [pattern_detected, root_cause, recommendations]
+     */
+    public function analyzeDeviceDiagnosticHistory(array $diagnosticTests): array
+    {
+        $prompt = $this->buildHistoricalAnalysisPrompt($diagnosticTests);
+        
+        try {
+            $response = $this->callOpenAI($prompt, [
+                'temperature' => 0.3,
+                'max_tokens' => 2000
+            ]);
+            
+            $result = $this->parseHistoricalAnalysisResponse($response);
+            
+            Log::info('AI Historical diagnostic analysis completed', [
+                'tests_count' => count($diagnosticTests),
+                'patterns_found' => count($result['patterns'] ?? [])
+            ]);
+            
+            return $result;
+            
+        } catch (\Exception $e) {
+            Log::error('AI Historical analysis failed', [
+                'error' => $e->getMessage()
+            ]);
+            
+            return [
+                'patterns' => [],
+                'root_cause' => null,
+                'recommendations' => [],
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Costruisce prompt per analisi diagnostica singola
+     */
+    private function buildDiagnosticAnalysisPrompt(\App\Models\DiagnosticTest $test): string
+    {
+        $type = $test->diagnostic_type;
+        $status = $test->status;
+        $params = json_encode($test->parameters, JSON_PRETTY_PRINT);
+        $results = json_encode($test->results, JSON_PRETTY_PRINT);
+        $summary = json_encode($test->getResultsSummary(), JSON_PRETTY_PRINT);
+        $deviceInfo = $test->cpeDevice ? "{$test->cpeDevice->manufacturer} {$test->cpeDevice->model} ({$test->cpeDevice->protocol_type})" : 'Unknown';
+        
+        return <<<PROMPT
+Analyze this TR-143 diagnostic test result and provide troubleshooting guidance:
+
+Device: {$deviceInfo}
+Serial Number: {$test->cpeDevice->serial_number}
+Test Type: {$type}
+Status: {$status}
+Error Message: {$test->error_message}
+
+Parameters:
+{$params}
+
+Raw Results:
+{$results}
+
+Summary:
+{$summary}
+
+As a telecom network expert, analyze this diagnostic result and provide:
+
+1. Overall assessment of the test result
+2. Identified issues or anomalies
+3. Root cause analysis
+4. Specific troubleshooting steps
+5. Recommended solutions
+6. Severity level (critical/high/medium/low/info)
+
+Consider common CPE issues:
+- Network connectivity problems (packet loss, high latency)
+- DNS resolution failures
+- ISP routing issues
+- Device configuration errors
+- WiFi interference or signal degradation
+- WAN connection instability
+- Speed test anomalies (low throughput, asymmetric speeds)
+
+Return JSON with:
+{
+  "analysis": "Overall assessment text",
+  "issues": [
+    {
+      "category": "connectivity/performance/configuration",
+      "description": "Issue description",
+      "metric": "affected metric (e.g., packet_loss, latency)",
+      "threshold_exceeded": "expected vs actual"
+    }
+  ],
+  "solutions": [
+    {
+      "priority": "high/medium/low",
+      "action": "Specific action to take",
+      "technical_detail": "TR-069 parameters or commands to use",
+      "expected_result": "What should improve"
+    }
+  ],
+  "severity": "critical/high/medium/low/info",
+  "root_cause": "Most likely root cause"
+}
+PROMPT;
+    }
+
+    /**
+     * Costruisce prompt per analisi storica
+     */
+    private function buildHistoricalAnalysisPrompt(array $tests): string
+    {
+        $testsData = array_map(function($test) {
+            return [
+                'id' => $test->id,
+                'type' => $test->diagnostic_type,
+                'status' => $test->status,
+                'date' => $test->created_at->format('Y-m-d H:i:s'),
+                'summary' => $test->getResultsSummary()
+            ];
+        }, $tests);
+        
+        $testsJson = json_encode($testsData, JSON_PRETTY_PRINT);
+        $count = count($tests);
+        
+        return <<<PROMPT
+Analyze this historical series of {$count} diagnostic tests for pattern detection:
+
+Test History:
+{$testsJson}
+
+As a telecom network expert, identify:
+
+1. Recurring issues or degradation patterns
+2. Time-based correlations (e.g., performance degrading over time)
+3. Test failure patterns
+4. Root cause hypothesis based on patterns
+5. Preventive measures
+
+Return JSON with:
+{
+  "patterns": [
+    {
+      "type": "degradation/intermittent/recurring",
+      "description": "Pattern description",
+      "affected_tests": ["test types affected"],
+      "frequency": "how often it occurs"
+    }
+  ],
+  "root_cause": "Most likely root cause based on pattern analysis",
+  "recommendations": [
+    {
+      "priority": "high/medium/low",
+      "action": "Recommended preventive action",
+      "rationale": "Why this recommendation based on patterns"
+    }
+  ],
+  "trend": "improving/stable/degrading",
+  "confidence": 0-100
+}
+PROMPT;
+    }
+
+    /**
+     * Parse diagnostic analysis response
+     */
+    private function parseDiagnosticAnalysisResponse(array $response): array
+    {
+        return [
+            'analysis' => $response['analysis'] ?? 'No analysis available',
+            'issues' => $response['issues'] ?? [],
+            'solutions' => $response['solutions'] ?? [],
+            'severity' => $response['severity'] ?? 'info',
+            'root_cause' => $response['root_cause'] ?? null
+        ];
+    }
+
+    /**
+     * Parse historical analysis response
+     */
+    private function parseHistoricalAnalysisResponse(array $response): array
+    {
+        return [
+            'patterns' => $response['patterns'] ?? [],
+            'root_cause' => $response['root_cause'] ?? null,
+            'recommendations' => $response['recommendations'] ?? [],
+            'trend' => $response['trend'] ?? 'stable',
+            'confidence' => $response['confidence'] ?? 50
+        ];
+    }
 }
