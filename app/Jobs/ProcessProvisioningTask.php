@@ -130,6 +130,41 @@ class ProcessProvisioningTask implements ShouldQueue
                     $fileSize = $this->task->task_data['file_size'] ?? 0;
                     $soapRequest = $tr069Service->generateDownloadRequest($url, $fileType, $fileSize);
                     break;
+
+                case 'diagnostic':
+                    $diagnosticType = $this->task->task_data['diagnostic_type'] ?? '';
+                    
+                    switch ($diagnosticType) {
+                        case 'IPPing':
+                            $host = $this->task->task_data['host'] ?? '';
+                            $count = $this->task->task_data['count'] ?? 4;
+                            $timeout = $this->task->task_data['timeout'] ?? 1000;
+                            $packetSize = $this->task->task_data['packet_size'] ?? 64;
+                            $soapRequest = $tr069Service->generateIPPingDiagnosticsRequest($host, $count, $timeout, $packetSize);
+                            break;
+                        
+                        case 'TraceRoute':
+                            $host = $this->task->task_data['host'] ?? '';
+                            $numberOfTries = $this->task->task_data['number_of_tries'] ?? 3;
+                            $timeout = $this->task->task_data['timeout'] ?? 5000;
+                            $dataBlockSize = $this->task->task_data['data_block_size'] ?? 38;
+                            $maxHops = $this->task->task_data['max_hops'] ?? 30;
+                            $soapRequest = $tr069Service->generateTraceRouteDiagnosticsRequest($host, $numberOfTries, $timeout, $dataBlockSize, $maxHops);
+                            break;
+                        
+                        case 'DownloadDiagnostics':
+                            $url = $this->task->task_data['download_url'] ?? '';
+                            $testFileSize = $this->task->task_data['test_file_size'] ?? 0;
+                            $soapRequest = $tr069Service->generateDownloadDiagnosticsRequest($url, $testFileSize);
+                            break;
+                        
+                        case 'UploadDiagnostics':
+                            $url = $this->task->task_data['upload_url'] ?? '';
+                            $testFileSize = $this->task->task_data['test_file_size'] ?? 1048576;
+                            $soapRequest = $tr069Service->generateUploadDiagnosticsRequest($url, $testFileSize);
+                            break;
+                    }
+                    break;
             }
 
             // Invia richiesta SOAP al dispositivo se generata
@@ -172,6 +207,18 @@ class ProcessProvisioningTask implements ShouldQueue
                     }
                 }
 
+                // Se task diagnostico, aggiorna DiagnosticTest come in_progress
+                // If diagnostic task, update DiagnosticTest as in_progress
+                if ($this->task->task_type === 'diagnostic' && isset($this->task->task_data['diagnostic_id'])) {
+                    $diagnostic = \App\Models\DiagnosticTest::find($this->task->task_data['diagnostic_id']);
+                    if ($diagnostic) {
+                        $diagnostic->update([
+                            'status' => 'in_progress',
+                            'started_at' => now()
+                        ]);
+                    }
+                }
+
                 Log::info('Provisioning task completed', [
                     'task_id' => $this->task->id,
                     'device_id' => $device->id,
@@ -199,6 +246,19 @@ class ProcessProvisioningTask implements ShouldQueue
                     $deployment = \App\Models\FirmwareDeployment::find($this->task->task_data['deployment_id']);
                     if ($deployment) {
                         $deployment->update([
+                            'status' => 'failed',
+                            'error_message' => $e->getMessage(),
+                            'completed_at' => now()
+                        ]);
+                    }
+                }
+                
+                // Aggiorna anche diagnostic test se fallito
+                // Also update diagnostic test if failed
+                if ($this->task->task_type === 'diagnostic' && isset($this->task->task_data['diagnostic_id'])) {
+                    $diagnostic = \App\Models\DiagnosticTest::find($this->task->task_data['diagnostic_id']);
+                    if ($diagnostic) {
+                        $diagnostic->update([
                             'status' => 'failed',
                             'error_message' => $e->getMessage(),
                             'completed_at' => now()
