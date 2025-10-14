@@ -41,6 +41,9 @@ The web interface uses the Soft UI Dashboard Laravel template, providing a moder
 - **AI Diagnostic Troubleshooting**: OpenAI-powered analysis of TR-143 diagnostic test results with automatic issue detection, severity classification (critical/warning/info), root cause analysis, and actionable solution recommendations. Includes historical pattern analysis across multiple tests to identify recurring issues and performance degradation trends.
 - **Multi-Tenant Architecture**: Supports multiple customers and services with dedicated database tables and a 3-level web hierarchy (Customers, Customer Detail, Service Detail).
 - **Device-to-Service Assignment**: Functionality for assigning single or multiple devices to specific services via the web interface.
+- **TR-069 Data Model Import System**: Automated XML parser for importing vendor-specific data models (TR-098, TR-104, TR-140, etc.) with 886 parameters imported from AVM FRITZ!Box 7.25 including objects, parameters, types, access modes, and validation rules.
+- **Configuration Templates System**: Pre-built templates for WiFi, VoIP, Storage with template-level validation rules (required, integer, between, min, max, in, regex) stored in database for reusable device configurations.
+- **Parameter Validation Service**: Comprehensive validation engine supporting data model schema validation, template-specific business rules enforcement, indexed parameter paths ({i} notation), and FILTER_VALIDATE_INT for strict type checking.
 
 ### Router Manufacturers & Products Database
 - **Unified Hierarchical View**: Pagina `/acs/manufacturers` con struttura gerarchica integrata - produttori in card collapsibili che espandono per mostrare i modelli
@@ -49,6 +52,12 @@ The web interface uses the Soft UI Dashboard Laravel template, providing a moder
 - **Statistics Cards**: 6 card con totale produttori, modelli, WiFi 7, TR-069, TR-369, paesi
 - **Dual-Level Filtering**: Filtri produttori (ricerca, categoria, TR-069/369) + filtri modelli (WiFi standard, anno, gaming, mesh) con query ottimizzate eager loading
 - **Bootstrap Accordion UI**: Card espandibili per ogni produttore con tabella inline dei prodotti filtrati, badge count dinamici
+
+### TR-069 Data Model Management
+- **Data Models Page**: Pagina `/acs/data-models` con statistiche (3 data models, 886 parametri totali, 94 oggetti, 792 parametri), filtri per protocollo (TR-098/104/140) e vendor, tabella con dettagli importazione e modal AJAX per visualizzazione parametri
+- **Import Command**: Comando artisan `tr069:import-datamodel` per parsing XML vendor-specific con supporto namespace, estrazione automatica protocollo, validation_rules JSON (size, pattern, range)
+- **Template Validation**: Comando artisan `template:validate` per verifica configurazioni con output colorato (errors/warnings/success), detection parametri read-only, enforcement regole business-level
+- **Database Schema**: Tabelle `tr069_data_models` (vendor, model, firmware, protocol) e `tr069_parameters` (path, name, type, access, is_object, validation_rules, default_value) con indici ottimizzati
 
 ## External Dependencies
 - **PostgreSQL 16+**: Primary database
