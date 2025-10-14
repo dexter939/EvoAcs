@@ -329,4 +329,15 @@ class CpeDevice extends Model
     {
         return $this->hasMany(StbService::class);
     }
+
+    /**
+     * Relazione con network clients connessi (LAN/WiFi)
+     * Relationship with connected network clients (LAN/WiFi)
+     * 
+     * @return HasMany
+     */
+    public function networkClients(): HasMany
+    {
+        return $this->hasMany(NetworkClient::class, 'device_id');
+    }
 }
