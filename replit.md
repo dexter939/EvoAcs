@@ -1,7 +1,7 @@
 # Sistema ACS (Auto Configuration Server)
 
 ## Overview
-The ACS (Auto Configuration Server) project is a carrier-grade system built with Laravel 11, designed to manage over 100,000 CPE (Customer Premises Equipment) devices. It supports a comprehensive suite of protocols including TR-069 (CWMP), TR-369 (USP), TR-104 (VoIP), TR-140 (Storage), TR-143 (Diagnostics), TR-111 (Device Modeling), TR-64 (LAN-Side Configuration), TR-181 (IoT Extension), TR-196 (Femtocell), and TR-135 (STB/IPTV). Its core functionalities include device auto-registration, zero-touch provisioning, firmware management, and advanced remote diagnostics. The business vision is to deliver a highly scalable and performant solution for large-scale device management in telecommunication environments.
+The ACS (Auto Configuration Server) project is a carrier-grade system built with Laravel 11, designed to manage over 100,000 CPE (Customer Premises Equipment) devices. It supports a comprehensive suite of protocols including TR-069 (CWMP), TR-369 (USP), TR-104, TR-140, TR-143, TR-111, TR-64, TR-181, TR-196, and TR-135. Its core functionalities include device auto-registration, zero-touch provisioning, firmware management, and advanced remote diagnostics. The business vision is to deliver a highly scalable and performant solution for large-scale device management in telecommunication environments. This includes AI-powered configuration and diagnostic troubleshooting capabilities.
 
 ## User Preferences
 I prefer clear and concise explanations. When making changes, prioritize core functionalities and ensure backward compatibility. I prefer an iterative development approach, focusing on delivering functional components incrementally. Please ask for confirmation before implementing significant architectural changes or altering existing API contracts. Ensure all new features have comprehensive test coverage. I want the agent to use proper markdown formatting in all its responses.
@@ -9,76 +9,38 @@ I prefer clear and concise explanations. When making changes, prioritize core fu
 ## System Architecture
 
 ### UI/UX Decisions
-The web interface uses the Soft UI Dashboard Laravel template, providing a modern, responsive design with navigation and real-time statistics. It includes 12 statistics cards and 4 interactive Chart.js visualizations. Device management features filtering, pagination, and modal forms for CRUD operations. The dashboard auto-refreshes every 30 seconds.
+The web interface uses the Soft UI Dashboard Laravel template, providing a modern, responsive design with navigation, real-time statistics, and interactive Chart.js visualizations. It includes features like filtering, pagination, and modal forms for CRUD operations on devices. The dashboard auto-refreshes every 30 seconds.
 
 ### Technical Implementations
-- **TR-069 (CWMP) Server**: Dedicated `/tr069` SOAP endpoint with stateful, cookie-based sessions, using DOMDocument for XML parsing.
-- **TR-369 (USP) Support**: Implements Protocol Buffers, supporting MQTT, WebSocket, and HTTP as MTPs for USP message operations and auto-registration.
-- **TR-104 (VoIP) Support**: Full VoIP service provisioning.
-- **TR-140 (Storage) Support**: Complete NAS/storage service management.
-- **TR-143 (Diagnostics) Support**: Comprehensive remote diagnostics suite including IPPing, TraceRoute, Download/Upload Diagnostics, and UDPEcho tests.
-- **TR-111 (Device Modeling) Support**: Complete device capability discovery with GetParameterNames parsing.
-- **TR-64 (LAN-Side Configuration) Support**: UPnP/SSDP-based LAN device discovery and SOAP service invocation.
-- **TR-181 (IoT Extension) Support**: Smart home device management supporting ZigBee, Z-Wave, WiFi, BLE, Matter, and Thread protocols.
-- **TR-196 (Femtocell) Support**: Full femtocell RF management with GPS location tracking and frequency configuration.
-- **TR-135 (STB/IPTV) Support**: Set-Top Box provisioning.
-- **Database**: PostgreSQL with optimized indexes, supporting multi-tenancy.
-- **Asynchronous Queue System**: Laravel Horizon with Redis queues for provisioning, firmware deployment, and TR-069 requests.
-- **API Security**: All API v1 endpoints are protected using API Key authentication.
-- **RESTful API (v1)**: Provides authenticated endpoints for device management, provisioning, firmware, and various TR protocol operations.
-- **Web Interface**: Accessible via `/acs/*` for dashboard, device management, and configuration.
+- **Protocol Support**: Implements TR-069 (CWMP) via a dedicated SOAP endpoint, TR-369 (USP) with Protocol Buffers over MQTT/WebSocket/HTTP, and full provisioning/management for TR-104 (VoIP), TR-140 (Storage), TR-143 (Diagnostics), TR-111 (Device Modeling), TR-64 (LAN-Side), TR-181 (IoT), TR-196 (Femtocell), and TR-135 (STB/IPTV).
+- **Database**: PostgreSQL with optimized indexing and multi-tenancy support.
+- **Asynchronous Processing**: Laravel Horizon with Redis queues for provisioning, firmware deployment, and TR-069 requests.
+- **API Security**: API Key authentication for all v1 RESTful API endpoints.
 - **Scalability**: Achieved through database optimizations and a high-throughput queue system.
-- **Configuration**: Uses Laravel environment variables for all settings.
+- **Configuration**: Uses Laravel environment variables.
 
 ### Feature Specifications
-- **Auto-registration**: Devices automatically identified via Serial Number, OUI, and Product Class.
-- **Zero-touch Provisioning**: Automated device setup using configuration profiles.
-- **Firmware Management**: Uploading, versioning, and deploying firmware.
-- **TR-181 Data Model**: Parameters stored with type, path, writable/readonly status, and last updates.
-- **Connection Request**: System-initiated connection requests to devices.
-- **TR-369 Subscription/Notification**: Full event subscription system for device notifications via API and Web UI.
-- **AI-Powered Configuration**: Integration with OpenAI for intelligent generation, validation, and optimization of TR-069/TR-369 configuration templates.
-- **AI Diagnostic Troubleshooting**: OpenAI-powered analysis of TR-143 diagnostic test results with automatic issue detection, severity classification (critical/warning/info), root cause analysis, and actionable solution recommendations. Includes historical pattern analysis across multiple tests to identify recurring issues and performance degradation trends.
-- **Multi-Tenant Architecture**: Supports multiple customers and services with dedicated database tables and a 3-level web hierarchy (Customers, Customer Detail, Service Detail).
-- **Device-to-Service Assignment**: Functionality for assigning single or multiple devices to specific services via the web interface.
-- **TR-069 Data Model Import System**: Automated XML parser for importing vendor-specific data models (TR-098, TR-104, TR-140, etc.) with 886 parameters imported from AVM FRITZ!Box 7.25 including objects, parameters, types, access modes, and validation rules.
-- **Configuration Templates System**: Pre-built templates for WiFi, VoIP, Storage with template-level validation rules (required, integer, between, min, max, in, regex) stored in database for reusable device configurations.
-- **Parameter Validation Service**: Comprehensive validation engine supporting data model schema validation, template-specific business rules enforcement, indexed parameter paths ({i} notation), and FILTER_VALIDATE_INT for strict type checking.
-
-### Router Manufacturers & Products Database
-- **Unified Hierarchical View**: Pagina `/acs/manufacturers` con struttura gerarchica integrata - produttori in card collapsibili che espandono per mostrare i modelli
-- **Router Manufacturers**: 21 produttori di router domestici con OUI Prefix, categorie (premium, mainstream, budget, mesh, telco), supporto TR-069/369, paese di origine
-- **Router Products**: 40 modelli (2023-2025) con WiFi 7/6E/6, velocità, prezzo, caratteristiche gaming/mesh organizzati per produttore
-- **Statistics Cards**: 6 card con totale produttori, modelli, WiFi 7, TR-069, TR-369, paesi
-- **Dual-Level Filtering**: Filtri produttori (ricerca, categoria, TR-069/369) + filtri modelli (WiFi standard, anno, gaming, mesh) con query ottimizzate eager loading
-- **Bootstrap Accordion UI**: Card espandibili per ogni produttore con tabella inline dei prodotti filtrati, badge count dinamici
-
-### TR-069 Data Model Management
-- **Data Models Page**: Pagina `/acs/data-models` con statistiche (3 data models, 886 parametri totali, 94 oggetti, 792 parametri), filtri per protocollo (TR-098/104/140) e vendor, tabella con dettagli importazione e modal AJAX per visualizzazione parametri
-- **Import Command**: Comando artisan `tr069:import-datamodel` per parsing XML vendor-specific con supporto namespace, estrazione automatica protocollo, validation_rules JSON (size, pattern, range)
-- **Template Validation**: Comando artisan `template:validate` per verifica configurazioni con output colorato (errors/warnings/success), detection parametri read-only, enforcement regole business-level
-- **Database Schema**: Tabelle `tr069_data_models` (vendor, model, firmware, protocol) e `tr069_parameters` (path, name, type, access, is_object, validation_rules, default_value) con indici ottimizzati
-
-### TR-143 Diagnostics UI & Workflow
-- **Device Diagnostic UI**: Pagina dettaglio dispositivo (`/acs/devices/{id}`) include sezione "Remote Diagnostics (TR-143)" con 4 pulsanti per lanciare test (Ping, Traceroute, Download, Upload)
-- **Dynamic Modal Forms**: Modal AJAX con form specifici per ogni tipo di test (IPPing richiede host/count/timeout, TraceRoute host/maxHops, Download/Upload URL/testFile con opzioni advanced)
-- **TR-143 Standard Nomenclature**: Sistema usa nomenclatura ufficiale TR-143 per diagnostic_type enum (IPPing, TraceRoute, DownloadDiagnostics, UploadDiagnostics, UDPEcho) sia in database che in dashboard stats
-- **Diagnostic Type Mapping**: Controller mappa nomi user-friendly (ping, traceroute, download, upload) ai nomi TR-143 standard tramite diagnosticTypeMap array
-- **Periodic Inform Workflow (NAT Devices)**: Per dispositivi dietro NAT non raggiungibili via Connection Request, i comandi diagnostici vengono inviati durante Periodic Inform (60s interval) - ProcessProvisioningTask skippa Connection Request mantenendo task 'pending', TR069Controller.queueTaskCommands() accoda comandi Diagnostic_{Type} durante handleInform(), generateSessionResponse() invia richieste SOAP diagnostiche
-- **Queue Worker Background Processing**: Workflow Laravel queue:work sempre attivo per processare job asincroni (provisioning, firmware, diagnostici) con database driver (PostgreSQL jobs table), 3 retry automatici, 120s timeout
-- **Results Visualization**: Pagina `/acs/diagnostics` con filtri per tipo/stato, tabella test con risultati JSON parsed tramite getResultsSummary() model method
-- **NAT Traversal Roadmap**: Pianificata implementazione XMPP (TR-069 Annex K) per Connection Request immediati e affidabili - soluzione enterprise-grade con TCP persistente, supporto tutti i tipi di NAT, messaging sicuro via server XMPP (ejabberd/Prosody)
+- **Device Management**: Auto-registration (via Serial Number, OUI, Product Class), zero-touch provisioning with configuration profiles, and comprehensive firmware management (upload, versioning, deployment).
+- **TR-181 Data Model**: Parameters stored with type, path, access, and update history.
+- **Connection Management**: System-initiated connection requests and TR-369 subscription/notification for device events.
+- **AI Integration**: OpenAI is used for intelligent generation, validation, and optimization of TR-069/TR-369 configuration templates, and for AI Diagnostic Troubleshooting including issue detection, root cause analysis, and solution recommendations based on TR-143 test results.
+- **Multi-Tenant Architecture**: Supports multiple customers and services with a 3-level web hierarchy.
+- **Data Model Import**: Automated XML parser for importing vendor-specific TR-069 data models (e.g., TR-098, TR-104, TR-140), including validation rules.
+- **Configuration Templates**: Database-driven templates for WiFi, VoIP, Storage with integrated validation rules.
+- **Parameter Validation**: Comprehensive validation engine supporting data model schema, template-specific business rules, indexed paths, and strict type checking.
+- **Router Manufacturers & Products Database**: Hierarchical view of 21 manufacturers and 40 router models with detailed specifications and filtering capabilities.
+- **TR-143 Diagnostics**: UI and workflow for Ping, Traceroute, Download, and Upload tests, supporting NAT traversal via Periodic Inform for un-reachable devices. Results are visualized with summaries and historical patterns.
 
 ## External Dependencies
-- **PostgreSQL 16+**: Primary database
-- **Redis 7+**: Queue driver for Laravel Horizon and WebSocket message routing
-- **Laravel Horizon**: Manages and monitors Redis queues
-- **Guzzle**: HTTP client for TR-069 Connection Requests
-- **Google Protocol Buffers**: v4.32.1 for TR-369 USP message encoding/decoding
-- **PHP-MQTT Client**: v1.6.1 for USP broker-based transport
-- **Soft UI Dashboard**: Laravel template for the web interface
-- **Chart.js**: JavaScript charting library
-- **FontAwesome**: Icon library
-- **Nginx**: Reverse proxy and web server (production)
-- **Supervisor/Systemd**: Process management (production)
-- **OpenAI**: For AI-powered configuration template generation, validation, and optimization.
+- **PostgreSQL 16+**: Primary relational database.
+- **Redis 7+**: Used as the queue driver for Laravel Horizon and for WebSocket message routing.
+- **Laravel Horizon**: Manages and monitors Redis queues for background processing.
+- **Guzzle**: HTTP client for making TR-069 Connection Requests.
+- **Google Protocol Buffers v4.32.1**: For TR-369 USP message encoding/decoding.
+- **PHP-MQTT Client v1.6.1**: For USP broker-based transport.
+- **Soft UI Dashboard**: Laravel template used for the administrative web interface.
+- **Chart.js**: JavaScript library for rendering interactive charts in the UI.
+- **FontAwesome**: Icon library for the web interface.
+- **Nginx**: Production web server and reverse proxy.
+- **Supervisor/Systemd**: Process management for production environments.
+- **OpenAI**: Integrated for AI-powered configuration management and diagnostic analysis.
