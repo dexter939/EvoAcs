@@ -38,6 +38,7 @@ The web interface uses the Soft UI Dashboard Laravel template, providing a moder
 - **Connection Request**: System-initiated connection requests to devices.
 - **TR-369 Subscription/Notification**: Full event subscription system for device notifications via API and Web UI.
 - **AI-Powered Configuration**: Integration with OpenAI for intelligent generation, validation, and optimization of TR-069/TR-369 configuration templates.
+- **AI Diagnostic Troubleshooting**: OpenAI-powered analysis of TR-143 diagnostic test results with automatic issue detection, severity classification (critical/warning/info), root cause analysis, and actionable solution recommendations. Includes historical pattern analysis across multiple tests to identify recurring issues and performance degradation trends.
 - **Multi-Tenant Architecture**: Supports multiple customers and services with dedicated database tables and a 3-level web hierarchy (Customers, Customer Detail, Service Detail).
 - **Device-to-Service Assignment**: Functionality for assigning single or multiple devices to specific services via the web interface.
 
