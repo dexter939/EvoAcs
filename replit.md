@@ -64,6 +64,8 @@ The web interface uses the Soft UI Dashboard Laravel template, providing a moder
 - **Dynamic Modal Forms**: Modal AJAX con form specifici per ogni tipo di test (IPPing richiede host/count/timeout, TraceRoute host/maxHops, Download/Upload URL/testFile con opzioni advanced)
 - **TR-143 Standard Nomenclature**: Sistema usa nomenclatura ufficiale TR-143 per diagnostic_type enum (IPPing, TraceRoute, DownloadDiagnostics, UploadDiagnostics, UDPEcho) sia in database che in dashboard stats
 - **Diagnostic Type Mapping**: Controller mappa nomi user-friendly (ping, traceroute, download, upload) ai nomi TR-143 standard tramite diagnosticTypeMap array
+- **Periodic Inform Workflow (NAT Devices)**: Per dispositivi dietro NAT non raggiungibili via Connection Request, i comandi diagnostici vengono inviati durante Periodic Inform (60s interval) - ProcessProvisioningTask skippa Connection Request mantenendo task 'pending', TR069Controller.queueTaskCommands() accoda comandi Diagnostic_{Type} durante handleInform(), generateSessionResponse() invia richieste SOAP diagnostiche
+- **Queue Worker Background Processing**: Workflow Laravel queue:work sempre attivo per processare job asincroni (provisioning, firmware, diagnostici) con database driver (PostgreSQL jobs table), 3 retry automatici, 120s timeout
 - **Results Visualization**: Pagina `/acs/diagnostics` con filtri per tipo/stato, tabella test con risultati JSON parsed tramite getResultsSummary() model method
 
 ## External Dependencies
