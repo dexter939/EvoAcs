@@ -151,7 +151,7 @@ class AcsController extends Controller
      */
     public function devices(Request $request)
     {
-        $query = CpeDevice::with(['configurationProfile', 'service.customer']);
+        $query = CpeDevice::with(['configurationProfile', 'service.customer', 'dataModel']);
         
         // Filter by protocol type
         if ($request->has('protocol') && $request->protocol !== 'all') {

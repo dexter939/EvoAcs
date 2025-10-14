@@ -67,6 +67,7 @@
                                 <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Protocollo</th>
                                 <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Stato</th>
                                 <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Servizio</th>
+                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Data Model</th>
                                 <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">IP Address</th>
                                 <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Ultimo Contatto</th>
                                 <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Azioni</th>
@@ -116,6 +117,28 @@
                                         <i class="fas fa-link text-xs"></i>
                                     </button>
                                 </td>
+                                <td>
+                                    @if($device->dataModel)
+                                        <div class="d-flex align-items-center">
+                                            <span class="badge badge-sm bg-gradient-{{ 
+                                                $device->dataModel->protocol_version == 'TR-181' || $device->dataModel->protocol_version == 'TR-181 Issue 2' ? 'info' : 
+                                                ($device->dataModel->protocol_version == 'TR-098' ? 'primary' : 
+                                                ($device->dataModel->protocol_version == 'TR-104' ? 'success' : 
+                                                ($device->dataModel->protocol_version == 'TR-143' ? 'secondary' : 'warning')))
+                                            }}" title="{{ $device->dataModel->spec_name }}">
+                                                {{ $device->dataModel->protocol_version }}
+                                            </span>
+                                            <span class="text-xxs text-secondary ms-2" title="{{ $device->dataModel->spec_name }}">
+                                                {{ $device->dataModel->vendor === 'Broadband Forum' ? 'BBF' : $device->dataModel->vendor }}
+                                            </span>
+                                        </div>
+                                        <p class="text-xxs text-secondary mb-0">{{ $device->dataModel->model_name }}</p>
+                                    @else
+                                        <span class="text-xs text-warning">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>Auto-map
+                                        </span>
+                                    @endif
+                                </td>
                                 <td class="align-middle text-center text-sm">
                                     <span class="text-secondary text-xs font-weight-bold">{{ $device->ip_address ?? 'N/A' }}</span>
                                 </td>
@@ -144,7 +167,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="7" class="text-center text-sm text-muted py-4">
+                                <td colspan="8" class="text-center text-sm text-muted py-4">
                                     Nessun dispositivo registrato. I dispositivi si registreranno automaticamente al primo Inform TR-069 o USP Record TR-369.
                                 </td>
                             </tr>
