@@ -41,7 +41,7 @@ class ProcessNetworkScan implements ShouldQueue
 
         // Crea provisioning task per network scan
         $task = ProvisioningTask::create([
-            'device_id' => $device->id,
+            'cpe_device_id' => $device->id,
             'task_type' => 'network_scan',
             'status' => 'pending',
             'task_data' => json_encode([
@@ -58,6 +58,6 @@ class ProcessNetworkScan implements ShouldQueue
         ]);
 
         // Delega a ProcessProvisioningTask per esecuzione
-        ProcessProvisioningTask::dispatch($task->id);
+        ProcessProvisioningTask::dispatch($task);
     }
 }
