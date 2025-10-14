@@ -59,6 +59,13 @@ The web interface uses the Soft UI Dashboard Laravel template, providing a moder
 - **Template Validation**: Comando artisan `template:validate` per verifica configurazioni con output colorato (errors/warnings/success), detection parametri read-only, enforcement regole business-level
 - **Database Schema**: Tabelle `tr069_data_models` (vendor, model, firmware, protocol) e `tr069_parameters` (path, name, type, access, is_object, validation_rules, default_value) con indici ottimizzati
 
+### TR-143 Diagnostics UI & Workflow
+- **Device Diagnostic UI**: Pagina dettaglio dispositivo (`/acs/devices/{id}`) include sezione "Remote Diagnostics (TR-143)" con 4 pulsanti per lanciare test (Ping, Traceroute, Download, Upload)
+- **Dynamic Modal Forms**: Modal AJAX con form specifici per ogni tipo di test (IPPing richiede host/count/timeout, TraceRoute host/maxHops, Download/Upload URL/testFile con opzioni advanced)
+- **TR-143 Standard Nomenclature**: Sistema usa nomenclatura ufficiale TR-143 per diagnostic_type enum (IPPing, TraceRoute, DownloadDiagnostics, UploadDiagnostics, UDPEcho) sia in database che in dashboard stats
+- **Diagnostic Type Mapping**: Controller mappa nomi user-friendly (ping, traceroute, download, upload) ai nomi TR-143 standard tramite diagnosticTypeMap array
+- **Results Visualization**: Pagina `/acs/diagnostics` con filtri per tipo/stato, tabella test con risultati JSON parsed tramite getResultsSummary() model method
+
 ## External Dependencies
 - **PostgreSQL 16+**: Primary database
 - **Redis 7+**: Queue driver for Laravel Horizon and WebSocket message routing
