@@ -96,16 +96,7 @@
                     <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
                         <i class="fas fa-industry text-info text-sm opacity-10"></i>
                     </div>
-                    <span class="nav-link-text ms-1">Produttori Router</span>
-                </a>
-            </li>
-            
-            <li class="nav-item">
-                <a class="nav-link {{ Request::is('acs/products*') ? 'active' : '' }}" href="{{ route('acs.products') }}">
-                    <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
-                        <i class="fas fa-box text-success text-sm opacity-10"></i>
-                    </div>
-                    <span class="nav-link-text ms-1">Modelli Router</span>
+                    <span class="nav-link-text ms-1">Produttori & Modelli</span>
                 </a>
             </li>
             
