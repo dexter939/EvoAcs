@@ -14,7 +14,13 @@ class DataModelController extends Controller
         
         $query = DB::table('tr069_data_models as dm')
             ->select(
-                'dm.*',
+                'dm.id',
+                'dm.vendor',
+                'dm.model_name',
+                'dm.firmware_version',
+                'dm.protocol_version',
+                'dm.created_at',
+                'dm.updated_at',
                 DB::raw('COUNT(CASE WHEN p.is_object = true THEN 1 END) as objects_count'),
                 DB::raw('COUNT(CASE WHEN p.is_object = false THEN 1 END) as parameters_count'),
                 DB::raw('COUNT(p.id) as total_count')

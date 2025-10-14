@@ -6,20 +6,25 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('configuration_templates', function (Blueprint $table) {
             $table->id();
+            $table->string('name');
+            $table->string('vendor')->nullable();
+            $table->string('model')->nullable();
+            $table->string('protocol_version');
+            $table->text('description')->nullable();
+            $table->json('parameters');
+            $table->json('validation_rules')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->foreignId('data_model_id')->nullable()->constrained('tr069_data_models')->onDelete('cascade');
             $table->timestamps();
+            
+            $table->index(['vendor', 'model', 'protocol_version']);
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('configuration_templates');
