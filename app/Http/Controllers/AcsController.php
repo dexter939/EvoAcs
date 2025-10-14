@@ -986,57 +986,6 @@ class AcsController extends Controller
     }
     
     /**
-     * Router Products - Lista tutti i prodotti
-     */
-    public function products(Request $request)
-    {
-        $query = \App\Models\RouterProduct::with('manufacturer');
-        
-        if ($request->filled('manufacturer_id')) {
-            $query->where('manufacturer_id', $request->manufacturer_id);
-        }
-        
-        if ($request->filled('wifi')) {
-            $query->where('wifi_standard', $request->wifi);
-        }
-        
-        if ($request->filled('year')) {
-            $query->where('release_year', $request->year);
-        }
-        
-        if ($request->filled('gaming')) {
-            $query->where('gaming_features', true);
-        }
-        
-        if ($request->filled('mesh')) {
-            $query->where('mesh_support', true);
-        }
-        
-        if ($request->filled('search')) {
-            $query->where(function($q) use ($request) {
-                $q->where('model_name', 'ilike', '%' . $request->search . '%')
-                  ->orWhere('product_line', 'ilike', '%' . $request->search . '%')
-                  ->orWhere('key_features', 'ilike', '%' . $request->search . '%');
-            });
-        }
-        
-        $products = $query->orderBy('release_year', 'desc')->orderBy('model_name')->paginate(30);
-        
-        $manufacturers = \App\Models\RouterManufacturer::orderBy('name')->get();
-        $wifiStandards = \App\Models\RouterProduct::select('wifi_standard')->distinct()->whereNotNull('wifi_standard')->pluck('wifi_standard');
-        $years = \App\Models\RouterProduct::select('release_year')->distinct()->whereNotNull('release_year')->orderBy('release_year', 'desc')->pluck('release_year');
-        
-        $stats = [
-            'total' => \App\Models\RouterProduct::count(),
-            'wifi7' => \App\Models\RouterProduct::where('wifi_standard', 'WiFi 7')->count(),
-            'gaming' => \App\Models\RouterProduct::where('gaming_features', true)->count(),
-            'mesh' => \App\Models\RouterProduct::where('mesh_support', true)->count()
-        ];
-        
-        return view('acs.products', compact('products', 'manufacturers', 'wifiStandards', 'years', 'stats'));
-    }
-    
-    /**
      * Router Products - Lista prodotti per produttore
      */
     public function manufacturerProducts($id)
