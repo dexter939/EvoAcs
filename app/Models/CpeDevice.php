@@ -113,6 +113,17 @@ class CpeDevice extends Model
     }
 
     /**
+     * Relazione con Data Model TR-069/369
+     * Relationship with TR-069/369 Data Model
+     * 
+     * @return BelongsTo
+     */
+    public function dataModel(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\TR069DataModel::class, 'data_model_id');
+    }
+
+    /**
      * Relazione con parametri TR-181 del dispositivo
      * Relationship with device TR-181 parameters
      * 

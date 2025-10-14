@@ -7,6 +7,7 @@ use App\Models\CpeDevice;
 use App\Models\ProvisioningTask;
 use App\Services\TR069SessionManager;
 use App\Services\TR069Service;
+use App\Services\DataModelMatcher;
 use Carbon\Carbon;
 
 /**
@@ -177,6 +178,38 @@ class TR069Controller extends Controller
             );
             
             \Log::info('Device registered/updated', ['serial' => $serialNumber, 'id' => $device->id]);
+            
+            // AUTO-MAPPING DATA MODEL: Se il dispositivo non ha un data model assegnato,
+            // trova automaticamente il data model più appropriato
+            // AUTO-MAPPING DATA MODEL: If device has no data model assigned,
+            // automatically find the most appropriate data model
+            if (!$device->data_model_id) {
+                $dataModelMatcher = new DataModelMatcher();
+                $assignedDataModelId = $dataModelMatcher->autoMapDevice(
+                    $device->id,
+                    $manufacturer,
+                    $productClass,
+                    $productClass,
+                    $softwareVersion,
+                    $oui
+                );
+                
+                if ($assignedDataModelId) {
+                    $device->refresh();
+                    \Log::info('Data model auto-mapped to device', [
+                        'device_id' => $device->id,
+                        'data_model_id' => $assignedDataModelId,
+                        'manufacturer' => $manufacturer,
+                        'model' => $productClass
+                    ]);
+                } else {
+                    \Log::warning('Data model auto-mapping failed', [
+                        'device_id' => $device->id,
+                        'manufacturer' => $manufacturer,
+                        'model' => $productClass
+                    ]);
+                }
+            }
             
             // Salva parametri dell'Inform in device_parameters
             // Save Inform parameters to device_parameters
