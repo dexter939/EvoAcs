@@ -230,7 +230,7 @@ class ParameterValidationService
             $value = $parameters[$paramPath];
             
             foreach ($rules as $rule) {
-                if ($rule === 'required' && (empty($value) && $value !== 0)) {
+                if ($rule === 'required' && (!isset($value) || $value === '' || $value === null)) {
                     $errors[] = [
                         'parameter' => $paramPath,
                         'error' => "Template rule violation: {$paramKey} is required",
@@ -239,10 +239,10 @@ class ParameterValidationService
                     ];
                 }
                 
-                if ($rule === 'integer' && !is_numeric($value)) {
+                if ($rule === 'integer' && filter_var($value, FILTER_VALIDATE_INT) === false && $value !== 0) {
                     $errors[] = [
                         'parameter' => $paramPath,
-                        'error' => "Template rule violation: {$paramKey} must be an integer",
+                        'error' => "Template rule violation: {$paramKey} must be an integer (got {$value})",
                         'severity' => 'error',
                         'rule_type' => 'template'
                     ];
