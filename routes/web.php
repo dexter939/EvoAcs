@@ -39,6 +39,8 @@ Route::prefix('acs')->name('acs.')->group(function () {
     Route::post('/devices/{id}/connection-request', [AcsController::class, 'connectionRequest'])->name('devices.connection-request');
     Route::post('/devices/{id}/diagnostics/{type}', [AcsController::class, 'runDiagnostic'])->name('devices.diagnostic');
     Route::get('/diagnostics/{id}/results', [AcsController::class, 'getDiagnosticResults'])->name('diagnostics.results');
+    Route::get('/devices/{id}/network-map', [AcsController::class, 'networkMap'])->name('devices.network-map');
+    Route::post('/devices/{id}/trigger-network-scan', [AcsController::class, 'triggerNetworkScan'])->name('devices.trigger-network-scan');
     Route::post('/devices/{id}/assign-service', [AcsController::class, 'assignDeviceToService'])->name('devices.assign-service');
     
     // USP Event Subscriptions

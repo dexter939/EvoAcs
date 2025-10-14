@@ -1528,4 +1528,84 @@ class AcsController extends Controller
             'devices_count' => $updatedCount,
         ]);
     }
+
+    /**
+     * Get network topology map data (connected clients LAN/WiFi)
+     * Ottieni dati mappa topologia rete (client connessi LAN/WiFi)
+     * 
+     * @param int $id Device ID
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function networkMap($id)
+    {
+        $device = CpeDevice::with(['networkClients' => function ($query) {
+            $query->where('active', true)->orderBy('connection_type')->orderBy('hostname');
+        }])->findOrFail($id);
+
+        $clients = $device->networkClients->map(function ($client) {
+            return [
+                'id' => $client->id,
+                'mac_address' => $client->mac_address,
+                'ip_address' => $client->ip_address,
+                'hostname' => $client->hostname ?? 'Unknown',
+                'connection_type' => $client->connection_type,
+                'interface_name' => $client->interface_name,
+                'signal_strength' => $client->signal_strength,
+                'signal_quality' => $client->signal_quality,
+                'connection_icon' => $client->connection_icon,
+                'last_seen' => $client->last_seen->diffForHumans(),
+                'last_seen_timestamp' => $client->last_seen->toIso8601String(),
+            ];
+        });
+
+        $stats = [
+            'total' => $clients->count(),
+            'lan' => $clients->where('connection_type', 'lan')->count(),
+            'wifi_2_4ghz' => $clients->where('connection_type', 'wifi_2.4ghz')->count(),
+            'wifi_5ghz' => $clients->where('connection_type', 'wifi_5ghz')->count(),
+            'wifi_6ghz' => $clients->where('connection_type', 'wifi_6ghz')->count(),
+        ];
+
+        return response()->json([
+            'success' => true,
+            'device' => [
+                'id' => $device->id,
+                'serial_number' => $device->serial_number,
+                'manufacturer' => $device->manufacturer,
+                'model_name' => $device->model_name,
+                'status' => $device->status,
+            ],
+            'clients' => $clients,
+            'stats' => $stats,
+        ]);
+    }
+
+    /**
+     * Trigger network scan on device
+     * Avvia scansione rete su dispositivo
+     * 
+     * @param Request $request
+     * @param int $id Device ID
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function triggerNetworkScan(Request $request, $id)
+    {
+        $device = CpeDevice::findOrFail($id);
+
+        $validated = $request->validate([
+            'data_model' => 'nullable|in:tr098,tr181',
+        ]);
+
+        $dataModel = $validated['data_model'] ?? 'tr098';
+
+        // Dispatch network scan job
+        \App\Jobs\ProcessNetworkScan::dispatch($device->id, $dataModel);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Network scan avviato. Risultati disponibili tra ~60 secondi (prossimo Periodic Inform).',
+            'device_id' => $device->id,
+            'data_model' => $dataModel,
+        ]);
+    }
 }
