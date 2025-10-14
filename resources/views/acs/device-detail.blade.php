@@ -49,6 +49,9 @@
                     <button class="btn btn-warning btn-sm w-100 mb-2" onclick="rebootDevice({{ $device->id }}, '{{ $device->serial_number }}')">
                         <i class="fas fa-sync me-2"></i>Reboot
                     </button>
+                    <button class="btn btn-primary btn-sm w-100 mb-2" onclick="aiAnalyzeDeviceHistory({{ $device->id }})">
+                        <i class="fas fa-magic me-2"></i>AI Diagnostic Analysis
+                    </button>
                     @if($device->protocol_type === 'tr369')
                     <a href="{{ route('acs.devices.subscriptions', $device->id) }}" class="btn btn-info btn-sm w-100 mb-2">
                         <i class="fas fa-bell me-2"></i>Sottoscrizioni Eventi
@@ -194,6 +197,21 @@
 </div>
 @endsection
 
+<!-- Modal AI Historical Analysis -->
+<div class="modal fade" id="aiHistoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-primary">
+                <h5 class="modal-title text-white"><i class="fas fa-chart-line me-2"></i>AI Historical Diagnostic Analysis</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="aiHistoryContent"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
 function provisionDevice(id, sn) {
@@ -206,6 +224,123 @@ function rebootDevice(id, sn) {
     document.getElementById('rebootForm').action = '/acs/devices/' + id + '/reboot';
     document.getElementById('reboot_device_sn').textContent = sn;
     new bootstrap.Modal(document.getElementById('rebootModal')).show();
+}
+
+async function aiAnalyzeDeviceHistory(deviceId) {
+    const modal = new bootstrap.Modal(document.getElementById('aiHistoryModal'));
+    const content = document.getElementById('aiHistoryContent');
+    
+    content.innerHTML = '<div class="text-center py-5"><i class="fas fa-spinner fa-spin fa-3x text-primary"></i><p class="mt-3">AI sta analizzando lo storico diagnostico...</p></div>';
+    modal.show();
+    
+    try {
+        const response = await fetch(`/acs/devices/${deviceId}/ai-analyze-diagnostics`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            let html = '';
+            
+            // Header with test count and confidence
+            html += `<div class="alert alert-info mb-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-database me-2"></i>Tests Analyzed: <strong>${result.tests_analyzed}</strong></span>
+                    <span><i class="fas fa-percentage me-2"></i>Confidence: <strong>${result.confidence}%</strong></span>
+                    <span class="badge bg-gradient-${result.trend === 'improving' ? 'success' : result.trend === 'degrading' ? 'danger' : 'secondary'}">
+                        Trend: ${result.trend.toUpperCase()}
+                    </span>
+                </div>
+            </div>`;
+            
+            // Root Cause
+            if (result.root_cause) {
+                html += `<div class="card mb-3">
+                    <div class="card-header bg-gradient-dark">
+                        <h6 class="text-white mb-0"><i class="fas fa-search me-2"></i>Root Cause Analysis</h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-0">${result.root_cause}</p>
+                    </div>
+                </div>`;
+            }
+            
+            // Patterns Detected
+            if (result.patterns && result.patterns.length > 0) {
+                html += `<div class="card mb-3">
+                    <div class="card-header bg-gradient-warning">
+                        <h6 class="text-white mb-0"><i class="fas fa-chart-area me-2"></i>Patterns Detected (${result.patterns.length})</h6>
+                    </div>
+                    <div class="card-body">`;
+                
+                result.patterns.forEach((pattern, index) => {
+                    const typeClass = {
+                        'degradation': 'danger',
+                        'intermittent': 'warning',
+                        'recurring': 'info'
+                    }[pattern.type] || 'secondary';
+                    
+                    html += `<div class="border-bottom pb-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0">${index + 1}. ${pattern.description}</h6>
+                            <span class="badge bg-gradient-${typeClass}">${pattern.type}</span>
+                        </div>
+                        <p class="text-sm mb-1"><strong>Affected Tests:</strong> ${pattern.affected_tests.join(', ')}</p>
+                        <p class="text-sm mb-0"><strong>Frequency:</strong> ${pattern.frequency}</p>
+                    </div>`;
+                });
+                
+                html += `</div></div>`;
+            }
+            
+            // Recommendations
+            if (result.recommendations && result.recommendations.length > 0) {
+                html += `<div class="card mb-3">
+                    <div class="card-header bg-gradient-success">
+                        <h6 class="text-white mb-0"><i class="fas fa-lightbulb me-2"></i>Recommendations (${result.recommendations.length})</h6>
+                    </div>
+                    <div class="card-body">`;
+                
+                result.recommendations.forEach((rec, index) => {
+                    const priorityClass = {
+                        'high': 'danger',
+                        'medium': 'warning',
+                        'low': 'info'
+                    }[rec.priority] || 'secondary';
+                    
+                    html += `<div class="border-bottom pb-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0">${index + 1}. ${rec.action}</h6>
+                            <span class="badge bg-gradient-${priorityClass}">${rec.priority} priority</span>
+                        </div>
+                        <p class="text-sm mb-0"><strong>Rationale:</strong> ${rec.rationale}</p>
+                    </div>`;
+                });
+                
+                html += `</div></div>`;
+            }
+            
+            if (!result.patterns || result.patterns.length === 0) {
+                html += `<div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>Nessun pattern critico rilevato. Il dispositivo sembra operare normalmente.
+                </div>`;
+            }
+            
+            content.innerHTML = html;
+        } else {
+            content.innerHTML = `<div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>${result.error}
+            </div>`;
+        }
+    } catch (error) {
+        content.innerHTML = `<div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>Errore di connessione: ${error.message}
+        </div>`;
+    }
 }
 </script>
 @endpush
