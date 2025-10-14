@@ -69,16 +69,16 @@ class AcsController extends Controller
             DB::raw("COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed"),
         ])->first();
         
-        // Diagnostics stats - 1 query with conditional aggregates
+        // Diagnostics stats - 1 query with conditional aggregates (TR-143 standard names)
         $diagnosticStats = \App\Models\DiagnosticTest::select([
             DB::raw('COUNT(*) as total'),
             DB::raw("COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed"),
             DB::raw("COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending"),
             DB::raw("COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed"),
-            DB::raw("COUNT(CASE WHEN diagnostic_type = 'ping' THEN 1 END) as ping"),
-            DB::raw("COUNT(CASE WHEN diagnostic_type = 'traceroute' THEN 1 END) as traceroute"),
-            DB::raw("COUNT(CASE WHEN diagnostic_type = 'download' THEN 1 END) as download"),
-            DB::raw("COUNT(CASE WHEN diagnostic_type = 'upload' THEN 1 END) as upload"),
+            DB::raw("COUNT(CASE WHEN diagnostic_type = 'IPPing' THEN 1 END) as ping"),
+            DB::raw("COUNT(CASE WHEN diagnostic_type = 'TraceRoute' THEN 1 END) as traceroute"),
+            DB::raw("COUNT(CASE WHEN diagnostic_type = 'DownloadDiagnostics' THEN 1 END) as download"),
+            DB::raw("COUNT(CASE WHEN diagnostic_type = 'UploadDiagnostics' THEN 1 END) as upload"),
         ])->first();
         
         // Simple counts and recent data - 4 separate queries
