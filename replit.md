@@ -30,6 +30,7 @@ The web interface uses the Soft UI Dashboard Laravel template, providing a moder
 - **Parameter Validation**: Comprehensive validation engine supporting data model schema, template-specific business rules, indexed paths, and strict type checking.
 - **Router Manufacturers & Products Database**: Hierarchical view of 21 manufacturers and 40 router models with detailed specifications and filtering capabilities.
 - **TR-143 Diagnostics**: UI and workflow for Ping, Traceroute, Download, and Upload tests, supporting NAT traversal via Periodic Inform for un-reachable devices. Results are visualized with summaries and historical patterns.
+- **Network Topology Map**: Real-time visualization of connected clients (LAN/WiFi) on device detail page. TR-069 network scan via Periodic Inform collects Device.Hosts.* (LAN) and Device.WiFi.AccessPoint.*.AssociatedDevice.* (WiFi) parameters. Parses MAC/IP/hostname/signal strength and persists to network_clients table. SVG topology with router center, clients in radial circle, differentiated by connection type (solid green=LAN, dashed cyan=WiFi). Displays stats (total/LAN/WiFi counts), client table with hostname/IP/connection badge/signal quality indicator (excellent/good/fair/poor), and last_seen timestamp. Auto-refresh on page load with manual "Scan Network" button.
 
 ## External Dependencies
 - **PostgreSQL 16+**: Primary relational database.

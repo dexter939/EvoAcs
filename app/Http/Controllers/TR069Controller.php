@@ -679,6 +679,11 @@ class TR069Controller extends Controller
             $task = ProvisioningTask::find($session->last_command_sent['task_id']);
             
             if ($task) {
+                // Se network_scan, parsa e salva client connessi
+                if ($task->task_type === 'network_scan') {
+                    $this->parseAndSaveNetworkClients($task->cpe_device_id, $parameters);
+                }
+                
                 $task->update([
                     'status' => 'completed',
                     'result' => [
@@ -688,9 +693,137 @@ class TR069Controller extends Controller
                     ]
                 ]);
                 
-                \Log::info('TR-069 Task completed', ['task_id' => $task->id]);
+                \Log::info('TR-069 Task completed', ['task_id' => $task->id, 'type' => $task->task_type]);
             }
         }
+    }
+    
+    /**
+     * Parsa parametri TR-069 e salva network clients connessi
+     * Parse TR-069 parameters and save connected network clients
+     * 
+     * @param int $deviceId Device ID
+     * @param array $parameters Parametri estratti da GetParameterValuesResponse
+     * @return void
+     */
+    private function parseAndSaveNetworkClients($deviceId, $parameters): void
+    {
+        if (!$deviceId) {
+            \Log::warning('parseAndSaveNetworkClients called with null device_id', [
+                'parameters_count' => count($parameters)
+            ]);
+            return;
+        }
+        
+        $clients = [];
+        $currentMacs = [];
+        
+        // Parse LAN Hosts (TR-098: InternetGatewayDevice.LANDevice.*.Hosts.Host.* o TR-181: Device.Hosts.Host.*)
+        foreach ($parameters as $path => $value) {
+            // Match Host entries
+            if (preg_match('/(?:InternetGatewayDevice\.LANDevice\.\d+\.Hosts\.Host\.|Device\.Hosts\.Host\.)(\d+)\.(.+)/', $path, $matches)) {
+                $hostIndex = $matches[1];
+                $param = $matches[2];
+                
+                if (!isset($clients['host_' . $hostIndex])) {
+                    $clients['host_' . $hostIndex] = ['type' => 'lan'];
+                }
+                
+                switch ($param) {
+                    case 'MACAddress':
+                    case 'PhysAddress':
+                        $clients['host_' . $hostIndex]['mac'] = strtoupper($value);
+                        break;
+                    case 'IPAddress':
+                        $clients['host_' . $hostIndex]['ip'] = $value;
+                        break;
+                    case 'HostName':
+                        $clients['host_' . $hostIndex]['hostname'] = $value;
+                        break;
+                    case 'InterfaceType':
+                        $clients['host_' . $hostIndex]['interface'] = $value;
+                        break;
+                    case 'Active':
+                        $clients['host_' . $hostIndex]['active'] = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+                        break;
+                }
+            }
+            
+            // Match WiFi Associated Devices (TR-098 o TR-181)
+            if (preg_match('/(?:InternetGatewayDevice\.LANDevice\.\d+\.WLANConfiguration\.|Device\.WiFi\.AccessPoint\.)(\d+)\.AssociatedDevice\.(\d+)\.(.+)/', $path, $matches)) {
+                $ssidIndex = $matches[1];
+                $deviceIndex = $matches[2];
+                $param = $matches[3];
+                
+                $key = 'wifi_' . $ssidIndex . '_' . $deviceIndex;
+                
+                if (!isset($clients[$key])) {
+                    $clients[$key] = ['type' => 'wifi_2.4ghz']; // Default, può essere sovrascritto
+                }
+                
+                switch ($param) {
+                    case 'AssociatedDeviceMACAddress':
+                    case 'MACAddress':
+                    case 'MAC':
+                        $clients[$key]['mac'] = strtoupper($value);
+                        break;
+                    case 'AssociatedDeviceIPAddress':
+                    case 'IPAddress':
+                    case 'IP':
+                        $clients[$key]['ip'] = $value;
+                        break;
+                    case 'SignalStrength':
+                        $clients[$key]['signal_strength'] = (int)$value;
+                        break;
+                    case 'OperatingFrequencyBand':
+                        // Determina banda WiFi (2.4GHz, 5GHz, 6GHz)
+                        if (stripos($value, '5') !== false) {
+                            $clients[$key]['type'] = 'wifi_5ghz';
+                        } elseif (stripos($value, '6') !== false) {
+                            $clients[$key]['type'] = 'wifi_6ghz';
+                        }
+                        break;
+                }
+            }
+        }
+        
+        // Salva/Aggiorna clients nel database
+        foreach ($clients as $client) {
+            if (empty($client['mac'])) {
+                continue; // Skip se non ha MAC address
+            }
+            
+            $currentMacs[] = $client['mac'];
+            
+            \App\Models\NetworkClient::updateOrCreate(
+                [
+                    'device_id' => $deviceId,
+                    'mac_address' => $client['mac']
+                ],
+                [
+                    'ip_address' => $client['ip'] ?? null,
+                    'hostname' => $client['hostname'] ?? null,
+                    'connection_type' => $client['type'] ?? 'lan',
+                    'interface_name' => $client['interface'] ?? null,
+                    'signal_strength' => $client['signal_strength'] ?? null,
+                    'active' => $client['active'] ?? true,
+                    'last_seen' => now()
+                ]
+            );
+        }
+        
+        // Marca come inactive i client che non sono più presenti
+        if (!empty($currentMacs)) {
+            \App\Models\NetworkClient::where('device_id', $deviceId)
+                ->whereNotIn('mac_address', $currentMacs)
+                ->update(['active' => false]);
+        }
+        
+        \Log::info('Network clients updated', [
+            'device_id' => $deviceId,
+            'clients_count' => count($clients),
+            'active_macs' => $currentMacs
+        ]);
     }
     
     /**
