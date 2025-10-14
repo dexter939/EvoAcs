@@ -75,6 +75,9 @@ Route::prefix('acs')->name('acs.')->group(function () {
     Route::get('/diagnostics', [AcsController::class, 'diagnostics'])->name('diagnostics');
     Route::get('/diagnostics/{id}/details', [AcsController::class, 'diagnosticDetails'])->name('diagnostics.details');
     
+    // Router Manufacturers Database
+    Route::get('/manufacturers', [AcsController::class, 'manufacturers'])->name('manufacturers');
+    
     // VoIP Services (TR-104)
     Route::get('/voip', [AcsController::class, 'voip'])->name('voip');
     Route::get('/voip/{deviceId}', [AcsController::class, 'voipDevice'])->name('voip.device');

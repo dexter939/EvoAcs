@@ -912,6 +912,50 @@ class AcsController extends Controller
     }
     
     /**
+     * Router Manufacturers Database
+     */
+    public function manufacturers(Request $request)
+    {
+        $query = \App\Models\RouterManufacturer::query();
+        
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
+        }
+        
+        if ($request->filled('tr069')) {
+            $query->where('tr069_support', true);
+        }
+        
+        if ($request->filled('tr369')) {
+            $query->where('tr369_support', true);
+        }
+        
+        if ($request->filled('search')) {
+            $query->where(function($q) use ($request) {
+                $q->where('name', 'ilike', '%' . $request->search . '%')
+                  ->orWhere('product_lines', 'ilike', '%' . $request->search . '%')
+                  ->orWhere('country', 'ilike', '%' . $request->search . '%');
+            });
+        }
+        
+        $manufacturers = $query->orderBy('name')->paginate(20);
+        
+        $categories = \App\Models\RouterManufacturer::select('category')
+            ->distinct()
+            ->whereNotNull('category')
+            ->pluck('category');
+        
+        $stats = [
+            'total' => \App\Models\RouterManufacturer::count(),
+            'tr069' => \App\Models\RouterManufacturer::where('tr069_support', true)->count(),
+            'tr369' => \App\Models\RouterManufacturer::where('tr369_support', true)->count(),
+            'countries' => \App\Models\RouterManufacturer::select('country')->distinct()->count()
+        ];
+        
+        return view('acs.manufacturers', compact('manufacturers', 'categories', 'stats'));
+    }
+    
+    /**
      * VoIP Services (TR-104) - Lista dispositivi VoIP
      */
     public function voip()
