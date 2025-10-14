@@ -67,6 +67,7 @@ The web interface uses the Soft UI Dashboard Laravel template, providing a moder
 - **Periodic Inform Workflow (NAT Devices)**: Per dispositivi dietro NAT non raggiungibili via Connection Request, i comandi diagnostici vengono inviati durante Periodic Inform (60s interval) - ProcessProvisioningTask skippa Connection Request mantenendo task 'pending', TR069Controller.queueTaskCommands() accoda comandi Diagnostic_{Type} durante handleInform(), generateSessionResponse() invia richieste SOAP diagnostiche
 - **Queue Worker Background Processing**: Workflow Laravel queue:work sempre attivo per processare job asincroni (provisioning, firmware, diagnostici) con database driver (PostgreSQL jobs table), 3 retry automatici, 120s timeout
 - **Results Visualization**: Pagina `/acs/diagnostics` con filtri per tipo/stato, tabella test con risultati JSON parsed tramite getResultsSummary() model method
+- **NAT Traversal Roadmap**: Pianificata implementazione XMPP (TR-069 Annex K) per Connection Request immediati e affidabili - soluzione enterprise-grade con TCP persistente, supporto tutti i tipi di NAT, messaging sicuro via server XMPP (ejabberd/Prosody)
 
 ## External Dependencies
 - **PostgreSQL 16+**: Primary database
