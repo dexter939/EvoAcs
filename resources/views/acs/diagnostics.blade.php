@@ -37,25 +37,28 @@
                                     <div class="d-flex px-2 py-1">
                                         <div class="d-flex flex-column justify-content-center">
                                             <h6 class="mb-0 text-sm">{{ $test->cpeDevice->serial_number ?? 'N/A' }}</h6>
-                                            <p class="text-xs text-secondary mb-0">{{ $test->cpeDevice->model ?? '' }}</p>
+                                            <p class="text-xs text-secondary mb-0">{{ $test->cpeDevice->model_name ?? '' }}</p>
                                         </div>
                                     </div>
                                 </td>
                                 <td>
-                                    <span class="badge badge-sm bg-gradient-info">{{ strtoupper($test->test_type) }}</span>
+                                    <span class="badge badge-sm bg-gradient-info">{{ strtoupper($test->diagnostic_type) }}</span>
                                 </td>
                                 <td class="align-middle text-center">
-                                    <span class="badge badge-sm bg-gradient-{{ $test->test_state == 'Completed' ? 'success' : ($test->test_state == 'Error' ? 'danger' : 'warning') }}">
-                                        {{ $test->test_state }}
+                                    <span class="badge badge-sm bg-gradient-{{ $test->status == 'completed' ? 'success' : ($test->status == 'failed' ? 'danger' : 'warning') }}">
+                                        {{ ucfirst($test->status) }}
                                     </span>
                                 </td>
                                 <td class="align-middle text-center">
-                                    @if($test->test_type == 'ping')
-                                        <span class="text-xs">{{ $test->success_count }}/{{ $test->number_of_repetitions }} pkts</span>
-                                    @elseif($test->test_type == 'download')
-                                        <span class="text-xs">{{ number_format($test->download_speed ?? 0, 2) }} Mbps</span>
-                                    @elseif($test->test_type == 'upload')
-                                        <span class="text-xs">{{ number_format($test->upload_speed ?? 0, 2) }} Mbps</span>
+                                    @php
+                                        $summary = $test->getResultsSummary();
+                                    @endphp
+                                    @if($test->diagnostic_type == 'IPPing' && isset($summary['success_count']))
+                                        <span class="text-xs">{{ $summary['success_count'] }}/{{ $summary['success_count'] + $summary['failure_count'] }} pkts</span>
+                                    @elseif($test->diagnostic_type == 'DownloadDiagnostics' && isset($summary['speed_mbps']))
+                                        <span class="text-xs">{{ $summary['speed_mbps'] }} Mbps</span>
+                                    @elseif($test->diagnostic_type == 'UploadDiagnostics' && isset($summary['speed_mbps']))
+                                        <span class="text-xs">{{ $summary['speed_mbps'] }} Mbps</span>
                                     @else
                                         <span class="text-xs">-</span>
                                     @endif

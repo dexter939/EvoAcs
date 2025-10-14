@@ -665,21 +665,34 @@ class AcsController extends Controller
         
         $validated = $request->validate($validationRules);
         
+        $diagnosticTypeMap = [
+            'ping' => 'IPPing',
+            'traceroute' => 'TraceRoute',
+            'download' => 'DownloadDiagnostics',
+            'upload' => 'UploadDiagnostics',
+            'udpecho' => 'UDPEcho'
+        ];
+        
+        $tr143Type = $diagnosticTypeMap[$type] ?? $type;
+        
         try {
-            [$diagnostic, $task] = \DB::transaction(function () use ($device, $type, $validated) {
+            [$diagnostic, $task] = \DB::transaction(function () use ($device, $type, $tr143Type, $validated) {
                 $diagnostic = \App\Models\DiagnosticTest::create([
                     'cpe_device_id' => $device->id,
-                    'diagnostic_type' => $type,
+                    'diagnostic_type' => $tr143Type,
                     'status' => 'pending',
                     'parameters' => $validated,
-                    'command_key' => ucfirst($type) . '_' . time()
+                    'command_key' => $tr143Type . '_' . time()
                 ]);
 
                 $task = \App\Models\ProvisioningTask::create([
                     'cpe_device_id' => $device->id,
-                    'task_type' => 'diagnostic_' . $type,
+                    'task_type' => 'diagnostic',
                     'status' => 'pending',
-                    'parameters' => array_merge(['diagnostic_id' => $diagnostic->id], $validated)
+                    'task_data' => array_merge([
+                        'diagnostic_id' => $diagnostic->id,
+                        'diagnostic_type' => $tr143Type
+                    ], $validated)
                 ]);
 
                 return [$diagnostic, $task];
