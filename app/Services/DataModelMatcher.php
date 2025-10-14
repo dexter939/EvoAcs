@@ -10,13 +10,14 @@ use Illuminate\Support\Facades\Log;
  * 
  * Quando un dispositivo si connette all'ACS per la prima volta,
  * questo servizio identifica automaticamente il Data Model corretto
- * basandosi su Manufacturer, Model, Firmware Version.
+ * basandosi su Manufacturer, Model, Firmware Version, OUI.
  * 
- * Logica di matching:
+ * Logica di matching progressiva (5 strategie):
  * 1. Match esatto: vendor + model + firmware
- * 2. Match parziale: vendor + model (qualsiasi firmware)
- * 3. Match vendor: solo vendor
- * 4. Fallback BBF: TR-181 Device:2.19 (moderno) o TR-098 (legacy)
+ * 2. Match parziale: vendor + (model OR product_class), ignora firmware
+ * 3. Match OUI: Organization Unique Identifier (MAC vendor prefix)
+ * 4. Match vendor: solo vendor (qualsiasi modello)
+ * 5. Fallback BBF incondizionato: TR-181 Device:2.19 (moderno) o TR-098 (legacy)
  */
 class DataModelMatcher
 {
@@ -60,14 +61,7 @@ class DataModelMatcher
             return $partialMatch;
         }
 
-        // Step 3: Match solo vendor (qualsiasi modello del vendor)
-        $vendorMatch = $this->findVendorMatch($manufacturer);
-        if ($vendorMatch) {
-            Log::info('DataModelMatcher: Vendor match found', ['data_model_id' => $vendorMatch]);
-            return $vendorMatch;
-        }
-
-        // Step 4: Match per OUI (Organization Unique Identifier)
+        // Step 3: Match per OUI (Organization Unique Identifier) - ha priorità su vendor generico
         if ($oui) {
             $ouiMatch = $this->findOuiMatch($oui);
             if ($ouiMatch) {
@@ -76,19 +70,18 @@ class DataModelMatcher
             }
         }
 
-        // Step 5: Fallback a Broadband Forum Universal Data Models
-        $fallback = $this->findUniversalFallback($manufacturer, $modelName);
-        if ($fallback) {
-            Log::info('DataModelMatcher: Universal BBF fallback', ['data_model_id' => $fallback]);
-            return $fallback;
+        // Step 4: Match solo vendor (qualsiasi modello del vendor)
+        $vendorMatch = $this->findVendorMatch($manufacturer);
+        if ($vendorMatch) {
+            Log::info('DataModelMatcher: Vendor match found', ['data_model_id' => $vendorMatch]);
+            return $vendorMatch;
         }
 
-        Log::warning('DataModelMatcher: No match found for device', [
-            'manufacturer' => $manufacturer,
-            'model' => $modelName ?? $productClass
-        ]);
-
-        return null;
+        // Step 5: Fallback incondizionato a Broadband Forum Universal Data Models
+        // Garantisce sempre un data model anche se tutte le strategie precedenti falliscono
+        $fallback = $this->findUniversalFallback();
+        Log::info('DataModelMatcher: Universal BBF fallback applied', ['data_model_id' => $fallback]);
+        return $fallback;
     }
 
     /**
@@ -191,13 +184,15 @@ class DataModelMatcher
     }
 
     /**
-     * Fallback universale a Broadband Forum standard
-     * - Device:2.19 (TR-181) per dispositivi moderni
+     * Fallback universale incondizionato a Broadband Forum standard
+     * - Device:2.19 (TR-181) per dispositivi moderni (preferito, copertura 70-80%)
      * - InternetGatewayDevice:1.8 (TR-098) per dispositivi legacy
+     * 
+     * GARANTISCE sempre un data model anche se tutte le altre strategie falliscono
      */
-    private function findUniversalFallback(?string $manufacturer, ?string $modelName): ?int
+    private function findUniversalFallback(): ?int
     {
-        // Preferisci TR-181 Device:2.19 (moderno, copertura 70-80% dei device)
+        // Preferisci TR-181 Device:2.19 (moderno, massima copertura universale)
         $tr181 = DB::table('tr069_data_models')
             ->where('vendor', 'Broadband Forum')
             ->where('model_name', 'Device:2.19')
@@ -208,7 +203,7 @@ class DataModelMatcher
             return $tr181->id;
         }
 
-        // Fallback a TR-098 InternetGatewayDevice:1.8 (legacy)
+        // Fallback secondario a TR-098 InternetGatewayDevice:1.8 (legacy)
         $tr098 = DB::table('tr069_data_models')
             ->where('vendor', 'Broadband Forum')
             ->where('model_name', 'ILIKE', '%InternetGatewayDevice%')
