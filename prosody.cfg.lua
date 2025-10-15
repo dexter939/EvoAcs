@@ -23,14 +23,15 @@ modules_enabled = {
     "uptime";
     "time";
     "ping";
-    "admin_adhoc";
-    "admin_telnet";
     "bosh";
     "posix";
     "smacks";
 }
 
-modules_disabled = {}
+modules_disabled = {
+    "admin_telnet";
+    "admin_adhoc";
+}
 
 -- Logging configuration
 log = {
@@ -50,6 +51,12 @@ consider_bosh_secure = false
 -- Security and authentication
 authentication = "internal_plain"
 allow_registration = false
+
+-- NOTE: TLS disabled for development. For production:
+-- 1. Generate TLS certificates (Let's Encrypt or self-signed)
+-- 2. Set c2s_require_encryption = true
+-- 3. Set s2s_require_encryption = true
+-- 4. Configure ssl certificates below
 c2s_require_encryption = false
 s2s_require_encryption = false
 s2s_secure_auth = false
@@ -92,7 +99,6 @@ VirtualHost "acs.local"
 --     certificate = "/path/to/cert.pem";
 -- }
 
--- Telnet admin console (localhost only)
-console_enabled = true
-console_interface = "127.0.0.1"
-console_port = 5582
+-- Telnet admin console disabled for security
+-- For production monitoring, use mod_admin_shell with proper authentication
+console_enabled = false

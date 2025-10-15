@@ -13,6 +13,7 @@ class XmppClientService
     protected string $host;
     protected int $port;
     protected string $username;
+    protected string $domain;
     protected string $password;
     protected bool $connected = false;
 
@@ -24,8 +25,13 @@ class XmppClientService
         $jid = config('xmpp.jid', 'acs-server@acs.local');
         $parts = explode('@', $jid);
         $this->username = $parts[0];
+        $this->domain = $parts[1] ?? 'acs.local';
         
-        $this->password = config('xmpp.password', 'acsadmin123');
+        $this->password = config('xmpp.password');
+        
+        if (!$this->password) {
+            throw new Exception('[XMPP] XMPP_PASSWORD must be set in .env for security');
+        }
     }
 
     public function connect(): bool
@@ -71,7 +77,10 @@ class XmppClientService
         try {
             if ($this->client && $this->connected) {
                 $this->client->disconnect();
-                Log::info('[XMPP] Disconnected successfully', ['jid' => $this->jid]);
+                Log::info('[XMPP] Disconnected successfully', [
+                    'username' => $this->username,
+                    'domain' => $this->domain,
+                ]);
             }
         } catch (Exception $e) {
             Log::warning('[XMPP] Disconnect error', ['error' => $e->getMessage()]);
@@ -168,7 +177,7 @@ class XmppClientService
 
     public function getJid(): string
     {
-        return $this->username . '@acs.local';
+        return $this->username . '@' . $this->domain;
     }
     
     public function getClient(): ?XmppClient

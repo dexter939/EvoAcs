@@ -12,7 +12,8 @@ I prefer clear and concise explanations. When making changes, prioritize core fu
 The web interface uses the Soft UI Dashboard Laravel template, providing a modern, responsive design with navigation, real-time statistics, and interactive Chart.js visualizations. It includes features like filtering, pagination, and modal forms for CRUD operations on devices. The dashboard auto-refreshes every 30 seconds.
 
 ### Technical Implementations
-- **Protocol Support**: Implements TR-069 (CWMP) via a dedicated SOAP endpoint, TR-369 (USP) with Protocol Buffers over MQTT/WebSocket/HTTP, and full provisioning/management for TR-104 (VoIP), TR-140 (Storage), TR-143 (Diagnostics), TR-111 (Device Modeling), TR-64 (LAN-Side), TR-181 (IoT), TR-196 (Femtocell), and TR-135 (STB/IPTV).
+- **Protocol Support**: Implements TR-069 (CWMP) via a dedicated SOAP endpoint, TR-369 (USP) with Protocol Buffers over MQTT/WebSocket/HTTP/XMPP, and full provisioning/management for TR-104 (VoIP), TR-140 (Storage), TR-143 (Diagnostics), TR-111 (Device Modeling), TR-64 (LAN-Side), TR-181 (IoT), TR-196 (Femtocell), and TR-135 (STB/IPTV).
+- **XMPP Transport for TR-369 USP** (PoC Implementation): XMPP server integration using Prosody (port 6000) for real-time TR-369 USP message exchange. Implements JID format `device-{serial}@acs.local` for CPE devices and `acs-server@acs.local` for ACS. Service `XmppClientService` wraps pdahal/php-xmpp library providing connect/disconnect, message send, and stanza receiving. Service `UspXmppTransport` encodes USP Protocol Buffers messages in base64, embeds them in XMPP stanzas with custom `<usp>` XML namespace (urn:broadband-forum-org:usp:data-1-0), and handles bidirectional message exchange with CPE devices. SASL PLAIN authentication (development), configurable via `config/xmpp.php`. Prosody workflow configured with 2MB stanza size limit for large USP messages, local data storage in `./data` directory. **Note**: This is a PoC implementation. See `docs/XMPP_PRODUCTION_CHECKLIST.md` for production hardening requirements (TLS encryption, Protocol Buffers integration, load testing).
 - **Database**: PostgreSQL with optimized indexing and multi-tenancy support.
 - **Asynchronous Processing**: Laravel Horizon with Redis queues for provisioning, firmware deployment, and TR-069 requests.
 - **API Security**: API Key authentication for all v1 RESTful API endpoints.
@@ -44,6 +45,8 @@ The web interface uses the Soft UI Dashboard Laravel template, providing a moder
 - **Guzzle**: HTTP client for making TR-069 Connection Requests.
 - **Google Protocol Buffers v4.32.1**: For TR-369 USP message encoding/decoding.
 - **PHP-MQTT Client v1.6.1**: For USP broker-based transport.
+- **Prosody XMPP Server**: Carrier-grade XMPP/Jabber server for TR-369 USP XMPP transport (port 6000).
+- **pdahal/php-xmpp v1.0.1**: PHP XMPP client library for connecting to Prosody server.
 - **Soft UI Dashboard**: Laravel template used for the administrative web interface.
 - **Chart.js**: JavaScript library for rendering interactive charts in the UI.
 - **FontAwesome**: Icon library for the web interface.
