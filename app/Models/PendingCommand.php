@@ -47,6 +47,7 @@ class PendingCommand extends Model
         'retry_count',
         'max_retries',
         'executed_at',
+        'processing_started_at',
     ];
 
     /**
@@ -60,6 +61,7 @@ class PendingCommand extends Model
         'retry_count' => 'integer',
         'max_retries' => 'integer',
         'executed_at' => 'datetime',
+        'processing_started_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -148,6 +150,7 @@ class PendingCommand extends Model
         return $this->update([
             'status' => 'processing',
             'executed_at' => Carbon::now(),
+            'processing_started_at' => Carbon::now(),
         ]);
     }
 

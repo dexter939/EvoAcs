@@ -266,6 +266,39 @@ class TR069Controller extends Controller
                 $task->update(['status' => 'processing']);
             }
             
+            // NAT TRAVERSAL: Recovery - resetta comandi stuck in "processing" (sessione interrotta)
+            // NAT TRAVERSAL: Recovery - reset commands stuck in "processing" (session interrupted)
+            $stuckCommands = \App\Models\PendingCommand::where('cpe_device_id', $device->id)
+                ->where('status', 'processing')
+                ->where(function($query) {
+                    // Fallback a updated_at/executed_at se processing_started_at è NULL (legacy)
+                    $query->where('processing_started_at', '<', now()->subMinutes(2))
+                          ->orWhere(function($q) {
+                              $q->whereNull('processing_started_at')
+                                ->where('updated_at', '<', now()->subMinutes(2));
+                          });
+                })
+                ->get();
+            
+            foreach ($stuckCommands as $stuck) {
+                if ($stuck->canRetry()) {
+                    $stuck->update([
+                        'status' => 'pending',
+                        'retry_count' => $stuck->retry_count + 1,
+                        'error_message' => 'Session timeout - recovered by watchdog'
+                    ]);
+                    \Log::warning('TR-069 PendingCommand recovered from stuck processing', [
+                        'command_id' => $stuck->id,
+                        'retry_count' => $stuck->retry_count
+                    ]);
+                } else {
+                    $stuck->markAsFailed('Max retries reached after session timeouts');
+                    \Log::error('TR-069 PendingCommand failed after max retries', [
+                        'command_id' => $stuck->id
+                    ]);
+                }
+            }
+            
             // NAT TRAVERSAL: Controlla pending commands accodati (quando Connection Request fallisce)
             // NAT TRAVERSAL: Check queued pending commands (when Connection Request fails)
             $pendingCommands = \App\Models\PendingCommand::where('cpe_device_id', $device->id)
@@ -305,6 +338,44 @@ class TR069Controller extends Controller
         }
         
         return $httpResponse;
+    }
+    
+    /**
+     * Helper: Aggiorna status di ProvisioningTask o PendingCommand (NAT Traversal)
+     * Helper: Update status of ProvisioningTask or PendingCommand (NAT Traversal)
+     * 
+     * @param string $taskId Task ID (può avere prefisso "pend_" per PendingCommand)
+     * @param string $status Status: completed, failed
+     * @param array|null $result Result data
+     * @return void
+     */
+    private function updateTaskOrCommand(string $taskId, string $status, ?array $result = null): void
+    {
+        // Controlla se è un PendingCommand (prefisso "pend_")
+        if (str_starts_with($taskId, 'pend_')) {
+            $commandId = (int) substr($taskId, 5);
+            $command = \App\Models\PendingCommand::find($commandId);
+            
+            if ($command) {
+                if ($status === 'completed') {
+                    $command->markAsCompleted($result);
+                } else {
+                    $command->markAsFailed($result['error'] ?? 'Unknown error');
+                }
+                \Log::info("TR-069 PendingCommand $status (NAT Traversal)", ['command_id' => $commandId, 'type' => $command->command_type]);
+            }
+        } else {
+            // ProvisioningTask normale
+            $task = ProvisioningTask::find($taskId);
+            
+            if ($task) {
+                $task->update([
+                    'status' => $status,
+                    'result' => $result
+                ]);
+                \Log::info("TR-069 Task $status", ['task_id' => $taskId]);
+            }
+        }
     }
     
     /**
@@ -389,47 +460,51 @@ class TR069Controller extends Controller
         $sessionManager = new TR069SessionManager();
         $params = $command->parameters ?? [];
         
+        // Usa prefisso "pend_" per distinguere PendingCommand da ProvisioningTask in handleResponse()
+        // Use prefix "pend_" to distinguish PendingCommand from ProvisioningTask in handleResponse()
+        $taskId = 'pend_' . $command->id;
+        
         switch ($command->command_type) {
             case 'provision':
                 // Provisioning: carica configuration profile e imposta parametri
                 if (isset($params['profile_id'])) {
                     $profile = \App\Models\ConfigurationProfile::find($params['profile_id']);
                     if ($profile && $profile->configuration_data) {
-                        $sessionManager->queueCommand($session, 'SetParameterValues', $profile->configuration_data, $command->id);
+                        $sessionManager->queueCommand($session, 'SetParameterValues', $profile->configuration_data, $taskId);
                     }
                 }
                 break;
                 
             case 'reboot':
-                $sessionManager->queueCommand($session, 'Reboot', [], $command->id);
+                $sessionManager->queueCommand($session, 'Reboot', [], $taskId);
                 break;
                 
             case 'get_parameters':
                 $parameterNames = $params['parameters'] ?? [];
-                $sessionManager->queueCommand($session, 'GetParameterValues', ['parameters' => $parameterNames], $command->id);
+                $sessionManager->queueCommand($session, 'GetParameterValues', ['parameters' => $parameterNames], $taskId);
                 break;
                 
             case 'set_parameters':
-                $sessionManager->queueCommand($session, 'SetParameterValues', $params, $command->id);
+                $sessionManager->queueCommand($session, 'SetParameterValues', $params, $taskId);
                 break;
                 
             case 'diagnostic':
                 $diagnosticType = $params['diagnostic_type'] ?? '';
-                $sessionManager->queueCommand($session, 'Diagnostic_' . $diagnosticType, $params, $command->id);
+                $sessionManager->queueCommand($session, 'Diagnostic_' . $diagnosticType, $params, $taskId);
                 break;
                 
             case 'firmware_update':
                 $params['command_key'] = 'pending_cmd_' . $command->id;
-                $sessionManager->queueCommand($session, 'Download', $params, $command->id);
+                $sessionManager->queueCommand($session, 'Download', $params, $taskId);
                 break;
                 
             case 'factory_reset':
-                $sessionManager->queueCommand($session, 'FactoryReset', [], $command->id);
+                $sessionManager->queueCommand($session, 'FactoryReset', [], $taskId);
                 break;
                 
             case 'network_scan':
                 $dataModel = $params['data_model'] ?? 'tr098';
-                $sessionManager->queueCommand($session, 'NetworkScan', ['data_model' => $dataModel], $command->id);
+                $sessionManager->queueCommand($session, 'NetworkScan', ['data_model' => $dataModel], $taskId);
                 break;
         }
     }
@@ -788,26 +863,51 @@ class TR069Controller extends Controller
             }
         }
         
-        // Aggiorna task associata se presente
+        // Aggiorna task/command associato se presente
+        // NAT TRAVERSAL: Supporta sia ProvisioningTask che PendingCommand
         if ($session->last_command_sent && isset($session->last_command_sent['task_id'])) {
-            $task = ProvisioningTask::find($session->last_command_sent['task_id']);
+            $taskId = $session->last_command_sent['task_id'];
             
-            if ($task) {
-                // Se network_scan, parsa e salva client connessi
-                if ($task->task_type === 'network_scan') {
-                    $this->parseAndSaveNetworkClients($task->cpe_device_id, $parameters);
-                }
+            // Controlla se è un PendingCommand (prefisso "pend_")
+            if (str_starts_with($taskId, 'pend_')) {
+                $commandId = (int) substr($taskId, 5); // Rimuovi prefisso "pend_"
+                $command = \App\Models\PendingCommand::find($commandId);
                 
-                $task->update([
-                    'status' => 'completed',
-                    'result' => [
+                if ($command) {
+                    // Se network_scan, parsa e salva client connessi
+                    if ($command->command_type === 'network_scan') {
+                        $this->parseAndSaveNetworkClients($command->cpe_device_id, $parameters);
+                    }
+                    
+                    $command->markAsCompleted([
                         'success' => true,
                         'parameters' => $parameters,
                         'completed_at' => now()->toIso8601String()
-                    ]
-                ]);
+                    ]);
+                    
+                    \Log::info('TR-069 PendingCommand completed (NAT Traversal)', ['command_id' => $command->id, 'type' => $command->command_type]);
+                }
+            } else {
+                // ProvisioningTask normale
+                $task = ProvisioningTask::find($taskId);
                 
-                \Log::info('TR-069 Task completed', ['task_id' => $task->id, 'type' => $task->task_type]);
+                if ($task) {
+                    // Se network_scan, parsa e salva client connessi
+                    if ($task->task_type === 'network_scan') {
+                        $this->parseAndSaveNetworkClients($task->cpe_device_id, $parameters);
+                    }
+                    
+                    $task->update([
+                        'status' => 'completed',
+                        'result' => [
+                            'success' => true,
+                            'parameters' => $parameters,
+                            'completed_at' => now()->toIso8601String()
+                        ]
+                    ]);
+                    
+                    \Log::info('TR-069 Task completed', ['task_id' => $task->id, 'type' => $task->task_type]);
+                }
             }
         }
     }
