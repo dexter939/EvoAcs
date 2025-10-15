@@ -595,15 +595,26 @@ class AcsController extends Controller
     {
         $device = CpeDevice::findOrFail($id);
         
-        ProvisioningTask::create([
-            'cpe_device_id' => $device->id,
-            'task_type' => 'reboot',
-            'parameters' => [],
-            'status' => 'pending',
-            'max_retries' => 3,
-        ]);
+        // NAT Traversal: Prova Connection Request, accoda comando per esecuzione durante TR-069 session
+        // NAT Traversal: Try Connection Request, queue command for execution during TR-069 session
+        $pendingCommandService = app(\App\Services\PendingCommandService::class);
+        $result = $pendingCommandService->sendCommandWithNatFallback($device, 'reboot', null, 5);
         
-        return redirect()->route('acs.devices')->with('success', 'Comando di reboot inviato a ' . $device->serial_number);
+        if (!$result['success']) {
+            return redirect()->route('acs.devices')->with('error', 
+                'Errore accodamento comando reboot: ' . $result['message']);
+        }
+        
+        // Comando accodato con successo
+        if ($result['immediate']) {
+            // Connection Request riuscito → esecuzione immediata
+            return redirect()->route('acs.devices')->with('success', 
+                'Reboot inviato a ' . $device->serial_number . ' (esecuzione immediata)');
+        } else {
+            // Connection Request fallito (NAT) → esecuzione al prossimo Periodic Inform
+            return redirect()->route('acs.devices')->with('info', 
+                'Dispositivo dietro NAT. Reboot accodato per il prossimo Periodic Inform (~60s)');
+        }
     }
 
     /**

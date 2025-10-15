@@ -26,14 +26,20 @@ class PendingCommandService
     }
 
     /**
-     * Prova Connection Request, se fallisce accoda il comando
-     * Try Connection Request, if fails queue the command
+     * Prova Connection Request, accoda sempre il comando per esecuzione durante TR-069 session
+     * Try Connection Request, always queue command for execution during TR-069 session
+     * 
+     * IMPORTANTE: Connection Request serve solo a "svegliare" il CPE e farlo fare Inform.
+     * Il comando vero viene eseguito durante la sessione TR-069 (SOAP), non durante Connection Request.
+     * 
+     * IMPORTANT: Connection Request only "wakes up" the CPE to make it Inform.
+     * The actual command is executed during TR-069 session (SOAP), not during Connection Request.
      * 
      * @param CpeDevice $device
      * @param string $commandType provision|reboot|get_parameters|set_parameters|diagnostic|firmware_update
      * @param array|null $parameters Parametri specifici del comando
      * @param int $priority Priorità 1=high, 5=normal, 10=low
-     * @return array [success, message, queued (bool)]
+     * @return array [success, message, queued (bool), immediate (bool)]
      */
     public function sendCommandWithNatFallback(
         CpeDevice $device, 
@@ -42,39 +48,42 @@ class PendingCommandService
         int $priority = 5
     ): array {
         
-        // Prova prima Connection Request diretto
-        // Try Connection Request first
+        // Accoda sempre il comando (viene eseguito durante TR-069 session, non durante Connection Request)
+        // Always queue command (executed during TR-069 session, not during Connection Request)
+        $pendingCommand = $this->queueCommand($device, $commandType, $parameters, $priority);
+        
+        // Prova Connection Request per svegliare il CPE immediatamente
+        // Try Connection Request to wake up CPE immediately
         $result = $this->connectionRequestService->sendConnectionRequest($device);
 
         if ($result['success']) {
-            // Connection Request riuscito
-            // Connection Request succeeded
-            Log::info("Command sent via Connection Request", [
+            // Connection Request riuscito → comando verrà eseguito a breve (~5s)
+            // Connection Request succeeded → command will execute soon (~5s)
+            Log::info("Command queued, Connection Request sent (immediate execution)", [
                 'device' => $device->serial_number,
-                'command_type' => $commandType
+                'command_type' => $commandType,
+                'pending_command_id' => $pendingCommand->id
             ]);
 
             return [
                 'success' => true,
-                'message' => 'Command sent via Connection Request',
-                'queued' => false,
+                'message' => 'Command will execute immediately (Connection Request sent)',
+                'queued' => true,
+                'immediate' => true,
+                'pending_command_id' => $pendingCommand->id,
                 'method' => 'connection_request'
             ];
         }
 
-        // Connection Request fallito - verifica se è NAT failure
-        // Connection Request failed - check if it's NAT failure
+        // Connection Request fallito → comando verrà eseguito al prossimo Periodic Inform (~60s)
+        // Connection Request failed → command will execute on next Periodic Inform (~60s)
         $isNatFailure = in_array($result['error_code'] ?? '', [
             'CONNECTION_ERROR',     // Timeout/unreachable (NAT)
             'MISSING_URL',          // No ConnectionRequestURL (NAT or unconfigured)
         ]);
 
         if ($isNatFailure) {
-            // Accoda il comando per esecuzione successiva durante Periodic Inform
-            // Queue command for later execution during Periodic Inform
-            $pendingCommand = $this->queueCommand($device, $commandType, $parameters, $priority);
-
-            Log::info("Command queued due to NAT (Connection Request failed)", [
+            Log::info("Command queued, NAT detected (delayed execution on next Inform)", [
                 'device' => $device->serial_number,
                 'command_type' => $commandType,
                 'pending_command_id' => $pendingCommand->id,
@@ -83,26 +92,32 @@ class PendingCommandService
 
             return [
                 'success' => true,
-                'message' => 'Command queued (device behind NAT). Will execute on next Periodic Inform.',
+                'message' => 'Command queued (device behind NAT). Will execute on next Periodic Inform (~60s).',
                 'queued' => true,
+                'immediate' => false,
                 'pending_command_id' => $pendingCommand->id,
-                'method' => 'pending_queue'
+                'method' => 'pending_queue_nat'
             ];
         }
 
         // Altro tipo di errore (autenticazione, HTTP error, etc.)
         // Other error type (authentication, HTTP error, etc.)
-        Log::error("Command failed (not NAT-related)", [
+        Log::warning("Command queued, Connection Request failed (non-NAT error)", [
             'device' => $device->serial_number,
             'command_type' => $commandType,
+            'pending_command_id' => $pendingCommand->id,
             'error' => $result['message']
         ]);
 
+        // Anche in caso di errore non-NAT, il comando è accodato e verrà eseguito
+        // Even for non-NAT errors, command is queued and will execute
         return [
-            'success' => false,
-            'message' => $result['message'],
-            'queued' => false,
-            'error_code' => $result['error_code'] ?? 'UNKNOWN'
+            'success' => true,
+            'message' => 'Command queued. Will execute on next Periodic Inform (Connection Request failed: ' . $result['message'] . ').',
+            'queued' => true,
+            'immediate' => false,
+            'pending_command_id' => $pendingCommand->id,
+            'method' => 'pending_queue_error'
         ];
     }
 
