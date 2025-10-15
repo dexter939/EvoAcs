@@ -146,6 +146,17 @@ class CpeDevice extends Model
     }
 
     /**
+     * Relazione con comandi accodati (NAT Traversal)
+     * Relationship with pending commands (NAT Traversal)
+     * 
+     * @return HasMany
+     */
+    public function pendingCommands(): HasMany
+    {
+        return $this->hasMany(PendingCommand::class);
+    }
+
+    /**
      * Relazione con test diagnostici TR-143
      * Relationship with TR-143 diagnostic tests
      * 
