@@ -43,6 +43,10 @@ Route::prefix('acs')->name('acs.')->group(function () {
     Route::post('/devices/{id}/trigger-network-scan', [AcsController::class, 'triggerNetworkScan'])->name('devices.trigger-network-scan');
     Route::post('/devices/{id}/assign-service', [AcsController::class, 'assignDeviceToService'])->name('devices.assign-service');
     
+    // NAT Traversal: Pending Commands Management
+    Route::post('/pending-commands/{id}/retry', [AcsController::class, 'retryPendingCommand'])->name('pending-commands.retry');
+    Route::post('/pending-commands/{id}/cancel', [AcsController::class, 'cancelPendingCommand'])->name('pending-commands.cancel');
+    
     // USP Event Subscriptions
     Route::get('/devices/{id}/subscriptions', [AcsController::class, 'subscriptions'])->name('devices.subscriptions');
     Route::post('/devices/{id}/subscriptions', [AcsController::class, 'storeSubscription'])->name('devices.subscriptions.store');

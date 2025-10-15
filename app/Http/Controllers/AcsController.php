@@ -767,9 +767,16 @@ class AcsController extends Controller
             ->take(10)
             ->get();
         
+        // NAT Traversal: Carica pending commands accodati (quando Connection Request fallisce)
+        // NAT Traversal: Load queued pending commands (when Connection Request fails)
+        $pendingCommands = $device->pendingCommands()
+            ->orderBy('priority', 'asc')
+            ->orderBy('created_at', 'asc')
+            ->get();
+        
         $activeProfiles = ConfigurationProfile::where('is_active', true)->get();
         
-        return view('acs.device-detail', compact('device', 'recentTasks', 'activeProfiles'));
+        return view('acs.device-detail', compact('device', 'recentTasks', 'activeProfiles', 'pendingCommands'));
     }
     
     /**
@@ -1606,6 +1613,101 @@ class AcsController extends Controller
             'message' => 'Network scan avviato. Risultati disponibili tra ~60 secondi (prossimo Periodic Inform).',
             'device_id' => $device->id,
             'data_model' => $dataModel,
+        ]);
+    }
+
+    /**
+     * NAT Traversal: Ritenta un pending command fallito
+     * NAT Traversal: Retry a failed pending command
+     * 
+     * @param int $id PendingCommand ID
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function retryPendingCommand($id)
+    {
+        $command = \App\Models\PendingCommand::find($id);
+        
+        if (!$command) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pending command not found'
+            ], 404);
+        }
+        
+        // Verifica che il comando possa essere ritentato
+        if (!$command->canRetry()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Command cannot be retried (max retries reached or invalid status)'
+            ], 400);
+        }
+        
+        // Reset status a pending per ritentare
+        $command->update([
+            'status' => 'pending',
+            'error_message' => null,
+        ]);
+        
+        \Log::info('Pending command queued for retry', [
+            'command_id' => $command->id,
+            'device_id' => $command->cpe_device_id,
+            'command_type' => $command->command_type
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Command queued for retry. Will execute on next Periodic Inform.',
+            'command' => [
+                'id' => $command->id,
+                'command_type' => $command->command_type,
+                'status' => $command->status
+            ]
+        ]);
+    }
+
+    /**
+     * NAT Traversal: Cancella un pending command
+     * NAT Traversal: Cancel a pending command
+     * 
+     * @param int $id PendingCommand ID
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function cancelPendingCommand($id)
+    {
+        $command = \App\Models\PendingCommand::find($id);
+        
+        if (!$command) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pending command not found'
+            ], 404);
+        }
+        
+        // Verifica che il comando possa essere cancellato
+        if (!in_array($command->status, ['pending', 'failed'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Command cannot be cancelled (already processing or completed)'
+            ], 400);
+        }
+        
+        // Marca come cancellato
+        $command->markAsCancelled();
+        
+        \Log::info('Pending command cancelled', [
+            'command_id' => $command->id,
+            'device_id' => $command->cpe_device_id,
+            'command_type' => $command->command_type
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Command cancelled successfully',
+            'command' => [
+                'id' => $command->id,
+                'command_type' => $command->command_type,
+                'status' => $command->status
+            ]
         ]);
     }
 }

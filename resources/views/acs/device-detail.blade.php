@@ -188,6 +188,96 @@
         </div>
         
         <div class="card mb-4">
+            <div class="card-header pb-0 d-flex justify-content-between align-items-center">
+                <h6><i class="fas fa-clock me-2"></i>Pending Commands (NAT Traversal)</h6>
+                <span class="badge bg-gradient-warning text-xs">{{ $pendingCommands->where('status', 'pending')->count() }} Pending</span>
+            </div>
+            <div class="card-body px-0 pt-0 pb-2">
+                <div class="table-responsive p-0">
+                    <table class="table align-items-center mb-0">
+                        <thead>
+                            <tr>
+                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Command Type</th>
+                                <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Status</th>
+                                <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Priority</th>
+                                <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Created</th>
+                                <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($pendingCommands as $command)
+                            <tr>
+                                <td class="text-xs px-3">
+                                    @php
+                                        $icons = [
+                                            'provision' => 'cog',
+                                            'reboot' => 'sync',
+                                            'get_parameters' => 'list',
+                                            'set_parameters' => 'edit',
+                                            'diagnostic' => 'stethoscope',
+                                            'firmware_update' => 'download',
+                                            'factory_reset' => 'trash',
+                                            'network_scan' => 'network-wired'
+                                        ];
+                                        $icon = $icons[$command->command_type] ?? 'terminal';
+                                    @endphp
+                                    <i class="fas fa-{{ $icon }} me-2"></i>{{ ucfirst(str_replace('_', ' ', $command->command_type)) }}
+                                </td>
+                                <td class="text-center">
+                                    @php
+                                        $badges = [
+                                            'pending' => 'warning',
+                                            'processing' => 'info',
+                                            'completed' => 'success',
+                                            'failed' => 'danger',
+                                            'cancelled' => 'secondary'
+                                        ];
+                                        $badgeColor = $badges[$command->status] ?? 'secondary';
+                                    @endphp
+                                    <span class="badge badge-sm bg-gradient-{{ $badgeColor }}">
+                                        {{ ucfirst($command->status) }}
+                                    </span>
+                                </td>
+                                <td class="text-xs text-center">
+                                    <span class="badge badge-sm {{ $command->priority <= 2 ? 'bg-danger' : ($command->priority <= 5 ? 'bg-warning' : 'bg-secondary') }}">
+                                        {{ $command->priority }}
+                                    </span>
+                                </td>
+                                <td class="text-xs text-center">{{ $command->created_at->format('d/m/Y H:i') }}</td>
+                                <td class="text-center">
+                                    @if($command->status === 'failed' && $command->canRetry())
+                                    <button class="btn btn-xs btn-success" onclick="retryPendingCommand({{ $command->id }})" title="Retry">
+                                        <i class="fas fa-redo"></i>
+                                    </button>
+                                    @endif
+                                    @if(in_array($command->status, ['pending', 'failed']))
+                                    <button class="btn btn-xs btn-danger" onclick="cancelPendingCommand({{ $command->id }})" title="Cancel">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                    @endif
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="5" class="text-center text-sm text-muted py-4">
+                                    <i class="fas fa-check-circle me-2"></i>No pending commands (all devices reachable via Connection Request)
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+                @if($pendingCommands->count() > 0)
+                <div class="px-3 py-2">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-2"></i>Commands are queued when Connection Request fails (device behind NAT). They will execute automatically during the next Periodic Inform.
+                    </small>
+                </div>
+                @endif
+            </div>
+        </div>
+        
+        <div class="card mb-4">
             <div class="card-header pb-0">
                 <h6>Task Recenti</h6>
             </div>
@@ -727,5 +817,57 @@ document.addEventListener('DOMContentLoaded', () => {
     const deviceId = {{ $device->id }};
     loadNetworkMap(deviceId);
 });
+
+// NAT Traversal: Retry pending command
+async function retryPendingCommand(commandId) {
+    if (!confirm('Retry this failed command?')) return;
+    
+    try {
+        const response = await fetch(`/acs/pending-commands/${commandId}/retry`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('✅ Command queued for retry. It will execute on next Periodic Inform.');
+            location.reload();
+        } else {
+            alert('❌ Error: ' + result.message);
+        }
+    } catch (error) {
+        alert('❌ Connection error: ' + error.message);
+    }
+}
+
+// NAT Traversal: Cancel pending command
+async function cancelPendingCommand(commandId) {
+    if (!confirm('Cancel this pending command?')) return;
+    
+    try {
+        const response = await fetch(`/acs/pending-commands/${commandId}/cancel`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('✅ Command cancelled successfully.');
+            location.reload();
+        } else {
+            alert('❌ Error: ' + result.message);
+        }
+    } catch (error) {
+        alert('❌ Connection error: ' + error.message);
+    }
+}
 </script>
 @endpush
