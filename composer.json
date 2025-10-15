@@ -13,6 +13,7 @@
         "laravel/horizon": "^5.35",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
+        "pdahal/php-xmpp": "^1.0",
         "php-mqtt/laravel-client": "^1.6",
         "predis/predis": "^3.2",
         "textalk/websocket": "^1.5"

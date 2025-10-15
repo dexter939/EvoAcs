@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c5bd69708d3d212a7498a012eb9619e4",
+    "content-hash": "3e37af28b345011873476f16b32e564d",
     "packages": [
         {
             "name": "brick/math",
@@ -2763,6 +2763,53 @@
                 }
             ],
             "time": "2025-05-08T08:14:37+00:00"
+        },
+        {
+            "name": "pdahal/php-xmpp",
+            "version": "v1.0.1",
+            "source": {
+                "type": "git",
+                "url": "https://projects.prabin-dahal.com.np/pdahal/php-xmpp",
+                "reference": "2fbbae19d2538c342ce60caf763a0490e81cb7d1"
+            },
+            "require": {
+                "php": ">=8.2"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "~3.64",
+                "phpmd/phpmd": "~2.15",
+                "phpunit/phpunit": "~11.0",
+                "rector/rector": "~1.2",
+                "squizlabs/php_codesniffer": "~3.10"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Pdahal\\Xmpp\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Prabin Dahal",
+                    "email": "mr.prabin@gmail.com"
+                },
+                {
+                    "name": "Marko Dupor",
+                    "email": "marko.dupor@gmail.com"
+                }
+            ],
+            "description": "PHP library for XMPP based on `xmppo/xmpp-php`",
+            "keywords": [
+                "jabber",
+                "library",
+                "php",
+                "xmpp"
+            ],
+            "time": "2024-09-13T12:17:16+00:00"
         },
         {
             "name": "php-mqtt/client",
