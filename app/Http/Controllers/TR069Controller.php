@@ -265,6 +265,29 @@ class TR069Controller extends Controller
                 $this->queueTaskCommands($session, $task);
                 $task->update(['status' => 'processing']);
             }
+            
+            // NAT TRAVERSAL: Controlla pending commands accodati (quando Connection Request fallisce)
+            // NAT TRAVERSAL: Check queued pending commands (when Connection Request fails)
+            $pendingCommands = \App\Models\PendingCommand::where('cpe_device_id', $device->id)
+                ->where('status', 'pending')
+                ->orderBy('priority', 'asc')
+                ->orderBy('created_at', 'asc')
+                ->limit(5) // Max 5 comandi per sessione per evitare timeout
+                ->get();
+            
+            // Accoda pending commands nella sessione TR-069
+            // Queue pending commands in TR-069 session
+            foreach ($pendingCommands as $command) {
+                $this->queuePendingCommand($session, $command);
+                $command->markAsProcessing();
+                
+                \Log::info('Pending command queued in TR-069 session', [
+                    'device' => $device->serial_number,
+                    'command_type' => $command->command_type,
+                    'command_id' => $command->id,
+                    'priority' => $command->priority
+                ]);
+            }
         }
         
         // Genera risposta SOAP
@@ -349,6 +372,64 @@ class TR069Controller extends Controller
             case 'network_scan':
                 $dataModel = $task->task_data['data_model'] ?? 'tr098';
                 $sessionManager->queueCommand($session, 'NetworkScan', ['data_model' => $dataModel], $task->id);
+                break;
+        }
+    }
+    
+    /**
+     * Accoda comandi SOAP per un pending command nella sessione (NAT Traversal)
+     * Queue SOAP commands for pending command in session (NAT Traversal)
+     * 
+     * @param \App\Models\Tr069Session $session Sessione TR-069
+     * @param \App\Models\PendingCommand $command Pending command accodato
+     * @return void
+     */
+    private function queuePendingCommand($session, $command): void
+    {
+        $sessionManager = new TR069SessionManager();
+        $params = $command->parameters ?? [];
+        
+        switch ($command->command_type) {
+            case 'provision':
+                // Provisioning: carica configuration profile e imposta parametri
+                if (isset($params['profile_id'])) {
+                    $profile = \App\Models\ConfigurationProfile::find($params['profile_id']);
+                    if ($profile && $profile->configuration_data) {
+                        $sessionManager->queueCommand($session, 'SetParameterValues', $profile->configuration_data, $command->id);
+                    }
+                }
+                break;
+                
+            case 'reboot':
+                $sessionManager->queueCommand($session, 'Reboot', [], $command->id);
+                break;
+                
+            case 'get_parameters':
+                $parameterNames = $params['parameters'] ?? [];
+                $sessionManager->queueCommand($session, 'GetParameterValues', ['parameters' => $parameterNames], $command->id);
+                break;
+                
+            case 'set_parameters':
+                $sessionManager->queueCommand($session, 'SetParameterValues', $params, $command->id);
+                break;
+                
+            case 'diagnostic':
+                $diagnosticType = $params['diagnostic_type'] ?? '';
+                $sessionManager->queueCommand($session, 'Diagnostic_' . $diagnosticType, $params, $command->id);
+                break;
+                
+            case 'firmware_update':
+                $params['command_key'] = 'pending_cmd_' . $command->id;
+                $sessionManager->queueCommand($session, 'Download', $params, $command->id);
+                break;
+                
+            case 'factory_reset':
+                $sessionManager->queueCommand($session, 'FactoryReset', [], $command->id);
+                break;
+                
+            case 'network_scan':
+                $dataModel = $params['data_model'] ?? 'tr098';
+                $sessionManager->queueCommand($session, 'NetworkScan', ['data_model' => $dataModel], $command->id);
                 break;
         }
     }
