@@ -293,9 +293,8 @@ class ParameterOperationsTest extends TestCase
         $task->refresh();
         $this->assertEquals('completed', $task->status);
 
-        // Verify result stored
-        $result = json_decode($task->result, true);
-        $this->assertEquals('0', $result['fault_code']);
-        $this->assertEquals('Success', $result['fault_string']);
+        // Verify result stored (result_data is cast to array automatically)
+        $this->assertEquals('0', $task->result_data['fault_code']);
+        $this->assertEquals('Success', $task->result_data['fault_string']);
     }
 }

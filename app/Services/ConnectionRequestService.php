@@ -180,16 +180,39 @@ class ConnectionRequestService
      * @param string $username
      * @param string $password
      * @param string $authMethod 'basic' o 'digest' / 'basic' or 'digest'
-     * @return array Response simulata con metodi status() e successful()
+     * @return \Illuminate\Http\Client\Response
      */
     private function sendRequestWithAuth(string $url, string $username, string $password, string $authMethod)
     {
         if ($authMethod === 'digest') {
-            // HTTP Digest Auth usa Laravel HTTP client (supporta withDigestAuth dal Laravel 7+)
-            // HTTP Digest Auth uses Laravel HTTP client (supports withDigestAuth since Laravel 7+)
+            // HTTP Digest Auth con challenge flow (RFC 2617)
+            // 1. Prima richiesta senza auth per ottenere challenge
+            // 2. Seconda richiesta con Digest header calcolato
+            
+            // Step 1: Initial request to get 401 challenge
+            $initialResponse = Http::timeout(self::REQUEST_TIMEOUT)->get($url);
+            
+            // Se non è 401, ritorna la risposta (potrebbe essere 200 senza auth richiesta)
+            if ($initialResponse->status() !== 401) {
+                return $initialResponse;
+            }
+            
+            // Step 2: Parse WWW-Authenticate header e calcola Digest
+            $wwwAuth = $initialResponse->header('WWW-Authenticate');
+            
+            if (empty($wwwAuth) || !str_contains($wwwAuth, 'Digest')) {
+                // No Digest challenge, return original 401
+                return $initialResponse;
+            }
+            
+            // Calculate Digest Authorization header
+            $digestHeader = $this->calculateDigestAuthHeader($url, $username, $password, $wwwAuth);
+            
+            // Step 3: Retry with Digest Authorization
             return Http::timeout(self::REQUEST_TIMEOUT)
-                ->withDigestAuth($username, $password)
+                ->withHeaders(['Authorization' => $digestHeader])
                 ->get($url);
+                
         } else {
             // HTTP Basic Auth usa Laravel HTTP client
             // HTTP Basic Auth uses Laravel HTTP client
@@ -197,6 +220,86 @@ class ConnectionRequestService
                 ->withBasicAuth($username, $password)
                 ->get($url);
         }
+    }
+    
+    /**
+     * Calcola Digest Authorization header (RFC 2617)
+     * Calculate Digest Authorization header (RFC 2617)
+     * 
+     * @param string $url
+     * @param string $username
+     * @param string $password
+     * @param string $wwwAuthHeader Header WWW-Authenticate dal server
+     * @return string Digest Authorization header
+     */
+    private function calculateDigestAuthHeader(string $url, string $username, string $password, string $wwwAuthHeader): string
+    {
+        // Parse WWW-Authenticate header
+        $realm = $this->parseDigestValue($wwwAuthHeader, 'realm');
+        $nonce = $this->parseDigestValue($wwwAuthHeader, 'nonce');
+        $qop = $this->parseDigestValue($wwwAuthHeader, 'qop');
+        $opaque = $this->parseDigestValue($wwwAuthHeader, 'opaque');
+        
+        // Parse URL per ottenere URI path
+        $parsedUrl = parse_url($url);
+        $uri = $parsedUrl['path'] ?? '/';
+        if (!empty($parsedUrl['query'])) {
+            $uri .= '?' . $parsedUrl['query'];
+        }
+        
+        // Generate client nonce and nc (nonce count)
+        $cnonce = md5(uniqid());
+        $nc = '00000001';
+        
+        // Calculate HA1 = MD5(username:realm:password)
+        $ha1 = md5("{$username}:{$realm}:{$password}");
+        
+        // Calculate HA2 = MD5(method:uri)
+        $ha2 = md5("GET:{$uri}");
+        
+        // Calculate response hash
+        if ($qop === 'auth' || $qop === 'auth-int') {
+            // With qop: MD5(HA1:nonce:nc:cnonce:qop:HA2)
+            $response = md5("{$ha1}:{$nonce}:{$nc}:{$cnonce}:{$qop}:{$ha2}");
+        } else {
+            // Without qop: MD5(HA1:nonce:HA2)
+            $response = md5("{$ha1}:{$nonce}:{$ha2}");
+        }
+        
+        // Build Digest Authorization header
+        $authHeader = 'Digest ' .
+            "username=\"{$username}\", " .
+            "realm=\"{$realm}\", " .
+            "nonce=\"{$nonce}\", " .
+            "uri=\"{$uri}\", " .
+            "response=\"{$response}\"";
+        
+        if ($qop) {
+            $authHeader .= ", qop={$qop}, nc={$nc}, cnonce=\"{$cnonce}\"";
+        }
+        
+        if ($opaque) {
+            $authHeader .= ", opaque=\"{$opaque}\"";
+        }
+        
+        return $authHeader;
+    }
+    
+    /**
+     * Parse un valore dal header WWW-Authenticate
+     * Parse a value from WWW-Authenticate header
+     * 
+     * @param string $header
+     * @param string $key
+     * @return string|null
+     */
+    private function parseDigestValue(string $header, string $key): ?string
+    {
+        // Match key="value" or key=value
+        if (preg_match('/' . $key . '="?([^",]+)"?/', $header, $matches)) {
+            return $matches[1];
+        }
+        return null;
     }
 
     /**

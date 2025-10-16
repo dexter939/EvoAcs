@@ -899,7 +899,7 @@ class TR069Controller extends Controller
                     
                     $task->update([
                         'status' => 'completed',
-                        'result' => [
+                        'result_data' => [
                             'success' => true,
                             'parameters' => $parameters,
                             'completed_at' => now()->toIso8601String()
@@ -1058,22 +1058,37 @@ class TR069Controller extends Controller
         
         \Log::info('TR-069 SetParameterValues response', ['status' => $statusCode, 'success' => $success]);
         
-        // Aggiorna task associata
+        // Find task via last_command_sent or fallback to latest processing task
+        $task = null;
+        
         if ($session->last_command_sent && isset($session->last_command_sent['task_id'])) {
             $task = ProvisioningTask::find($session->last_command_sent['task_id']);
-            
-            if ($task) {
-                $task->update([
-                    'status' => $success ? 'completed' : 'failed',
-                    'result' => [
-                        'success' => $success,
-                        'status_code' => $statusCode,
-                        'completed_at' => now()->toIso8601String()
-                    ]
-                ]);
+        }
+        
+        // Fallback: find latest processing set_parameters task for this device
+        if (!$task) {
+            $task = ProvisioningTask::where('cpe_device_id', $session->cpe_device_id)
+                ->where('task_type', 'set_parameters')
+                ->where('status', 'processing')
+                ->orderBy('updated_at', 'desc')
+                ->first();
                 
-                \Log::info('TR-069 Task updated', ['task_id' => $task->id, 'status' => $success ? 'completed' : 'failed']);
+            if ($task) {
+                \Log::info('TR-069 Task found via fallback (processing set_parameters)', ['task_id' => $task->id]);
             }
+        }
+        
+        if ($task) {
+            $task->update([
+                'status' => $success ? 'completed' : 'failed',
+                'result_data' => [
+                    'success' => $success,
+                    'status_code' => $statusCode,
+                    'completed_at' => now()->toIso8601String()
+                ]
+            ]);
+            
+            \Log::info('TR-069 Task updated', ['task_id' => $task->id, 'status' => $success ? 'completed' : 'failed']);
         }
     }
     
@@ -1096,7 +1111,7 @@ class TR069Controller extends Controller
             if ($task) {
                 $task->update([
                     'status' => 'completed',
-                    'result' => [
+                    'result_data' => [
                         'success' => true,
                         'message' => 'Device reboot initiated',
                         'completed_at' => now()->toIso8601String()
@@ -1130,8 +1145,7 @@ class TR069Controller extends Controller
         $startTimeNode = $xpath->query('//cwmp:StartTime | //StartTime')->item(0);
         $completeTimeNode = $xpath->query('//cwmp:CompleteTime | //CompleteTime')->item(0);
         
-        $success = !$faultStructNode; // Se non c'è FaultStruct, è successo
-        
+        // Parse FaultCode to determine success (FaultCode=0 means success)
         $faultCode = null;
         $faultString = null;
         
@@ -1141,6 +1155,9 @@ class TR069Controller extends Controller
             $faultCode = $faultCodeNode ? $faultCodeNode->textContent : '';
             $faultString = $faultStringNode ? $faultStringNode->textContent : '';
         }
+        
+        // Success if no FaultStruct OR FaultCode is 0
+        $success = !$faultStructNode || ($faultCode !== null && (string)$faultCode === '0');
         
         $commandKeyStr = $commandKeyNode ? $commandKeyNode->textContent : '';
         $startTimeStr = $startTimeNode ? $startTimeNode->textContent : '';
@@ -1201,7 +1218,7 @@ class TR069Controller extends Controller
         if ($task) {
             $task->update([
                 'status' => $success ? 'completed' : 'failed',
-                'result' => [
+                'result_data' => [
                     'success' => $success,
                     'command_key' => $commandKeyStr,
                     'start_time' => $startTimeStr,

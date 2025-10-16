@@ -1,44 +1,34 @@
-# Sistema ACS (Auto Configuration Server)
-
 ## Overview
-The ACS (Auto Configuration Server) project is a carrier-grade system built with Laravel 11, designed to manage over 100,000 CPE (Customer Premises Equipment) devices. It supports a comprehensive suite of protocols including TR-069 (CWMP), TR-369 (USP), TR-104, TR-140, TR-143, TR-111, TR-64, TR-181, TR-196, and TR-135. Its core functionalities include device auto-registration, zero-touch provisioning, firmware management, and advanced remote diagnostics. The business vision is to deliver a highly scalable and performant solution for large-scale device management in telecommunication environments. This includes AI-powered configuration and diagnostic troubleshooting capabilities.
-
-## Recent Changes (October 2025)
-
-### Phase 1 Completed - Quick Wins ✅
-- **Firmware Management Controller**: Fixed validation order bug - model compatibility now checked before online status (FirmwareController.php line 206-227). All 11/11 tests passing.
-- **Femtocell TR-196**: Verified complete - all 5/5 tests passing (RF parameter management, GPS sync, auto-configuration).
-- **IoT Devices TR-181**: Verified complete - all 6/6 tests passing (smart home device integration, protocol validation).
-- **STB/IPTV TR-135**: Verified complete - all 5/5 tests passing (IPTV channel management, streaming sessions, QoS).
-
-### Deployment & DevOps Automation
-- **Production Installation Script** (`deploy/install.sh`): Complete automated installer for Ubuntu/Debian/CentOS with PostgreSQL, Redis, Prosody XMPP, Nginx, PHP 8.2, Supervisor, Systemd services. Includes automatic backup, migrations, and SSL/TLS support.
-- **Sync Script** (`deploy/sync-to-production.sh`): Replit → Production synchronization in 2 minutes with rsync, composer install, migrations, and service restarts. Includes SSH key setup and validation.
-- **Git Auto-Deploy** (`deploy/setup-git-push-deploy.sh`): GitHub Actions workflow for automatic deployment on `git push origin main`. Configured with deploy webhook and manual `acs-deploy` alias.
-- **Device Testing Tool** (`deploy/test-remote-device.sh`): Automated testing script for real CPE devices - validates connectivity, ACS endpoints (TR-069, XMPP), generates MikroTik config, provides log monitoring commands.
-
-### Documentation & Workflow
-- **Development Workflow** (`docs/DEVELOPMENT_WORKFLOW.md`): Complete guide for Replit ↔ Production ↔ Real Devices workflow. Includes 3 deployment methods (manual sync, Git auto-deploy, single command), real device testing procedures, monitoring/debugging tools, health checks, and troubleshooting checklists.
-- **MikroTik XMPP Config** (`docs/MIKROTIK_XMPP_TEST_CONFIG.md`): Test configuration for MikroTik RouterOS with XMPP credentials (acs-server@acs.local, mikrotik-lab@acs.local), TR-069 CWMP setup, TR-369 USP alternatives (MQTT/STOMP), connection testing procedures.
-- **Project Roadmap** (`docs/PROJECT_ROADMAP.md`): 6-phase development plan from 85% → 100% completion. Phase 2 (TR-069 Core), Phase 3 (Advanced Protocols), Phase 4 (Production Hardening), Phase 5 (Advanced Features), Phase 6 (Release). Timeline: 20-31 days.
-- **XMPP Test Script** (`test_xmpp_mikrotik.php`): PHP CLI simulator for TR-369 USP XMPP transport testing - connects to Prosody, sends test USP messages, listens for responses (30s timeout), JSON payload formatting.
-
-### Current Project Status
-- **Test Coverage**: 85% complete (previously 44%) - Phase 1 fully validated
-- **Next Priority**: Phase 2 - TR-069 Core Protocol (Connection Request, Inform Flow, Parameter Operations) - 21 tests to complete
-- **Production Ready**: Deployment automation complete, real device testing framework operational
+The ACS (Auto Configuration Server) project is a carrier-grade system built with Laravel 11, designed to manage over 100,000 CPE (Customer Premises Equipment) devices. It supports a comprehensive suite of protocols including TR-069 (CWMP), TR-369 (USP), TR-104, TR-140, TR-143, TR-111, TR-64, TR-181, TR-196, and TR-135. Its core functionalities include device auto-registration, zero-touch provisioning, firmware management, and advanced remote diagnostics. The business vision is to deliver a highly scalable and performant solution for large-scale device management in telecommunication environments, including AI-powered configuration and diagnostic troubleshooting capabilities.
 
 ## User Preferences
 I prefer clear and concise explanations. When making changes, prioritize core functionalities and ensure backward compatibility. I prefer an iterative development approach, focusing on delivering functional components incrementally. Please ask for confirmation before implementing significant architectural changes or altering existing API contracts. Ensure all new features have comprehensive test coverage. I want the agent to use proper markdown formatting in all its responses.
 
+## Project Progress
+
+**Current Status**: 62.4% (113/181 tests passing)
+
+### Phase 2 Completed - TR-069 Core Protocol ✅ (October 2025)
+- **Connection Request Mechanism** (7/7 tests): RFC 2617 Digest Auth with 401 challenge/response flow, Basic Auth, offline device validation, network error handling
+- **Inform Flow & Session Management** (7/7 tests): Device auto-registration, SOAP validation, session cookies, multi-session handling
+- **Parameter Operations** (7/7 tests): SetParameterValues/GetParameterValues responses, TransferComplete with FaultCode=0 bugfix, result_data field mapping, fallback task correlation
+
+### Phase 1 Completed - Quick Wins ✅ (October 2025)
+- **Firmware Management** (11/11 tests): Fixed validation order - model compatibility before online status check
+- **Femtocell TR-196** (5/5 tests): RF parameters, GPS sync, auto-configuration
+- **IoT Devices TR-181** (6/6 tests): Smart home integration, protocol validation
+- **STB/IPTV TR-135** (5/5 tests): Channel management, streaming, QoS
+
+**Total Completed**: 48/48 tests (Phase 1+2) | **Next**: Phase 3 - Advanced Protocols
+
 ## System Architecture
 
 ### UI/UX Decisions
-The web interface uses the Soft UI Dashboard Laravel template, providing a modern, responsive design with navigation, real-time statistics, and interactive Chart.js visualizations. It includes features like filtering, pagination, and modal forms for CRUD operations on devices. The dashboard auto-refreshes every 30 seconds.
+The web interface uses the Soft UI Dashboard Laravel template, providing a modern, responsive design with navigation, real-time statistics, interactive Chart.js visualizations, filtering, pagination, and modal forms for CRUD operations. The dashboard auto-refreshes every 30 seconds.
 
 ### Technical Implementations
-- **Protocol Support**: Implements TR-069 (CWMP) via a dedicated SOAP endpoint, TR-369 (USP) with Protocol Buffers over MQTT/WebSocket/HTTP/XMPP, and full provisioning/management for TR-104 (VoIP), TR-140 (Storage), TR-143 (Diagnostics), TR-111 (Device Modeling), TR-64 (LAN-Side), TR-181 (IoT), TR-196 (Femtocell), and TR-135 (STB/IPTV).
-- **XMPP Transport for TR-369 USP** (PoC Implementation): XMPP server integration using Prosody (port 6000) for real-time TR-369 USP message exchange. Implements JID format `device-{serial}@acs.local` for CPE devices and `acs-server@acs.local` for ACS. Service `XmppClientService` wraps pdahal/php-xmpp library providing connect/disconnect, message send, and stanza receiving. Service `UspXmppTransport` encodes USP Protocol Buffers messages in base64, embeds them in XMPP stanzas with custom `<usp>` XML namespace (urn:broadband-forum-org:usp:data-1-0), and handles bidirectional message exchange with CPE devices. SASL PLAIN authentication (development), configurable via `config/xmpp.php`. Prosody workflow configured with 2MB stanza size limit for large USP messages, local data storage in `./data` directory. **Note**: This is a PoC implementation. See `docs/XMPP_PRODUCTION_CHECKLIST.md` for production hardening requirements (TLS encryption, Protocol Buffers integration, load testing).
+- **Protocol Support**: Implements TR-069 (CWMP) via a dedicated SOAP endpoint, TR-369 (USP) with Protocol Buffers over MQTT/WebSocket/HTTP/XMPP, and full provisioning/management for various TR protocols including TR-104, TR-140, TR-143, TR-111, TR-64, TR-181, TR-196, and TR-135.
+- **XMPP Transport for TR-369 USP**: Proof-of-concept integration with Prosody XMPP server for real-time TR-369 USP message exchange, utilizing `pdahal/php-xmpp` library. USP Protocol Buffers messages are base64 encoded within custom XMPP stanzas.
 - **Database**: PostgreSQL with optimized indexing and multi-tenancy support.
 - **Asynchronous Processing**: Laravel Horizon with Redis queues for provisioning, firmware deployment, and TR-069 requests.
 - **API Security**: API Key authentication for all v1 RESTful API endpoints.
@@ -46,35 +36,32 @@ The web interface uses the Soft UI Dashboard Laravel template, providing a moder
 - **Configuration**: Uses Laravel environment variables.
 
 ### Feature Specifications
-- **Device Management**: Auto-registration (via Serial Number, OUI, Product Class), zero-touch provisioning with configuration profiles, and comprehensive firmware management (upload, versioning, deployment).
+- **Device Management**: Auto-registration (Serial Number, OUI, Product Class), zero-touch provisioning with configuration profiles, and comprehensive firmware management.
 - **TR-181 Data Model**: Parameters stored with type, path, access, and update history.
 - **Connection Management**: System-initiated connection requests and TR-369 subscription/notification for device events.
-- **AI Integration**: OpenAI is used for intelligent generation, validation, and optimization of TR-069/TR-369 configuration templates, and for AI Diagnostic Troubleshooting including issue detection, root cause analysis, and solution recommendations based on TR-143 test results.
+- **AI Integration**: OpenAI is used for intelligent generation, validation, optimization of TR-069/TR-369 configuration templates, and AI Diagnostic Troubleshooting (issue detection, root cause analysis, solution recommendations based on TR-143 test results).
 - **Multi-Tenant Architecture**: Supports multiple customers and services with a 3-level web hierarchy.
-- **Data Model Import**: Automated XML parser for importing vendor-specific TR-069 data models (e.g., TR-098, TR-104, TR-140), including validation rules.
+- **Data Model Import**: Automated XML parser for importing vendor-specific (e.g., MikroTik) and Broadband Forum (BBF) standard TR-069 data models (TR-181, TR-098, TR-104, TR-140, TR-143).
 - **Configuration Templates**: Database-driven templates for WiFi, VoIP, Storage with integrated validation rules.
 - **Parameter Validation**: Comprehensive validation engine supporting data model schema, template-specific business rules, indexed paths, and strict type checking.
-- **Router Manufacturers & Products Database**: Hierarchical view of 21 manufacturers and 40 router models with detailed specifications and filtering capabilities.
-- **TR-143 Diagnostics**: UI and workflow for Ping, Traceroute, Download, and Upload tests, supporting NAT traversal via Periodic Inform for un-reachable devices. Results are visualized with summaries and historical patterns.
-- **Network Topology Map**: Real-time visualization of connected clients (LAN/WiFi) on device detail page. TR-069 network scan via Periodic Inform collects Device.Hosts.* (LAN) and Device.WiFi.AccessPoint.*.AssociatedDevice.* (WiFi) parameters. Parses MAC/IP/hostname/signal strength and persists to network_clients table. SVG topology with router center, clients in radial circle, differentiated by connection type (solid green=LAN, dashed cyan=WiFi). Displays stats (total/LAN/WiFi counts), client table with hostname/IP/connection badge/signal quality indicator (excellent/good/fair/poor), and last_seen timestamp. Auto-refresh on page load with manual "Scan Network" button.
-- **MikroTik Data Model**: Complete TR-069 Data Model imported from official MikroTik documentation (552 parameters). Includes Device.DeviceInfo (25), Device.ManagementServer (16), Device.Hosts (10), Device.WiFi (88), Device.IP (104), Device.Routing (15), Device.DNS (8), Device.DHCPv4 (37), Device.Firewall (65), Device.Cellular (107), Device.Ethernet (25), Device.PPP (29), and Device.X_MIKROTIK_* (16) vendor-specific extensions. Stored in tr069_data_models and tr069_parameters with complete metadata (type, access, description, ROS mapping, version). Artisan command `php artisan tr069:import-mikrotik` for re-import/updates.
-- **Broadband Forum Universal Data Models**: Automated XML parser imports official BBF standard data models from GitHub repository (github.com/BroadbandForum/cwmp-data-models), providing universal coverage for 70-80% of all TR-069 CPE devices on the market. Imported models: TR-181 Issue 2 Amendment 19 (Device:2.19 - 8,216 parameters), TR-098 Amendment 8 (InternetGatewayDevice:1.8 - 1,993 parameters), TR-104 Issue 2 (VoiceService:2.0 - 961 parameters), TR-140 Amendment 3 (StorageService:1.3 - 144 parameters), TR-143 Corrigendum 2 (PerformanceDiagnostics - 957 parameters). Total BBF parameters: 12,271. Artisan command `php artisan tr069:import-bbf {model}` supports tr-181-2-19, tr-098, tr-104, tr-140, tr-143 with automatic download, XML parsing, and database insertion. Parser uses direct child traversal to prevent duplication.
-- **Total Data Model Coverage**: 13,709 parameters across 9 data models (BBF 12,271 + vendor-specific 1,438) providing comprehensive universal support for all major CPE vendors (MikroTik, Grandstream, AVM Fritz!Box, OpenWrt, TP-Link) through BBF standard compliance plus vendor extensions.
-- **Auto-Mapping Data Model**: Intelligent automatic data model assignment during TR-069 Inform flow. Service `DataModelMatcher` implements 5 progressive matching strategies: (1) Exact match (vendor + model + firmware), (2) Partial match (vendor + model OR product_class), (3) OUI-based match (MAC vendor prefix → vendor-specific model), (4) Vendor-only match (any model from vendor), (5) Unconditional BBF fallback (TR-181 Device:2.19 for modern devices, TR-098 InternetGatewayDevice:1.8 for legacy). Automatically executes on first Inform if device has no assigned data model. UI displays assigned model with color-coded badges (TR-181=blue, TR-098=purple, TR-104=green) and "⚠️ Auto-map" indicator for pending assignment. Zero-touch provisioning guaranteed through BBF fallback ensuring 100% device coverage.
-- **NAT Traversal & Pending Commands Queue**: Production-grade solution for executing TR-069 commands on CPE devices behind NAT/firewalls when Connection Request fails. Database table `pending_commands` stores queued commands with command_type (provision, reboot, get_parameters, set_parameters, diagnostic, firmware_update, factory_reset, network_scan), status (pending/processing/completed/failed), priority (1-10), retry_count, and parameters JSON. Service `PendingCommandService` implements `sendCommandWithNatFallback()` which attempts Connection Request first, then always queues command for execution during next TR-069 session (immediate ~5s if CR succeeds, delayed ~60s via Periodic Inform if NAT detected). TR069Controller::handleInform() automatically dequeues pending commands (max 5 per session), executes via `queuePendingCommand()` using prefix "pend_" to distinguish from ProvisioningTask, marks as processing, then completion tracking in handleResponse() via `updateTaskOrCommand()` helper method. UI shows "Pending Commands (NAT Traversal)" card in device detail page with command table (type icons, status badges, priority levels, created timestamp), action buttons (retry for failed, cancel for pending/failed), and info message explaining NAT delay. API routes `/acs/pending-commands/{id}/retry` and `/cancel` with JavaScript handlers in device-detail.blade.php. Integrated into `rebootDevice()` with user-facing messages distinguishing immediate vs delayed execution. Zero-touch NAT traversal guaranteed: commands always execute regardless of network topology.
+- **Router Manufacturers & Products Database**: Hierarchical view of manufacturers and router models with detailed specifications.
+- **TR-143 Diagnostics**: UI and workflow for Ping, Traceroute, Download, and Upload tests, supporting NAT traversal.
+- **Network Topology Map**: Real-time visualization of connected LAN/WiFi clients on device detail pages, collected via TR-069 network scans.
+- **Auto-Mapping Data Model**: Intelligent automatic data model assignment during TR-069 Inform flow using multiple matching strategies (exact, partial, OUI-based, vendor-only, BBF fallback).
+- **NAT Traversal & Pending Commands Queue**: Production-grade solution for executing TR-069 commands on CPE devices behind NAT/firewalls by queuing commands for the next TR-069 session if an immediate Connection Request fails.
 
 ## External Dependencies
 - **PostgreSQL 16+**: Primary relational database.
-- **Redis 7+**: Used as the queue driver for Laravel Horizon and for WebSocket message routing.
-- **Laravel Horizon**: Manages and monitors Redis queues for background processing.
-- **Guzzle**: HTTP client for making TR-069 Connection Requests.
+- **Redis 7+**: Queue driver for Laravel Horizon and WebSocket message routing.
+- **Laravel Horizon**: Manages and monitors Redis queues.
+- **Guzzle**: HTTP client for TR-069 Connection Requests.
 - **Google Protocol Buffers v4.32.1**: For TR-369 USP message encoding/decoding.
 - **PHP-MQTT Client v1.6.1**: For USP broker-based transport.
-- **Prosody XMPP Server**: Carrier-grade XMPP/Jabber server for TR-369 USP XMPP transport (port 6000).
-- **pdahal/php-xmpp v1.0.1**: PHP XMPP client library for connecting to Prosody server.
-- **Soft UI Dashboard**: Laravel template used for the administrative web interface.
-- **Chart.js**: JavaScript library for rendering interactive charts in the UI.
-- **FontAwesome**: Icon library for the web interface.
+- **Prosody XMPP Server**: Carrier-grade XMPP/Jabber server for TR-369 USP XMPP transport.
+- **pdahal/php-xmpp v1.0.1**: PHP XMPP client library.
+- **Soft UI Dashboard**: Laravel template for the administrative web interface.
+- **Chart.js**: JavaScript library for interactive charts.
+- **FontAwesome**: Icon library.
 - **Nginx**: Production web server and reverse proxy.
-- **Supervisor/Systemd**: Process management for production environments.
+- **Supervisor/Systemd**: Process management.
 - **OpenAI**: Integrated for AI-powered configuration management and diagnostic analysis.
