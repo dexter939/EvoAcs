@@ -71,7 +71,7 @@ class UspController extends Controller
         ]);
         
         try {
-            $msgId = 'api-get-' . Str::random(10);
+            $msgId = Str::uuid()->toString();
             
             // Send via appropriate MTP
             if ($device->mtp_type === 'mqtt') {
@@ -146,7 +146,7 @@ class UspController extends Controller
         ]);
         
         try {
-            $msgId = 'api-set-' . Str::random(10);
+            $msgId = Str::uuid()->toString();
             $allowPartial = $validated['allow_partial'] ?? true;
             
             // Send via appropriate MTP
@@ -222,7 +222,7 @@ class UspController extends Controller
         ]);
         
         try {
-            $msgId = 'api-operate-' . Str::random(10);
+            $msgId = Str::uuid()->toString();
             $params = $validated['command_args'] ?? [];
             
             // Send via appropriate MTP
@@ -297,7 +297,7 @@ class UspController extends Controller
         ]);
         
         try {
-            $msgId = 'api-add-' . Str::random(10);
+            $msgId = Str::uuid()->toString();
             
             // Build Add message
             $addMessage = $this->uspService->createAddMessage(
@@ -383,7 +383,7 @@ class UspController extends Controller
         ]);
         
         try {
-            $msgId = 'api-delete-' . Str::random(10);
+            $msgId = Str::uuid()->toString();
             
             // Build Delete message
             $deleteMessage = $this->uspService->createDeleteMessage(
@@ -461,7 +461,7 @@ class UspController extends Controller
         }
         
         try {
-            $msgId = 'api-reboot-' . Str::random(10);
+            $msgId = Str::uuid()->toString();
             
             // Send Operate with Device.Reboot() command
             if ($device->mtp_type === 'mqtt') {
@@ -614,7 +614,7 @@ class UspController extends Controller
         ]);
         
         try {
-            $msgId = 'api-subscribe-' . Str::random(10);
+            $msgId = Str::uuid()->toString();
             $subscriptionId = $validated['subscription_id'];
             
             // Create subscription record
@@ -686,7 +686,7 @@ class UspController extends Controller
         }
         
         try {
-            $msgId = 'api-unsubscribe-' . Str::random(10);
+            $msgId = Str::uuid()->toString();
             
             // Soft delete subscription
             $subscription->delete();
