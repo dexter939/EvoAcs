@@ -58,9 +58,16 @@ class VoipLine extends Model
         'auth_password',
     ];
 
+    protected $appends = ['line_number'];
+
     public function sipProfile(): BelongsTo
     {
         return $this->belongsTo(SipProfile::class);
+    }
+
+    public function getLineNumberAttribute(): ?int
+    {
+        return $this->line_instance;
     }
 
     public function getCallSuccessRateAttribute(): float

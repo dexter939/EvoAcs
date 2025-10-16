@@ -43,6 +43,7 @@ class StorageServiceTest extends TestCase
         
         $storageService = StorageService::create([
             'cpe_device_id' => $device->id,
+            'service_instance' => 1,
             'service_name' => 'Test Storage',
             'storage_type' => 'NAS',
             'enabled' => true,
@@ -76,6 +77,7 @@ class StorageServiceTest extends TestCase
         
         $storageService = StorageService::create([
             'cpe_device_id' => $device->id,
+            'service_instance' => 1,
             'service_name' => 'Test Storage',
             'storage_type' => 'NAS',
             'enabled' => true
@@ -98,7 +100,7 @@ class StorageServiceTest extends TestCase
         $this->assertDatabaseHas('file_servers', [
             'storage_service_id' => $storageService->id,
             'server_name' => 'SMB Share',
-            'protocol' => 'SMB'
+            'server_type' => 'SMB'
         ]);
     }
 
@@ -108,6 +110,7 @@ class StorageServiceTest extends TestCase
         
         StorageService::create([
             'cpe_device_id' => $device->id,
+            'service_instance' => 1,
             'service_name' => 'NAS 1',
             'storage_type' => 'NAS',
             'enabled' => true,
@@ -117,6 +120,7 @@ class StorageServiceTest extends TestCase
 
         StorageService::create([
             'cpe_device_id' => $device->id,
+            'service_instance' => 2,
             'service_name' => 'NAS 2',
             'storage_type' => 'NAS',
             'enabled' => true,

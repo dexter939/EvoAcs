@@ -13,6 +13,7 @@ class FileServer extends Model
     protected $fillable = [
         'storage_service_id',
         'server_instance',
+        'server_name',
         'server_type',
         'enabled',
         'port',
@@ -26,6 +27,7 @@ class FileServer extends Model
         'passive_port_min',
         'passive_port_max',
         'document_root',
+        'share_path',
         'directory_listing',
         'ssl_enabled',
         'ssl_certificate',

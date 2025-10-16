@@ -88,6 +88,13 @@ class StorageServiceController extends Controller
             $data['used_capacity'] = 0;
         }
 
+        // Generate service_instance if not provided
+        if (!isset($data['service_instance'])) {
+            $maxInstance = StorageService::where('cpe_device_id', $data['cpe_device_id'])
+                ->max('service_instance');
+            $data['service_instance'] = $maxInstance ? $maxInstance + 1 : 1;
+        }
+
         $service = StorageService::create($data);
 
         return response()->json([

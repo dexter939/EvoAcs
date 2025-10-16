@@ -80,6 +80,13 @@ class VoiceServiceController extends Controller
             // Keep service_type for database
         }
 
+        // Generate service_instance if not provided
+        if (!isset($data['service_instance'])) {
+            $maxInstance = VoiceService::where('cpe_device_id', $data['cpe_device_id'])
+                ->max('service_instance');
+            $data['service_instance'] = $maxInstance ? $maxInstance + 1 : 1;
+        }
+
         $service = VoiceService::create($data);
 
         return response()->json([
