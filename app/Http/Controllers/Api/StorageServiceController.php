@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Api\Traits\ApiResponse;
+use App\Models\CpeDevice;
 use App\Models\StorageService;
 use App\Models\LogicalVolume;
 use App\Models\FileServer;
@@ -37,14 +38,18 @@ class StorageServiceController extends Controller
         return response()->json($services);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, ?CpeDevice $device = null): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'cpe_device_id' => 'required|exists:cpe_devices,id',
-            'service_instance' => 'required|integer',
+            'cpe_device_id' => $device ? 'nullable' : 'required|exists:cpe_devices,id',
+            'service_instance' => 'nullable|integer',
+            'service_name' => 'nullable|string|max:255',
+            'storage_type' => 'nullable|string|max:50',
             'enabled' => 'boolean',
-            'total_capacity' => 'required|integer|min:0',
+            'total_capacity' => 'nullable|integer|min:0',
+            'total_capacity_mb' => 'nullable|integer|min:0',
             'used_capacity' => 'integer|min:0',
+            'used_capacity_mb' => 'integer|min:0',
             'raid_supported' => 'boolean',
             'supported_raid_types' => 'array',
             'ftp_supported' => 'boolean',
@@ -59,11 +64,24 @@ class StorageServiceController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $service = StorageService::create($validator->validated());
+        $data = $validator->validated();
+        
+        // Use device ID from route parameter if available
+        if ($device) {
+            $data['cpe_device_id'] = $device->id;
+        }
+
+        $service = StorageService::create($data);
+        
+        // Add virtual fields for API response
+        $serviceArray = $service->load('cpeDevice')->toArray();
+        $serviceArray['service_name'] = $service->service_instance ?? 'Storage Service ' . $service->id;
+        $serviceArray['storage_type'] = 'NAS'; // Default type
+        $serviceArray['total_capacity_mb'] = $service->total_capacity ? ($service->total_capacity / 1024 / 1024) : 0;
 
         return response()->json([
             'success' => true,
-            'storage_service' => $service->load('cpeDevice')
+            'storage_service' => $serviceArray
         ], 201);
     }
 

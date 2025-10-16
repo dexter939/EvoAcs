@@ -38,10 +38,10 @@ class VoiceServiceController extends Controller
         return response()->json($services);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, ?CpeDevice $device = null): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'cpe_device_id' => 'required|exists:cpe_devices,id',
+            'cpe_device_id' => $device ? 'nullable' : 'required|exists:cpe_devices,id',
             'service_instance' => 'nullable|integer',
             'service_type' => ['nullable', Rule::in(['SIP', 'MGCP', 'H.323'])],
             'service_name' => 'nullable|string|max:255',
@@ -67,6 +67,11 @@ class VoiceServiceController extends Controller
 
         $data = $validator->validated();
         
+        // Use device ID from route parameter if available
+        if ($device) {
+            $data['cpe_device_id'] = $device->id;
+        }
+        
         // Map service_type to protocol if provided
         if (isset($data['service_type']) && !isset($data['protocol'])) {
             $data['protocol'] = $data['service_type'];
@@ -74,10 +79,15 @@ class VoiceServiceController extends Controller
         unset($data['service_type']);
 
         $service = VoiceService::create($data);
+        
+        // Add virtual fields for API response
+        $serviceArray = $service->load('cpeDevice')->toArray();
+        $serviceArray['service_type'] = $service->protocol;
+        $serviceArray['service_name'] = $service->service_instance ?? 'Voice Service ' . $service->id;
 
         return response()->json([
             'success' => true,
-            'voice_service' => $service->load('cpeDevice')
+            'voice_service' => $serviceArray
         ], 201);
     }
 

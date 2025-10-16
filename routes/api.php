@@ -53,14 +53,17 @@ Route::prefix('v1')->middleware(\App\Http\Middleware\ApiKeyAuth::class)->group(f
     Route::delete('usp/devices/{device}/subscriptions/{subscription}', [UspController::class, 'deleteSubscription']);
     
     // TR-104 VoIP Service Management
-    Route::apiResource('voice-services', VoiceServiceController::class);
+    Route::post('devices/{device}/voice-services', [VoiceServiceController::class, 'store']);
+    Route::apiResource('voice-services', VoiceServiceController::class)->except(['store']);
     Route::post('voice-services/{service}/provision', [VoiceServiceController::class, 'provisionService']);
     Route::post('voice-services/{service}/sip-profiles', [VoiceServiceController::class, 'createSipProfile']);
     Route::post('sip-profiles/{profile}/voip-lines', [VoiceServiceController::class, 'createVoipLine']);
+    Route::post('voice-services/{service}/voip-lines', [VoiceServiceController::class, 'createVoipLine']);
     Route::get('voice-services/stats/overview', [VoiceServiceController::class, 'getStatistics']);
     
     // TR-140 Storage Service Management
-    Route::apiResource('storage-services', StorageServiceController::class);
+    Route::post('devices/{device}/storage-services', [StorageServiceController::class, 'store']);
+    Route::apiResource('storage-services', StorageServiceController::class)->except(['store']);
     Route::post('storage-services/{service}/provision', [StorageServiceController::class, 'provisionService']);
     Route::post('storage-services/{service}/volumes', [StorageServiceController::class, 'createVolume']);
     Route::post('storage-services/{service}/file-servers', [StorageServiceController::class, 'createFileServer']);
