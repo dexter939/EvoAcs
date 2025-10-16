@@ -51,16 +51,12 @@ class UspController extends Controller
     {
         // Validate device is TR-369
         if ($device->protocol_type !== 'tr369') {
-            return response()->json([
-                'message' => 'Device must support TR-369 USP protocol'
-            ], 422);
+            return $this->failureResponse('Device must support TR-369 USP protocol', 422);
         }
         
         // Validate device is online
         if ($device->status !== 'online') {
-            return response()->json([
-                'message' => 'Device must be online'
-            ], 422);
+            return $this->failureResponse('Device must be online', 422);
         }
         
         // Validate request
@@ -112,11 +108,8 @@ class UspController extends Controller
                 ]);
             }
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to send USP Get request',
-                'error' => $e->getMessage()
-            ], 500);
+            \Log::error('USP Get request failed: ' . $e->getMessage());
+            return $this->failureResponse('Failed to send USP Get request', 500);
         }
     }
     
@@ -133,16 +126,12 @@ class UspController extends Controller
     {
         // Validate device is TR-369
         if ($device->protocol_type !== 'tr369') {
-            return response()->json([
-                'message' => 'Device must support TR-369 USP protocol'
-            ], 422);
+            return $this->failureResponse('Device must support TR-369 USP protocol', 422);
         }
         
         // Validate device is online
         if ($device->status !== 'online') {
-            return response()->json([
-                'message' => 'Device must be online'
-            ], 422);
+            return $this->failureResponse('Device must be online', 422);
         }
         
         // Validate request
@@ -195,11 +184,8 @@ class UspController extends Controller
                 ]);
             }
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to send USP Set request',
-                'error' => $e->getMessage()
-            ], 500);
+            \Log::error('USP Set request failed: ' . $e->getMessage());
+            return $this->failureResponse('Failed to send USP Set request', 500);
         }
     }
     
@@ -216,16 +202,12 @@ class UspController extends Controller
     {
         // Validate device is TR-369
         if ($device->protocol_type !== 'tr369') {
-            return response()->json([
-                'message' => 'Device must support TR-369 USP protocol'
-            ], 422);
+            return $this->failureResponse('Device must support TR-369 USP protocol', 422);
         }
         
         // Validate device is online
         if ($device->status !== 'online') {
-            return response()->json([
-                'message' => 'Device must be online'
-            ], 422);
+            return $this->failureResponse('Device must be online', 422);
         }
         
         // Validate request
@@ -276,11 +258,8 @@ class UspController extends Controller
                 ]);
             }
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to send USP Operate request',
-                'error' => $e->getMessage()
-            ], 500);
+            \Log::error('USP Operate request failed: ' . $e->getMessage());
+            return $this->failureResponse('Failed to send USP Operate request', 500);
         }
     }
     
@@ -297,16 +276,12 @@ class UspController extends Controller
     {
         // Validate device is TR-369
         if ($device->protocol_type !== 'tr369') {
-            return response()->json([
-                'message' => 'Device must support TR-369 USP protocol'
-            ], 422);
+            return $this->failureResponse('Device must support TR-369 USP protocol', 422);
         }
         
         // Validate device is online
         if ($device->status !== 'online') {
-            return response()->json([
-                'message' => 'Device must be online'
-            ], 422);
+            return $this->failureResponse('Device must be online', 422);
         }
         
         // Validate request
@@ -368,11 +343,8 @@ class UspController extends Controller
                 ]);
             }
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to send USP Add request',
-                'error' => $e->getMessage()
-            ], 500);
+            \Log::error('USP Add request failed: ' . $e->getMessage());
+            return $this->failureResponse('Failed to send USP Add request', 500);
         }
     }
     
@@ -389,16 +361,12 @@ class UspController extends Controller
     {
         // Validate device is TR-369
         if ($device->protocol_type !== 'tr369') {
-            return response()->json([
-                'message' => 'Device must support TR-369 USP protocol'
-            ], 422);
+            return $this->failureResponse('Device must support TR-369 USP protocol', 422);
         }
         
         // Validate device is online
         if ($device->status !== 'online') {
-            return response()->json([
-                'message' => 'Device must be online'
-            ], 422);
+            return $this->failureResponse('Device must be online', 422);
         }
         
         // Validate request
@@ -459,11 +427,8 @@ class UspController extends Controller
                 ]);
             }
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to send USP Delete request',
-                'error' => $e->getMessage()
-            ], 500);
+            \Log::error('USP Delete request failed: ' . $e->getMessage());
+            return $this->failureResponse('Failed to send USP Delete request', 500);
         }
     }
     
@@ -479,16 +444,12 @@ class UspController extends Controller
     {
         // Validate device is TR-369
         if ($device->protocol_type !== 'tr369') {
-            return response()->json([
-                'message' => 'Device must support TR-369 USP protocol'
-            ], 422);
+            return $this->failureResponse('Device must support TR-369 USP protocol', 422);
         }
         
         // Validate device is online
         if ($device->status !== 'online') {
-            return response()->json([
-                'message' => 'Device must be online'
-            ], 422);
+            return $this->failureResponse('Device must be online', 422);
         }
         
         try {
@@ -529,10 +490,8 @@ class UspController extends Controller
                 ]);
             }
         } catch (\Throwable $e) {
-            return response()->json([
-                'error' => 'Failed to send USP Reboot command',
-                'message' => $e->getMessage()
-            ], 500);
+            \Log::error('USP Reboot failed: ' . $e->getMessage());
+            return $this->failureResponse('Failed to send USP Reboot command', 500);
         }
     }
     
@@ -621,16 +580,12 @@ class UspController extends Controller
     {
         // Validate device is TR-369
         if ($device->protocol_type !== 'tr369') {
-            return response()->json([
-                'message' => 'Device must support TR-369 USP protocol'
-            ], 422);
+            return $this->failureResponse('Device must support TR-369 USP protocol', 422);
         }
         
         // Validate device is online
         if ($device->status !== 'online') {
-            return response()->json([
-                'message' => 'Device must be online'
-            ], 422);
+            return $this->failureResponse('Device must be online', 422);
         }
         
         // Validate request
@@ -673,11 +628,8 @@ class UspController extends Controller
                 ]
             ], 201);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create subscription',
-                'error' => $e->getMessage()
-            ], 500);
+            \Log::error('USP create subscription failed: ' . $e->getMessage());
+            return $this->failureResponse('Failed to create subscription', 500);
         }
     }
     
@@ -691,9 +643,7 @@ class UspController extends Controller
     {
         // Validate device is TR-369
         if ($device->protocol_type !== 'tr369') {
-            return response()->json([
-                'message' => 'Device must support TR-369 USP protocol'
-            ], 422);
+            return $this->failureResponse('Device must support TR-369 USP protocol', 422);
         }
         
         $subscriptions = UspSubscription::where('cpe_device_id', $device->id)
@@ -718,16 +668,12 @@ class UspController extends Controller
     {
         // Validate device is TR-369
         if ($device->protocol_type !== 'tr369') {
-            return response()->json([
-                'message' => 'Device must support TR-369 USP protocol'
-            ], 422);
+            return $this->failureResponse('Device must support TR-369 USP protocol', 422);
         }
         
         // Validate subscription belongs to device
         if ($subscription->cpe_device_id !== $device->id) {
-            return response()->json([
-                'message' => 'Subscription does not belong to this device'
-            ], 403);
+            return $this->failureResponse('Subscription does not belong to this device', 403);
         }
         
         try {
@@ -744,11 +690,8 @@ class UspController extends Controller
                 ]
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete subscription',
-                'error' => $e->getMessage()
-            ], 500);
+            \Log::error('USP delete subscription failed: ' . $e->getMessage());
+            return $this->failureResponse('Failed to delete subscription', 500);
         }
     }
 }

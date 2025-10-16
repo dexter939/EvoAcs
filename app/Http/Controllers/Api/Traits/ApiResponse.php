@@ -106,4 +106,20 @@ trait ApiResponse
             'data' => $data
         ], $status);
     }
+
+    /**
+     * Response con fallimento e messaggio
+     * Failure response with message
+     * 
+     * @param string $message Messaggio errore / Error message
+     * @param int $status HTTP status code
+     * @return JsonResponse Response con success=false e message / Response with success=false and message
+     */
+    protected function failureResponse(string $message, int $status = 400): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'message' => $message
+        ], $status);
+    }
 }
