@@ -128,6 +128,7 @@ class ProvisioningTest extends TestCase
         $this->app->instance(\App\Services\ConnectionRequestService::class, $mockService);
 
         $device = CpeDevice::factory()->tr069()->create([
+            'status' => 'online',
             'connection_request_url' => 'http://device.example.com:7547',
             'connection_request_username' => 'admin',
             'connection_request_password' => 'password'

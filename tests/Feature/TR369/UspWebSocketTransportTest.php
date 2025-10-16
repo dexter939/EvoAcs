@@ -6,6 +6,7 @@ use Tests\TestCase;
 use App\Models\CpeDevice;
 use App\Services\UspWebSocketService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Mockery;
 
 class UspWebSocketTransportTest extends TestCase
 {
@@ -16,6 +17,19 @@ class UspWebSocketTransportTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Mock UspWebSocketService to avoid real WebSocket connections
+        $wsMock = Mockery::mock(UspWebSocketService::class);
+        $wsMock->shouldReceive('sendGetRequest')->andReturn(true);
+        $wsMock->shouldReceive('sendSetRequest')->andReturn(true);
+        $wsMock->shouldReceive('sendOperateRequest')->andReturn(true);
+        $wsMock->shouldReceive('sendAddRequest')->andReturn(true);
+        $wsMock->shouldReceive('sendDeleteRequest')->andReturn(true);
+        $wsMock->shouldReceive('sendSubscriptionRequest')->andReturn(true);
+        $wsMock->shouldReceive('isDeviceConnected')->andReturn(false);
+        $wsMock->shouldReceive('getConnectedDevices')->andReturn([]);
+        
+        $this->app->instance(UspWebSocketService::class, $wsMock);
 
         $this->device = CpeDevice::factory()->tr369()->online()->create([
             'mtp_type' => 'websocket',
