@@ -81,8 +81,18 @@ class StorageService extends Model
         return $this->total_capacity ? round($this->total_capacity / (1024 * 1024)) : 0;
     }
 
+    public function setTotalCapacityMbAttribute($value): void
+    {
+        $this->attributes['total_capacity'] = $value * 1024 * 1024;
+    }
+
     public function getUsedCapacityMbAttribute(): int
     {
         return $this->used_capacity ? round($this->used_capacity / (1024 * 1024)) : 0;
+    }
+
+    public function setUsedCapacityMbAttribute($value): void
+    {
+        $this->attributes['used_capacity'] = $value * 1024 * 1024;
     }
 }

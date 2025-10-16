@@ -226,8 +226,16 @@ class VoiceServiceController extends Controller
         ], 201);
     }
 
-    public function createVoipLine(Request $request, string $profileId): JsonResponse
+    public function createVoipLine(Request $request, string $serviceOrProfileId): JsonResponse
     {
+        // Check if sip_profile_id is in request (voice-services route)
+        if ($request->has('sip_profile_id')) {
+            $profileId = $request->input('sip_profile_id');
+        } else {
+            // Otherwise, use the route parameter (sip-profiles route)
+            $profileId = $serviceOrProfileId;
+        }
+
         $profile = SipProfile::find($profileId);
 
         if (!$profile) {
@@ -238,6 +246,7 @@ class VoiceServiceController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
+            'sip_profile_id' => 'nullable|exists:sip_profiles,id',
             'line_number' => 'nullable|integer',
             'line_instance' => 'nullable|integer',
             'enabled' => 'boolean',
@@ -262,6 +271,10 @@ class VoiceServiceController extends Controller
         $data = $validator->validated();
         $data['sip_profile_id'] = $profileId;
         $data['status'] = 'Idle';
+
+        // Remove sip_profile_id from data if it was in request (avoid duplicate)
+        unset($data['sip_profile_id']);
+        $data['sip_profile_id'] = $profileId;
 
         $line = VoipLine::create($data);
 

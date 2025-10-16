@@ -132,10 +132,13 @@ class StorageServiceTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonStructure([
-                'total_services',
-                'total_capacity_mb',
-                'total_used_mb',
-                'usage_percentage'
+                'success',
+                'data' => [
+                    'total_services',
+                    'total_capacity_mb',
+                    'total_used_mb',
+                    'usage_percentage'
+                ]
             ]);
     }
 

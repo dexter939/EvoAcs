@@ -326,23 +326,30 @@ class StorageServiceController extends Controller
 
     public function getStatistics(Request $request): JsonResponse
     {
+        $totalCapacityBytes = StorageService::sum('total_capacity') ?? 0;
+        $totalUsedBytes = StorageService::sum('used_capacity') ?? 0;
+        
+        // Convert bytes to MB
+        $totalCapacityMb = round($totalCapacityBytes / (1024 * 1024), 2);
+        $totalUsedMb = round($totalUsedBytes / (1024 * 1024), 2);
+        $freeCapacityMb = $totalCapacityMb - $totalUsedMb;
+
         $stats = [
             'total_services' => StorageService::count(),
             'enabled_services' => StorageService::where('enabled', true)->count(),
             'total_volumes' => LogicalVolume::count(),
             'total_file_servers' => FileServer::count(),
-            'total_capacity' => StorageService::sum('total_capacity'),
-            'used_capacity' => StorageService::sum('used_capacity'),
+            'total_capacity_mb' => $totalCapacityMb,
+            'total_used_mb' => $totalUsedMb,
+            'free_capacity_mb' => $freeCapacityMb,
+            'usage_percentage' => $totalCapacityMb > 0 
+                ? round(($totalUsedMb / $totalCapacityMb) * 100, 2) 
+                : 0,
             'server_types' => FileServer::select('server_type')
                 ->selectRaw('COUNT(*) as count')
                 ->groupBy('server_type')
                 ->get(),
         ];
-
-        $stats['free_capacity'] = $stats['total_capacity'] - $stats['used_capacity'];
-        $stats['usage_percent'] = $stats['total_capacity'] > 0 
-            ? round(($stats['used_capacity'] / $stats['total_capacity']) * 100, 2) 
-            : 0;
 
         return response()->json([
             'success' => true,
