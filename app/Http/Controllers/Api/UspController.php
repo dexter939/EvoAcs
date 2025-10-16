@@ -240,7 +240,8 @@ class UspController extends Controller
                     'data' => [
                         'msg_id' => $msgId,
                         'command' => $validated['command'],
-                        'status' => 'sent'
+                        'status' => 'sent',
+                        'transport' => 'websocket'
                     ]
                 ]);
             } else {
@@ -327,7 +328,8 @@ class UspController extends Controller
                     'success' => true,
                     'data' => [
                         'msg_id' => $msgId,
-                        'object_path' => $validated['object_path']
+                        'object_path' => $validated['object_path'],
+                        'transport' => 'websocket'
                     ]
                 ]);
             } else {
@@ -411,7 +413,8 @@ class UspController extends Controller
                     'success' => true,
                     'data' => [
                         'msg_id' => $msgId,
-                        'deleted_objects' => $validated['object_paths']
+                        'deleted_objects' => $validated['object_paths'],
+                        'transport' => 'websocket'
                     ]
                 ]);
             } else {
@@ -473,7 +476,8 @@ class UspController extends Controller
                     'success' => true,
                     'data' => [
                         'msg_id' => $msgId,
-                        'status' => 'sent'
+                        'status' => 'sent',
+                        'transport' => 'websocket'
                     ]
                 ]);
             } else {
