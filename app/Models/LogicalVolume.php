@@ -45,9 +45,16 @@ class LogicalVolume extends Model
         'last_check' => 'datetime',
     ];
 
+    protected $appends = ['filesystem_type'];
+
     public function storageService(): BelongsTo
     {
         return $this->belongsTo(StorageService::class);
+    }
+
+    public function getFilesystemTypeAttribute(): ?string
+    {
+        return $this->filesystem;
     }
 
     public function updateUsageStats(): void

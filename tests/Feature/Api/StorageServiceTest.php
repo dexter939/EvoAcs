@@ -27,7 +27,7 @@ class StorageServiceTest extends TestCase
         $response->assertStatus(201)
             ->assertJsonStructure([
                 'success',
-                'storage_service' => ['service_name', 'storage_type', 'total_capacity_mb']
+                'data' => ['service_name', 'storage_type', 'total_capacity_mb']
             ]);
 
         $this->assertDatabaseHas('storage_services', [
@@ -60,7 +60,7 @@ class StorageServiceTest extends TestCase
         $response->assertStatus(201)
             ->assertJsonStructure([
                 'success',
-                'volume' => ['volume_name', 'filesystem_type', 'raid_level']
+                'data' => ['volume_name', 'filesystem_type', 'raid_level']
             ]);
 
         $this->assertDatabaseHas('logical_volumes', [
@@ -92,7 +92,7 @@ class StorageServiceTest extends TestCase
         $response->assertStatus(201)
             ->assertJsonStructure([
                 'success',
-                'file_server' => ['server_name', 'protocol', 'share_path']
+                'data' => ['server_name', 'protocol', 'share_path']
             ]);
 
         $this->assertDatabaseHas('file_servers', [

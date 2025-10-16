@@ -14,6 +14,8 @@ class VoiceService extends Model
     protected $fillable = [
         'cpe_device_id',
         'service_instance',
+        'service_name',
+        'service_type',
         'enabled',
         'protocol',
         'max_profiles',

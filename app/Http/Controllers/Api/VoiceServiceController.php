@@ -72,22 +72,19 @@ class VoiceServiceController extends Controller
             $data['cpe_device_id'] = $device->id;
         }
         
-        // Map service_type to protocol if provided
-        if (isset($data['service_type']) && !isset($data['protocol'])) {
-            $data['protocol'] = $data['service_type'];
+        // Map service_type to both protocol and service_type fields
+        if (isset($data['service_type'])) {
+            if (!isset($data['protocol'])) {
+                $data['protocol'] = $data['service_type'];
+            }
+            // Keep service_type for database
         }
-        unset($data['service_type']);
 
         $service = VoiceService::create($data);
-        
-        // Add virtual fields for API response
-        $serviceArray = $service->load('cpeDevice')->toArray();
-        $serviceArray['service_type'] = $service->protocol;
-        $serviceArray['service_name'] = $service->service_instance ?? 'Voice Service ' . $service->id;
 
         return response()->json([
             'success' => true,
-            'voice_service' => $serviceArray
+            'data' => $service->load('cpeDevice')
         ], 201);
     }
 
@@ -104,7 +101,7 @@ class VoiceServiceController extends Controller
 
         return response()->json([
             'success' => true,
-            'voice_service' => $service
+            'data' => $service
         ]);
     }
 
@@ -143,7 +140,7 @@ class VoiceServiceController extends Controller
 
         return response()->json([
             'success' => true,
-            'voice_service' => $service->fresh(['cpeDevice'])
+            'data' => $service->fresh(['cpeDevice'])
         ]);
     }
 
@@ -204,7 +201,7 @@ class VoiceServiceController extends Controller
 
         return response()->json([
             'success' => true,
-            'sip_profile' => $profile
+            'data' => $profile
         ], 201);
     }
 
@@ -246,7 +243,7 @@ class VoiceServiceController extends Controller
 
         return response()->json([
             'success' => true,
-            'voip_line' => $line
+            'data' => $line
         ], 201);
     }
 

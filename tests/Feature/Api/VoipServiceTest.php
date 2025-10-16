@@ -27,7 +27,7 @@ class VoipServiceTest extends TestCase
         $response->assertStatus(201)
             ->assertJsonStructure([
                 'success',
-                'voice_service' => ['service_type', 'service_name', 'enabled']
+                'data' => ['service_type', 'service_name', 'enabled']
             ]);
 
         $this->assertDatabaseHas('voice_services', [
@@ -60,7 +60,7 @@ class VoipServiceTest extends TestCase
         $response->assertStatus(201)
             ->assertJsonStructure([
                 'success',
-                'sip_profile' => ['profile_name', 'proxy_server', 'transport_protocol']
+                'data' => ['profile_name', 'proxy_server', 'transport_protocol']
             ]);
     }
 
@@ -92,7 +92,7 @@ class VoipServiceTest extends TestCase
         $response->assertStatus(201)
             ->assertJsonStructure([
                 'success',
-                'voip_line' => ['line_number', 'sip_uri', 'enabled']
+                'data' => ['line_number', 'sip_uri', 'enabled']
             ]);
     }
 

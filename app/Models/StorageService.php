@@ -14,6 +14,8 @@ class StorageService extends Model
     protected $fillable = [
         'cpe_device_id',
         'service_instance',
+        'service_name',
+        'storage_type',
         'enabled',
         'total_capacity',
         'used_capacity',
@@ -44,6 +46,8 @@ class StorageService extends Model
         'nfs_supported' => 'boolean',
     ];
 
+    protected $appends = ['total_capacity_mb', 'used_capacity_mb'];
+
     public function cpeDevice(): BelongsTo
     {
         return $this->belongsTo(CpeDevice::class);
@@ -70,5 +74,15 @@ class StorageService extends Model
     public function getFreeCapacityAttribute(): int
     {
         return $this->total_capacity - $this->used_capacity;
+    }
+
+    public function getTotalCapacityMbAttribute(): int
+    {
+        return $this->total_capacity ? round($this->total_capacity / (1024 * 1024)) : 0;
+    }
+
+    public function getUsedCapacityMbAttribute(): int
+    {
+        return $this->used_capacity ? round($this->used_capacity / (1024 * 1024)) : 0;
     }
 }

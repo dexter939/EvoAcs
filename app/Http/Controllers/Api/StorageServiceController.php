@@ -48,8 +48,8 @@ class StorageServiceController extends Controller
             'enabled' => 'boolean',
             'total_capacity' => 'nullable|integer|min:0',
             'total_capacity_mb' => 'nullable|integer|min:0',
-            'used_capacity' => 'integer|min:0',
-            'used_capacity_mb' => 'integer|min:0',
+            'used_capacity' => 'nullable|integer|min:0',
+            'used_capacity_mb' => 'nullable|integer|min:0',
             'raid_supported' => 'boolean',
             'supported_raid_types' => 'array',
             'ftp_supported' => 'boolean',
@@ -70,18 +70,29 @@ class StorageServiceController extends Controller
         if ($device) {
             $data['cpe_device_id'] = $device->id;
         }
+        
+        // Convert total_capacity_mb to total_capacity (bytes) if provided
+        if (isset($data['total_capacity_mb'])) {
+            $data['total_capacity'] = $data['total_capacity_mb'] * 1024 * 1024;
+            unset($data['total_capacity_mb']);
+        }
+        
+        // Convert used_capacity_mb to used_capacity (bytes) if provided
+        if (isset($data['used_capacity_mb'])) {
+            $data['used_capacity'] = $data['used_capacity_mb'] * 1024 * 1024;
+            unset($data['used_capacity_mb']);
+        }
+
+        // Set defaults if not provided
+        if (!isset($data['used_capacity']) && !isset($data['used_capacity_mb'])) {
+            $data['used_capacity'] = 0;
+        }
 
         $service = StorageService::create($data);
-        
-        // Add virtual fields for API response
-        $serviceArray = $service->load('cpeDevice')->toArray();
-        $serviceArray['service_name'] = $service->service_instance ?? 'Storage Service ' . $service->id;
-        $serviceArray['storage_type'] = 'NAS'; // Default type
-        $serviceArray['total_capacity_mb'] = $service->total_capacity ? ($service->total_capacity / 1024 / 1024) : 0;
 
         return response()->json([
             'success' => true,
-            'storage_service' => $serviceArray
+            'data' => $service->load('cpeDevice')
         ], 201);
     }
 
@@ -98,7 +109,7 @@ class StorageServiceController extends Controller
 
         return response()->json([
             'success' => true,
-            'storage_service' => $service
+            'data' => $service
         ]);
     }
 
@@ -130,7 +141,7 @@ class StorageServiceController extends Controller
 
         return response()->json([
             'success' => true,
-            'storage_service' => $service->fresh(['cpeDevice'])
+            'data' => $service->fresh(['cpeDevice'])
         ]);
     }
 
@@ -165,18 +176,21 @@ class StorageServiceController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'volume_instance' => 'required|integer',
+            'volume_instance' => 'nullable|integer',
             'enabled' => 'boolean',
             'volume_name' => 'required|string|max:255',
-            'filesystem' => ['required', Rule::in(['ext4', 'ext3', 'xfs', 'btrfs', 'ntfs', 'fat32'])],
-            'capacity' => 'required|integer|min:0',
+            'filesystem' => ['nullable', Rule::in(['ext4', 'ext3', 'xfs', 'btrfs', 'ntfs', 'fat32'])],
+            'filesystem_type' => ['nullable', Rule::in(['ext4', 'ext3', 'xfs', 'btrfs', 'ntfs', 'fat32'])],
+            'capacity' => 'nullable|integer|min:0',
+            'capacity_mb' => 'nullable|integer|min:0',
             'raid_level' => ['nullable', Rule::in(['RAID0', 'RAID1', 'RAID5', 'RAID6', 'RAID10'])],
-            'mount_point' => 'required|string',
+            'mount_point' => 'nullable|string',
             'auto_mount' => 'boolean',
             'read_only' => 'boolean',
             'quota_enabled' => 'boolean',
             'quota_size' => 'nullable|integer',
             'encrypted' => 'boolean',
+            'encryption_enabled' => 'boolean',
         ]);
 
         if ($validator->fails()) {
@@ -184,8 +198,27 @@ class StorageServiceController extends Controller
         }
 
         $data = $validator->validated();
+        
+        // Map filesystem_type to filesystem
+        if (isset($data['filesystem_type']) && !isset($data['filesystem'])) {
+            $data['filesystem'] = $data['filesystem_type'];
+        }
+        unset($data['filesystem_type']);
+        
+        // Map capacity_mb to capacity (bytes)
+        if (isset($data['capacity_mb'])) {
+            $data['capacity'] = $data['capacity_mb'] * 1024 * 1024;
+            unset($data['capacity_mb']);
+        }
+        
+        // Map encryption_enabled to encrypted
+        if (isset($data['encryption_enabled'])) {
+            $data['encrypted'] = $data['encryption_enabled'];
+            unset($data['encryption_enabled']);
+        }
+        
         $data['storage_service_id'] = $serviceId;
-        $data['free_space'] = $data['capacity'];
+        $data['free_space'] = $data['capacity'] ?? 0;
         $data['used_space'] = 0;
         $data['usage_percent'] = 0;
         $data['status'] = 'Online';
@@ -194,7 +227,7 @@ class StorageServiceController extends Controller
 
         return response()->json([
             'success' => true,
-            'volume' => $volume
+            'data' => $volume
         ], 201);
     }
 
@@ -263,7 +296,7 @@ class StorageServiceController extends Controller
 
         return response()->json([
             'success' => true,
-            'file_server' => $fileServerArray
+            'data' => $fileServerArray
         ], 201);
     }
 
