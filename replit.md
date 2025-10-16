@@ -6,15 +6,15 @@ I prefer clear and concise explanations. When making changes, prioritize core fu
 
 ## Project Progress
 
-**Current Status**: ~65% (119+/181 tests passing)
+**Current Status**: ~55% (99+/181 tests passing, verified October 16, 2025)
 
-### Phase 3 Completed - API Standardization ✅ (October 2025)
-- **TR-143 Diagnostics** (10/10 tests): Complete ✅ - Ping, Traceroute, Download/Upload tests, NAT traversal, result validation
-- **TR-369 USP Operations** (11/13 tests): getParameters ✅, device validation ✅, deleteObject ✅, operate ✅, reboot ✅, createSubscription ✅, listSubscriptions ✅, deleteSubscription ✅, online validation ✅, notification_type validation ✅
-  - Remaining: setParameters, mtp_transports (both require MQTT/WebSocket service mocking)
+### Phase 3 - API Standardization (90% Complete) 🔄 (October 2025)
+- **TR-369 USP Operations** (13/13 tests): Complete ✅ - getParameters, setParameters, addObject, deleteObject, operate, reboot, createSubscription, listSubscriptions, deleteSubscription, device validation, online validation, notification_type validation, mtp_transports (mqtt/websocket/http)
+  - Mock Pattern: UspMqttService.publish($topic, $record) for MQTT transport
   - Database: notification_type enum constraint ✅, 'http' mtp_type support ✅, API response standardization {success, data} ✅
-- **Storage Service API** (6/6 tests): Production-ready ✅ - All endpoints use {success, data} format, fillable fields (service_name, storage_type, server_name, share_path), accessors (total_capacity_mb, used_capacity_mb, filesystem_type), auto service_instance generation
-- **VoIP Service API** (7/7 tests): Production-ready ✅ - All endpoints use {success, data} format, fillable fields (service_name, service_type), accessors (line_number), auto service_instance generation, validation errors {success: false, errors}
+- **TR-143 Diagnostics** (10/10 tests): Complete ✅ - Ping, Traceroute, Download/Upload tests, NAT traversal, result validation
+- **Storage Service API** (3/4 tests): stats endpoint requires JSON structure fix
+- **VoIP Service API** (2/3 tests): provision voip line endpoint returns 404, needs route/controller fix
 
 ### Phase 2 Completed - TR-069 Core Protocol ✅ (October 2025)
 - **Connection Request Mechanism** (7/7 tests): RFC 2617 Digest Auth with 401 challenge/response flow, Basic Auth, offline device validation, network error handling
@@ -27,7 +27,16 @@ I prefer clear and concise explanations. When making changes, prioritize core fu
 - **IoT Devices TR-181** (6/6 tests): Smart home integration, protocol validation
 - **STB/IPTV TR-135** (5/5 tests): Channel management, streaming, QoS
 
-**Total Completed**: 124+/181 tests (Phases 1+2+3 partial) | **Next**: Complete Phase 3 remaining tests (VoIP firmware, USP service mocking)
+### Other Completed Features
+- **LAN Device Management** (4/4 tests): SSDP discovery, SOAP actions ✅
+- **Device Modeling** (5/5 tests): Parameter discovery, capabilities, stats ✅
+- **Provisioning API** (6/7 tests): TR-069 parameter operations, reboot, connection request (1 test returns 422)
+
+### Known Issues
+- **DeviceManagement tests**: 12 tests timeout, requires investigation
+- **TR-369 Transport tests**: UspWebSocketTransport (11 tests QueryException), UspHttpTransport/UspMqttTransport timeout
+
+**Total Verified**: 99+/181 tests passing | **Next**: Fix Storage stats, VoIP provision, Provisioning connection request, investigate transport test failures
 
 ## System Architecture
 
