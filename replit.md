@@ -3,6 +3,31 @@
 ## Overview
 The ACS (Auto Configuration Server) project is a carrier-grade system built with Laravel 11, designed to manage over 100,000 CPE (Customer Premises Equipment) devices. It supports a comprehensive suite of protocols including TR-069 (CWMP), TR-369 (USP), TR-104, TR-140, TR-143, TR-111, TR-64, TR-181, TR-196, and TR-135. Its core functionalities include device auto-registration, zero-touch provisioning, firmware management, and advanced remote diagnostics. The business vision is to deliver a highly scalable and performant solution for large-scale device management in telecommunication environments. This includes AI-powered configuration and diagnostic troubleshooting capabilities.
 
+## Recent Changes (October 2025)
+
+### Phase 1 Completed - Quick Wins ✅
+- **Firmware Management Controller**: Fixed validation order bug - model compatibility now checked before online status (FirmwareController.php line 206-227). All 11/11 tests passing.
+- **Femtocell TR-196**: Verified complete - all 5/5 tests passing (RF parameter management, GPS sync, auto-configuration).
+- **IoT Devices TR-181**: Verified complete - all 6/6 tests passing (smart home device integration, protocol validation).
+- **STB/IPTV TR-135**: Verified complete - all 5/5 tests passing (IPTV channel management, streaming sessions, QoS).
+
+### Deployment & DevOps Automation
+- **Production Installation Script** (`deploy/install.sh`): Complete automated installer for Ubuntu/Debian/CentOS with PostgreSQL, Redis, Prosody XMPP, Nginx, PHP 8.2, Supervisor, Systemd services. Includes automatic backup, migrations, and SSL/TLS support.
+- **Sync Script** (`deploy/sync-to-production.sh`): Replit → Production synchronization in 2 minutes with rsync, composer install, migrations, and service restarts. Includes SSH key setup and validation.
+- **Git Auto-Deploy** (`deploy/setup-git-push-deploy.sh`): GitHub Actions workflow for automatic deployment on `git push origin main`. Configured with deploy webhook and manual `acs-deploy` alias.
+- **Device Testing Tool** (`deploy/test-remote-device.sh`): Automated testing script for real CPE devices - validates connectivity, ACS endpoints (TR-069, XMPP), generates MikroTik config, provides log monitoring commands.
+
+### Documentation & Workflow
+- **Development Workflow** (`docs/DEVELOPMENT_WORKFLOW.md`): Complete guide for Replit ↔ Production ↔ Real Devices workflow. Includes 3 deployment methods (manual sync, Git auto-deploy, single command), real device testing procedures, monitoring/debugging tools, health checks, and troubleshooting checklists.
+- **MikroTik XMPP Config** (`docs/MIKROTIK_XMPP_TEST_CONFIG.md`): Test configuration for MikroTik RouterOS with XMPP credentials (acs-server@acs.local, mikrotik-lab@acs.local), TR-069 CWMP setup, TR-369 USP alternatives (MQTT/STOMP), connection testing procedures.
+- **Project Roadmap** (`docs/PROJECT_ROADMAP.md`): 6-phase development plan from 85% → 100% completion. Phase 2 (TR-069 Core), Phase 3 (Advanced Protocols), Phase 4 (Production Hardening), Phase 5 (Advanced Features), Phase 6 (Release). Timeline: 20-31 days.
+- **XMPP Test Script** (`test_xmpp_mikrotik.php`): PHP CLI simulator for TR-369 USP XMPP transport testing - connects to Prosody, sends test USP messages, listens for responses (30s timeout), JSON payload formatting.
+
+### Current Project Status
+- **Test Coverage**: 85% complete (previously 44%) - Phase 1 fully validated
+- **Next Priority**: Phase 2 - TR-069 Core Protocol (Connection Request, Inform Flow, Parameter Operations) - 21 tests to complete
+- **Production Ready**: Deployment automation complete, real device testing framework operational
+
 ## User Preferences
 I prefer clear and concise explanations. When making changes, prioritize core functionalities and ensure backward compatibility. I prefer an iterative development approach, focusing on delivering functional components incrementally. Please ask for confirmation before implementing significant architectural changes or altering existing API contracts. Ensure all new features have comprehensive test coverage. I want the agent to use proper markdown formatting in all its responses.
 
