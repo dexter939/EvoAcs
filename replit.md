@@ -8,13 +8,13 @@ I prefer clear and concise explanations. When making changes, prioritize core fu
 
 **Current Status**: ~55% (99+/181 tests passing, verified October 16, 2025)
 
-### Phase 3 - API Standardization (90% Complete) 🔄 (October 2025)
+### Phase 3 - API Standardization (95% Complete) ✅ (October 2025)
 - **TR-369 USP Operations** (13/13 tests): Complete ✅ - getParameters, setParameters, addObject, deleteObject, operate, reboot, createSubscription, listSubscriptions, deleteSubscription, device validation, online validation, notification_type validation, mtp_transports (mqtt/websocket/http)
   - Mock Pattern: UspMqttService.publish($topic, $record) for MQTT transport
   - Database: notification_type enum constraint ✅, 'http' mtp_type support ✅, API response standardization {success, data} ✅
 - **TR-143 Diagnostics** (10/10 tests): Complete ✅ - Ping, Traceroute, Download/Upload tests, NAT traversal, result validation
-- **Storage Service API** (3/4 tests): stats endpoint requires JSON structure fix
-- **VoIP Service API** (2/3 tests): provision voip line endpoint returns 404, needs route/controller fix
+- **Storage Service API** (4/4 tests): Complete ✅ - Added mutators for _mb fields, byte-to-MB conversion in stats, full API contract preserved (enabled_services, volumes, file_servers, server_types, capacity stats)
+- **VoIP Service API** (3/3 tests): Complete ✅ - createVoipLine handles both route patterns (voice-services/{service} with sip_profile_id in body, sip-profiles/{profile} in route)
 
 ### Phase 2 Completed - TR-069 Core Protocol ✅ (October 2025)
 - **Connection Request Mechanism** (7/7 tests): RFC 2617 Digest Auth with 401 challenge/response flow, Basic Auth, offline device validation, network error handling
