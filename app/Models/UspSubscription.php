@@ -5,19 +5,20 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Carbon\Carbon;
 
 class UspSubscription extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'cpe_device_id',
         'subscription_id',
-        'event_path',
+        'notification_type',
         'reference_list',
-        'notification_retry',
-        'persist',
+        'enabled',
+        'persistent',
         'status',
         'expires_at',
         'last_notification_at',
@@ -26,8 +27,8 @@ class UspSubscription extends Model
 
     protected $casts = [
         'reference_list' => 'array',
-        'notification_retry' => 'boolean',
-        'persist' => 'boolean',
+        'enabled' => 'boolean',
+        'persistent' => 'boolean',
         'expires_at' => 'datetime',
         'last_notification_at' => 'datetime',
         'notification_count' => 'integer',
