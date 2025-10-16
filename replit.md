@@ -10,8 +10,9 @@ I prefer clear and concise explanations. When making changes, prioritize core fu
 
 ### Phase 3 Completed - API Standardization ✅ (October 2025)
 - **TR-143 Diagnostics** (10/10 tests): Complete ✅ - Ping, Traceroute, Download/Upload tests, NAT traversal, result validation
-- **TR-369 USP Operations** (6/13 tests): getParameters ✅, device validation ✅, addObject ✅, deleteObject ✅, operate ✅, reboot ✅
-  - Remaining: setParameters (timeout issues), subscription operations (validation/database schema)
+- **TR-369 USP Operations** (11/13 tests): getParameters ✅, device validation ✅, deleteObject ✅, operate ✅, reboot ✅, createSubscription ✅, listSubscriptions ✅, deleteSubscription ✅, online validation ✅, notification_type validation ✅
+  - Remaining: setParameters, mtp_transports (both require MQTT/WebSocket service mocking)
+  - Database: notification_type enum constraint ✅, 'http' mtp_type support ✅, API response standardization {success, data} ✅
 - **Storage Service API** (6/6 tests): Production-ready ✅ - All endpoints use {success, data} format, fillable fields (service_name, storage_type, server_name, share_path), accessors (total_capacity_mb, used_capacity_mb, filesystem_type), auto service_instance generation
 - **VoIP Service API** (7/7 tests): Production-ready ✅ - All endpoints use {success, data} format, fillable fields (service_name, service_type), accessors (line_number), auto service_instance generation, validation errors {success: false, errors}
 
@@ -26,7 +27,7 @@ I prefer clear and concise explanations. When making changes, prioritize core fu
 - **IoT Devices TR-181** (6/6 tests): Smart home integration, protocol validation
 - **STB/IPTV TR-135** (5/5 tests): Channel management, streaming, QoS
 
-**Total Completed**: 119+/181 tests (Phases 1+2+3 partial) | **Next**: Complete Phase 3 remaining tests
+**Total Completed**: 124+/181 tests (Phases 1+2+3 partial) | **Next**: Complete Phase 3 remaining tests (VoIP firmware, USP service mocking)
 
 ## System Architecture
 
