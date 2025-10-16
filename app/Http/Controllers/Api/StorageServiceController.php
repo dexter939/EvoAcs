@@ -72,10 +72,16 @@ class StorageServiceController extends Controller
         $service = StorageService::with(['cpeDevice', 'logicalVolumes', 'fileServers'])->find($id);
 
         if (!$service) {
-            return response()->json(['error' => 'Storage service not found'], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'Storage service not found'
+            ], 404);
         }
 
-        return response()->json($service);
+        return response()->json([
+            'success' => true,
+            'storage_service' => $service
+        ]);
     }
 
     public function update(Request $request, string $id): JsonResponse
@@ -83,7 +89,10 @@ class StorageServiceController extends Controller
         $service = StorageService::find($id);
 
         if (!$service) {
-            return response()->json(['error' => 'Storage service not found'], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'Storage service not found'
+            ], 404);
         }
 
         $validator = Validator::make($request->all(), [
@@ -102,8 +111,8 @@ class StorageServiceController extends Controller
         $service->update($validator->validated());
 
         return response()->json([
-            'message' => 'Storage service updated successfully',
-            'service' => $service->fresh(['cpeDevice'])
+            'success' => true,
+            'storage_service' => $service->fresh(['cpeDevice'])
         ]);
     }
 
@@ -112,12 +121,18 @@ class StorageServiceController extends Controller
         $service = StorageService::find($id);
 
         if (!$service) {
-            return response()->json(['error' => 'Storage service not found'], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'Storage service not found'
+            ], 404);
         }
 
         $service->delete();
 
-        return response()->json(['message' => 'Storage service deleted successfully']);
+        return response()->json([
+            'success' => true,
+            'message' => 'Storage service deleted successfully'
+        ]);
     }
 
     public function createVolume(Request $request, string $serviceId): JsonResponse
@@ -125,7 +140,10 @@ class StorageServiceController extends Controller
         $service = StorageService::find($serviceId);
 
         if (!$service) {
-            return response()->json(['error' => 'Storage service not found'], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'Storage service not found'
+            ], 404);
         }
 
         $validator = Validator::make($request->all(), [
@@ -167,7 +185,10 @@ class StorageServiceController extends Controller
         $service = StorageService::find($serviceId);
 
         if (!$service) {
-            return response()->json(['error' => 'Storage service not found'], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'Storage service not found'
+            ], 404);
         }
 
         $validator = Validator::make($request->all(), [
@@ -248,7 +269,10 @@ class StorageServiceController extends Controller
             ? round(($stats['used_capacity'] / $stats['total_capacity']) * 100, 2) 
             : 0;
 
-        return response()->json($stats);
+        return response()->json([
+            'success' => true,
+            'statistics' => $stats
+        ]);
     }
 
     public function provisionService(Request $request, string $id): JsonResponse
@@ -256,18 +280,25 @@ class StorageServiceController extends Controller
         $service = StorageService::with(['cpeDevice', 'logicalVolumes', 'fileServers'])->find($id);
 
         if (!$service) {
-            return response()->json(['error' => 'Storage service not found'], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'Storage service not found'
+            ], 404);
         }
 
         $device = $service->cpeDevice;
 
         if (!$device) {
-            return response()->json(['error' => 'Device not found'], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'Device not found'
+            ], 404);
         }
 
         if ($device->protocol_type !== 'tr069') {
             return response()->json([
-                'error' => 'Storage provisioning only works with TR-069 devices',
+                'success' => false,
+                'message' => 'Storage provisioning only works with TR-069 devices',
                 'device_protocol' => $device->protocol_type
             ], 422);
         }
@@ -275,11 +306,13 @@ class StorageServiceController extends Controller
         ProvisionStorageService::dispatch($service);
 
         return response()->json([
-            'message' => 'Storage provisioning task queued successfully',
-            'storage_service_id' => $service->id,
-            'device_id' => $device->id,
-            'service_instance' => $service->service_instance,
-            'status' => 'queued'
+            'success' => true,
+            'data' => [
+                'storage_service_id' => $service->id,
+                'device_id' => $device->id,
+                'service_instance' => $service->service_instance,
+                'status' => 'queued'
+            ]
         ]);
     }
 }

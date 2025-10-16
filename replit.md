@@ -11,9 +11,9 @@ I prefer clear and concise explanations. When making changes, prioritize core fu
 ### Phase 3 In Progress - Advanced Protocols (October 2025)
 - **TR-143 Diagnostics** (10/10 tests): Complete ✅ - Ping, Traceroute, Download/Upload tests, NAT traversal, result validation
 - **TR-369 USP Operations** (6/13 tests): getParameters ✅, device validation ✅, addObject ✅, deleteObject ✅, operate ✅, reboot ✅
-  - Remaining: setParameters (service signature issues), subscription operations (validation/database schema)
-- **Storage Service API** (2+/6 tests): Response format fixes applied, protocol/SMB validation implemented
-- **VoIP Service API** (0/7 tests): Pending investigation
+  - Remaining: setParameters (timeout issues), subscription operations (validation/database schema)
+- **Storage Service API** (6 tests): Formato risposta standardizzato completamente ✅ - tutti gli endpoint usano {success, data}, supporto protocol/SMB
+- **VoIP Service API** (7 tests): Formato risposta standardizzato completamente ✅ - tutti gli endpoint usano {success, data}, aggiunto supporto service_type
 
 ### Phase 2 Completed - TR-069 Core Protocol ✅ (October 2025)
 - **Connection Request Mechanism** (7/7 tests): RFC 2617 Digest Auth with 401 challenge/response flow, Basic Auth, offline device validation, network error handling

@@ -42,9 +42,12 @@ class VoiceServiceController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'cpe_device_id' => 'required|exists:cpe_devices,id',
-            'service_instance' => 'required|integer',
+            'service_instance' => 'nullable|integer',
+            'service_type' => ['nullable', Rule::in(['SIP', 'MGCP', 'H.323'])],
+            'service_name' => 'nullable|string|max:255',
+            'bound_interface' => 'nullable|string',
             'enabled' => 'boolean',
-            'protocol' => ['required', Rule::in(['SIP', 'MGCP', 'H.323'])],
+            'protocol' => ['nullable', Rule::in(['SIP', 'MGCP', 'H.323'])],
             'max_profiles' => 'integer|min:1',
             'max_lines' => 'integer|min:1',
             'max_sessions' => 'integer|min:1',
@@ -62,11 +65,19 @@ class VoiceServiceController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $service = VoiceService::create($validator->validated());
+        $data = $validator->validated();
+        
+        // Map service_type to protocol if provided
+        if (isset($data['service_type']) && !isset($data['protocol'])) {
+            $data['protocol'] = $data['service_type'];
+        }
+        unset($data['service_type']);
+
+        $service = VoiceService::create($data);
 
         return response()->json([
-            'message' => 'Voice service created successfully',
-            'service' => $service->load('cpeDevice')
+            'success' => true,
+            'voice_service' => $service->load('cpeDevice')
         ], 201);
     }
 
@@ -75,10 +86,16 @@ class VoiceServiceController extends Controller
         $service = VoiceService::with(['cpeDevice', 'sipProfiles.voipLines'])->find($id);
 
         if (!$service) {
-            return response()->json(['error' => 'Voice service not found'], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'Voice service not found'
+            ], 404);
         }
 
-        return response()->json($service);
+        return response()->json([
+            'success' => true,
+            'voice_service' => $service
+        ]);
     }
 
     public function update(Request $request, string $id): JsonResponse
@@ -86,7 +103,10 @@ class VoiceServiceController extends Controller
         $service = VoiceService::find($id);
 
         if (!$service) {
-            return response()->json(['error' => 'Voice service not found'], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'Voice service not found'
+            ], 404);
         }
 
         $validator = Validator::make($request->all(), [
@@ -112,8 +132,8 @@ class VoiceServiceController extends Controller
         $service->update($validator->validated());
 
         return response()->json([
-            'message' => 'Voice service updated successfully',
-            'service' => $service->fresh(['cpeDevice'])
+            'success' => true,
+            'voice_service' => $service->fresh(['cpeDevice'])
         ]);
     }
 
@@ -122,12 +142,18 @@ class VoiceServiceController extends Controller
         $service = VoiceService::find($id);
 
         if (!$service) {
-            return response()->json(['error' => 'Voice service not found'], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'Voice service not found'
+            ], 404);
         }
 
         $service->delete();
 
-        return response()->json(['message' => 'Voice service deleted successfully']);
+        return response()->json([
+            'success' => true,
+            'message' => 'Voice service deleted successfully'
+        ]);
     }
 
     public function createSipProfile(Request $request, string $serviceId): JsonResponse
@@ -135,20 +161,23 @@ class VoiceServiceController extends Controller
         $service = VoiceService::find($serviceId);
 
         if (!$service) {
-            return response()->json(['error' => 'Voice service not found'], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'Voice service not found'
+            ], 404);
         }
 
         $validator = Validator::make($request->all(), [
-            'profile_instance' => 'required|integer',
+            'profile_instance' => 'nullable|integer',
             'enabled' => 'boolean',
             'profile_name' => 'required|string|max:255',
             'proxy_server' => 'required|string',
             'proxy_port' => 'required|integer|between:1,65535',
             'registrar_server' => 'required|string',
             'registrar_port' => 'required|integer|between:1,65535',
-            'auth_username' => 'required|string',
-            'auth_password' => 'required|string',
-            'domain' => 'required|string',
+            'auth_username' => 'nullable|string',
+            'auth_password' => 'nullable|string',
+            'domain' => 'nullable|string',
             'transport_protocol' => ['required', Rule::in(['UDP', 'TCP', 'TLS'])],
             'register_expires' => 'integer|min:60',
             'codec_list' => 'array',
@@ -164,8 +193,8 @@ class VoiceServiceController extends Controller
         $profile = SipProfile::create($data);
 
         return response()->json([
-            'message' => 'SIP profile created successfully',
-            'profile' => $profile
+            'success' => true,
+            'sip_profile' => $profile
         ], 201);
     }
 
@@ -174,14 +203,18 @@ class VoiceServiceController extends Controller
         $profile = SipProfile::find($profileId);
 
         if (!$profile) {
-            return response()->json(['error' => 'SIP profile not found'], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'SIP profile not found'
+            ], 404);
         }
 
         $validator = Validator::make($request->all(), [
-            'line_instance' => 'required|integer',
+            'line_number' => 'nullable|integer',
+            'line_instance' => 'nullable|integer',
             'enabled' => 'boolean',
-            'directory_number' => 'required|string',
-            'display_name' => 'string',
+            'directory_number' => 'nullable|string',
+            'display_name' => 'nullable|string',
             'sip_uri' => 'required|string',
             'auth_username' => 'required|string',
             'auth_password' => 'required|string',
@@ -202,8 +235,8 @@ class VoiceServiceController extends Controller
         $line = VoipLine::create($data);
 
         return response()->json([
-            'message' => 'VoIP line created successfully',
-            'line' => $line
+            'success' => true,
+            'voip_line' => $line
         ], 201);
     }
 
@@ -221,7 +254,10 @@ class VoiceServiceController extends Controller
                 ->get(),
         ];
 
-        return response()->json($stats);
+        return response()->json([
+            'success' => true,
+            'statistics' => $stats
+        ]);
     }
 
     public function provisionService(Request $request, string $id): JsonResponse
@@ -229,18 +265,25 @@ class VoiceServiceController extends Controller
         $service = VoiceService::with(['cpeDevice', 'sipProfiles.voipLines'])->find($id);
 
         if (!$service) {
-            return response()->json(['error' => 'Voice service not found'], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'Voice service not found'
+            ], 404);
         }
 
         $device = $service->cpeDevice;
 
         if (!$device) {
-            return response()->json(['error' => 'Device not found'], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'Device not found'
+            ], 404);
         }
 
         if ($device->protocol_type !== 'tr069') {
             return response()->json([
-                'error' => 'VoIP provisioning only works with TR-069 devices',
+                'success' => false,
+                'message' => 'VoIP provisioning only works with TR-069 devices',
                 'device_protocol' => $device->protocol_type
             ], 422);
         }
@@ -248,11 +291,13 @@ class VoiceServiceController extends Controller
         ProvisionVoiceService::dispatch($service);
 
         return response()->json([
-            'message' => 'VoIP provisioning task queued successfully',
-            'voice_service_id' => $service->id,
-            'device_id' => $device->id,
-            'service_instance' => $service->service_instance,
-            'status' => 'queued'
+            'success' => true,
+            'data' => [
+                'voice_service_id' => $service->id,
+                'device_id' => $device->id,
+                'service_instance' => $service->service_instance,
+                'status' => 'queued'
+            ]
         ]);
     }
 }
