@@ -35,7 +35,10 @@ class StorageServiceController extends Controller
 
         $services = $query->paginate($request->input('per_page', 50));
 
-        return response()->json($services);
+        return response()->json([
+            'success' => true,
+            'data' => $services
+        ]);
     }
 
     public function store(Request $request, ?CpeDevice $device = null): JsonResponse
@@ -61,7 +64,10 @@ class StorageServiceController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         $data = $validator->validated();
@@ -141,7 +147,10 @@ class StorageServiceController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         $service->update($validator->validated());
@@ -167,7 +176,9 @@ class StorageServiceController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Storage service deleted successfully'
+            'data' => [
+                'message' => 'Storage service deleted successfully'
+            ]
         ]);
     }
 
@@ -201,7 +212,10 @@ class StorageServiceController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         $data = $validator->validated();
@@ -272,7 +286,10 @@ class StorageServiceController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         $data = $validator->validated();
@@ -329,7 +346,7 @@ class StorageServiceController extends Controller
 
         return response()->json([
             'success' => true,
-            'statistics' => $stats
+            'data' => $stats
         ]);
     }
 

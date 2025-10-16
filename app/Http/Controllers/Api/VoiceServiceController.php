@@ -35,7 +35,10 @@ class VoiceServiceController extends Controller
 
         $services = $query->paginate($request->input('per_page', 50));
 
-        return response()->json($services);
+        return response()->json([
+            'success' => true,
+            'data' => $services
+        ]);
     }
 
     public function store(Request $request, ?CpeDevice $device = null): JsonResponse
@@ -62,7 +65,10 @@ class VoiceServiceController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         $data = $validator->validated();
@@ -140,7 +146,10 @@ class VoiceServiceController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         $service->update($validator->validated());
@@ -166,7 +175,9 @@ class VoiceServiceController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Voice service deleted successfully'
+            'data' => [
+                'message' => 'Voice service deleted successfully'
+            ]
         ]);
     }
 
@@ -198,7 +209,10 @@ class VoiceServiceController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         $data = $validator->validated();
@@ -239,7 +253,10 @@ class VoiceServiceController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         $data = $validator->validated();
@@ -270,7 +287,7 @@ class VoiceServiceController extends Controller
 
         return response()->json([
             'success' => true,
-            'statistics' => $stats
+            'data' => $stats
         ]);
     }
 
