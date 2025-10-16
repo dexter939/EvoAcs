@@ -5,7 +5,10 @@ namespace Tests\Feature\Api;
 use Tests\TestCase;
 use App\Models\CpeDevice;
 use App\Models\UspSubscription;
+use App\Services\UspMqttService;
+use App\Services\UspWebSocketService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Mockery;
 
 class UspOperationsTest extends TestCase
 {
@@ -13,6 +16,10 @@ class UspOperationsTest extends TestCase
 
     public function test_get_parameters_from_usp_device(): void
     {
+        $mqttMock = Mockery::mock(UspMqttService::class);
+        $mqttMock->shouldReceive('sendGetRequest')->once()->andReturn(true);
+        $this->app->instance(UspMqttService::class, $mqttMock);
+
         $device = CpeDevice::factory()->tr369()->online()->create([
             'mtp_type' => 'mqtt',
             'usp_endpoint_id' => 'proto::device-12345'
@@ -52,6 +59,10 @@ class UspOperationsTest extends TestCase
 
     public function test_set_parameters_on_usp_device(): void
     {
+        $wsMock = Mockery::mock(UspWebSocketService::class);
+        $wsMock->shouldReceive('sendSetRequest')->once()->andReturn(true);
+        $this->app->instance(UspWebSocketService::class, $wsMock);
+
         $device = CpeDevice::factory()->tr369()->online()->create([
             'mtp_type' => 'websocket',
             'websocket_client_id' => 'ws-client-123'
@@ -79,7 +90,13 @@ class UspOperationsTest extends TestCase
 
     public function test_add_object_to_usp_device(): void
     {
-        $device = CpeDevice::factory()->tr369()->online()->create();
+        $mqttMock = Mockery::mock(UspMqttService::class);
+        $mqttMock->shouldReceive('publish')->once()->andReturn(true);
+        $this->app->instance(UspMqttService::class, $mqttMock);
+
+        $device = CpeDevice::factory()->tr369()->online()->create([
+            'mtp_type' => 'mqtt'
+        ]);
 
         $response = $this->apiPost("/api/v1/usp/devices/{$device->id}/add-object", [
             'object_path' => 'Device.WiFi.SSID.',
@@ -102,7 +119,13 @@ class UspOperationsTest extends TestCase
 
     public function test_delete_object_from_usp_device(): void
     {
-        $device = CpeDevice::factory()->tr369()->online()->create();
+        $mqttMock = Mockery::mock(UspMqttService::class);
+        $mqttMock->shouldReceive('publish')->once()->andReturn(true);
+        $this->app->instance(UspMqttService::class, $mqttMock);
+
+        $device = CpeDevice::factory()->tr369()->online()->create([
+            'mtp_type' => 'mqtt'
+        ]);
 
         $response = $this->apiPost("/api/v1/usp/devices/{$device->id}/delete-object", [
             'object_paths' => [
@@ -271,6 +294,14 @@ class UspOperationsTest extends TestCase
 
     public function test_usp_operations_support_different_mtp_transports(): void
     {
+        $mqttMock = Mockery::mock(UspMqttService::class);
+        $mqttMock->shouldReceive('sendGetRequest')->once()->andReturn(true);
+        $this->app->instance(UspMqttService::class, $mqttMock);
+
+        $wsMock = Mockery::mock(UspWebSocketService::class);
+        $wsMock->shouldReceive('sendGetRequest')->once()->andReturn(true);
+        $this->app->instance(UspWebSocketService::class, $wsMock);
+
         $mqttDevice = CpeDevice::factory()->tr369()->create([
             'mtp_type' => 'mqtt',
             'mqtt_client_id' => 'mqtt-123',
