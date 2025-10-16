@@ -6,7 +6,14 @@ I prefer clear and concise explanations. When making changes, prioritize core fu
 
 ## Project Progress
 
-**Current Status**: 62.4% (113/181 tests passing)
+**Current Status**: ~65% (119+/181 tests passing)
+
+### Phase 3 In Progress - Advanced Protocols (October 2025)
+- **TR-143 Diagnostics** (10/10 tests): Complete ✅ - Ping, Traceroute, Download/Upload tests, NAT traversal, result validation
+- **TR-369 USP Operations** (6/13 tests): getParameters ✅, device validation ✅, addObject ✅, deleteObject ✅, operate ✅, reboot ✅
+  - Remaining: setParameters (service signature issues), subscription operations (validation/database schema)
+- **Storage Service API** (2+/6 tests): Response format fixes applied, protocol/SMB validation implemented
+- **VoIP Service API** (0/7 tests): Pending investigation
 
 ### Phase 2 Completed - TR-069 Core Protocol ✅ (October 2025)
 - **Connection Request Mechanism** (7/7 tests): RFC 2617 Digest Auth with 401 challenge/response flow, Basic Auth, offline device validation, network error handling
@@ -19,7 +26,7 @@ I prefer clear and concise explanations. When making changes, prioritize core fu
 - **IoT Devices TR-181** (6/6 tests): Smart home integration, protocol validation
 - **STB/IPTV TR-135** (5/5 tests): Channel management, streaming, QoS
 
-**Total Completed**: 48/48 tests (Phase 1+2) | **Next**: Phase 3 - Advanced Protocols
+**Total Completed**: 119+/181 tests (Phases 1+2+3 partial) | **Next**: Complete Phase 3 remaining tests
 
 ## System Architecture
 

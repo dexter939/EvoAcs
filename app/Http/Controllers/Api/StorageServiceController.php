@@ -62,8 +62,8 @@ class StorageServiceController extends Controller
         $service = StorageService::create($validator->validated());
 
         return response()->json([
-            'message' => 'Storage service created successfully',
-            'service' => $service->load('cpeDevice')
+            'success' => true,
+            'storage_service' => $service->load('cpeDevice')
         ], 201);
     }
 
@@ -157,7 +157,7 @@ class StorageServiceController extends Controller
         $volume = LogicalVolume::create($data);
 
         return response()->json([
-            'message' => 'Logical volume created successfully',
+            'success' => true,
             'volume' => $volume
         ], 201);
     }
@@ -171,19 +171,25 @@ class StorageServiceController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'server_type' => ['required', Rule::in(['FTP', 'SFTP', 'HTTP', 'HTTPS', 'SAMBA', 'NFS'])],
+            'server_name' => 'nullable|string|max:255',
+            'server_type' => ['nullable', Rule::in(['FTP', 'SFTP', 'HTTP', 'HTTPS', 'SAMBA', 'SMB', 'NFS'])],
+            'protocol' => ['nullable', Rule::in(['FTP', 'SFTP', 'HTTP', 'HTTPS', 'SAMBA', 'SMB', 'NFS'])],
             'enabled' => 'boolean',
-            'port' => 'required|integer|between:1,65535',
-            'bind_interface' => 'string',
-            'max_connections' => 'integer|min:1',
+            'port' => 'nullable|integer|between:1,65535',
+            'bind_interface' => 'nullable|string',
+            'max_connections' => 'nullable|integer|min:1',
             'anonymous_enabled' => 'boolean',
             'anonymous_directory' => 'nullable|string',
             'passive_mode' => 'boolean',
-            'document_root' => 'required|string',
+            'document_root' => 'nullable|string',
+            'share_path' => 'nullable|string',
+            'access_control' => 'nullable|array',
             'ssl_enabled' => 'boolean',
             'auth_required' => 'boolean',
             'allowed_users' => 'array',
             'ip_whitelist' => 'array',
+        ], [
+            'protocol.in' => 'The protocol field must be one of: FTP, SFTP, HTTP, HTTPS, SAMBA, SMB, NFS.'
         ]);
 
         if ($validator->fails()) {
@@ -191,6 +197,16 @@ class StorageServiceController extends Controller
         }
 
         $data = $validator->validated();
+        
+        // Preserve protocol for response
+        $protocol = $data['protocol'] ?? $data['server_type'] ?? null;
+        
+        // Map 'protocol' to 'server_type' if provided
+        if (isset($data['protocol']) && !isset($data['server_type'])) {
+            $data['server_type'] = $data['protocol'];
+        }
+        unset($data['protocol']); // Remove protocol key as it's not a database column
+        
         $data['storage_service_id'] = $serviceId;
         $data['status'] = 'Stopped';
 
@@ -201,10 +217,14 @@ class StorageServiceController extends Controller
         }
 
         $fileServer = FileServer::create($data);
+        
+        // Add protocol field to response
+        $fileServerArray = $fileServer->toArray();
+        $fileServerArray['protocol'] = $protocol;
 
         return response()->json([
-            'message' => 'File server created successfully',
-            'file_server' => $fileServer
+            'success' => true,
+            'file_server' => $fileServerArray
         ], 201);
     }
 
