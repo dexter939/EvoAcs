@@ -636,7 +636,13 @@ class UspController extends Controller
         // Validate request
         $validated = $request->validate([
             'subscription_id' => 'required|string',
-            'notification_type' => 'required|string',
+            'notification_type' => ['required', 'string', \Illuminate\Validation\Rule::in([
+                'ValueChange',
+                'Event',
+                'ObjectCreation',
+                'ObjectDeletion',
+                'OperationComplete'
+            ])],
             'reference_list' => 'required|array',
             'reference_list.*' => 'string',
             'enabled' => 'boolean',
