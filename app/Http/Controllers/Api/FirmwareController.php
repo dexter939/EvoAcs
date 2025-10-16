@@ -200,18 +200,8 @@ class FirmwareController extends Controller
         // Load target devices
         $devices = CpeDevice::whereIn('id', $validated['device_ids'])->get();
         
-        // Validazione: tutti i dispositivi devono essere online
-        // Validation: all devices must be online
-        $offlineDevices = $devices->where('status', '!=', 'online');
-        if ($offlineDevices->count() > 0) {
-            return response()->json([
-                'message' => 'All devices must be online for deployment',
-                'offline_devices' => $offlineDevices->pluck('id')
-            ], 422);
-        }
-        
-        // Validazione: modello firmware deve corrispondere al modello dispositivo
-        // Validation: firmware model must match device model
+        // Validazione 1: modello firmware deve corrispondere al modello dispositivo (CRITICO)
+        // Validation 1: firmware model must match device model (CRITICAL)
         foreach ($devices as $device) {
             if ($device->model_name && $device->model_name !== $firmware->model) {
                 return response()->json([
@@ -221,6 +211,16 @@ class FirmwareController extends Controller
                     'firmware_model' => $firmware->model
                 ], 422);
             }
+        }
+        
+        // Validazione 2: tutti i dispositivi devono essere online
+        // Validation 2: all devices must be online
+        $offlineDevices = $devices->where('status', '!=', 'online');
+        if ($offlineDevices->count() > 0) {
+            return response()->json([
+                'message' => 'All devices must be online for deployment',
+                'offline_devices' => $offlineDevices->pluck('id')
+            ], 422);
         }
         
         $deployments = [];
