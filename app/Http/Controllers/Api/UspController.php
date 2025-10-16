@@ -67,7 +67,7 @@ class UspController extends Controller
             
             // Send via appropriate MTP
             if ($device->mtp_type === 'mqtt') {
-                $this->mqttService->sendGetRequest($device, $validated['param_paths'], $msgId);
+                $this->mqttService->sendGetRequest($device, $validated['param_paths']);
                 
                 return response()->json([
                     'success' => true,
@@ -143,7 +143,7 @@ class UspController extends Controller
             
             // Send via appropriate MTP
             if ($device->mtp_type === 'mqtt') {
-                $this->mqttService->sendSetRequest($device, $validated['param_paths'], $msgId, $allowPartial);
+                $this->mqttService->sendSetRequest($device, $validated['param_paths']);
                 
                 return response()->json([
                     'success' => true,
@@ -219,7 +219,7 @@ class UspController extends Controller
             
             // Send via appropriate MTP
             if ($device->mtp_type === 'mqtt') {
-                $this->mqttService->sendOperateRequest($device, $validated['command'], $params, $msgId);
+                $this->mqttService->sendOperateRequest($device, $validated['command'], $params);
                 
                 return response()->json([
                     'success' => true,
@@ -454,7 +454,7 @@ class UspController extends Controller
             
             // Send Operate with Device.Reboot() command
             if ($device->mtp_type === 'mqtt') {
-                $this->mqttService->sendOperateRequest($device, 'Device.Reboot()', [], $msgId);
+                $this->mqttService->sendOperateRequest($device, 'Device.Reboot()', []);
                 
                 return response()->json([
                     'success' => true,
