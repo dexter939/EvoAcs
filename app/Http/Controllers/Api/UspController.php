@@ -56,6 +56,13 @@ class UspController extends Controller
             ], 422);
         }
         
+        // Validate device is online
+        if ($device->status !== 'online') {
+            return response()->json([
+                'message' => 'Device must be online'
+            ], 422);
+        }
+        
         // Validate request
         $validated = $request->validate([
             'param_paths' => 'required|array|min:1',
@@ -128,6 +135,13 @@ class UspController extends Controller
         if ($device->protocol_type !== 'tr369') {
             return response()->json([
                 'message' => 'Device must support TR-369 USP protocol'
+            ], 422);
+        }
+        
+        // Validate device is online
+        if ($device->status !== 'online') {
+            return response()->json([
+                'message' => 'Device must be online'
             ], 422);
         }
         
@@ -207,6 +221,13 @@ class UspController extends Controller
             ], 422);
         }
         
+        // Validate device is online
+        if ($device->status !== 'online') {
+            return response()->json([
+                'message' => 'Device must be online'
+            ], 422);
+        }
+        
         // Validate request
         $validated = $request->validate([
             'command' => 'required|string',
@@ -278,6 +299,13 @@ class UspController extends Controller
         if ($device->protocol_type !== 'tr369') {
             return response()->json([
                 'message' => 'Device must support TR-369 USP protocol'
+            ], 422);
+        }
+        
+        // Validate device is online
+        if ($device->status !== 'online') {
+            return response()->json([
+                'message' => 'Device must be online'
             ], 422);
         }
         
@@ -366,6 +394,13 @@ class UspController extends Controller
             ], 422);
         }
         
+        // Validate device is online
+        if ($device->status !== 'online') {
+            return response()->json([
+                'message' => 'Device must be online'
+            ], 422);
+        }
+        
         // Validate request
         $validated = $request->validate([
             'object_paths' => 'required|array|min:1',
@@ -446,6 +481,13 @@ class UspController extends Controller
         if ($device->protocol_type !== 'tr369') {
             return response()->json([
                 'message' => 'Device must support TR-369 USP protocol'
+            ], 422);
+        }
+        
+        // Validate device is online
+        if ($device->status !== 'online') {
+            return response()->json([
+                'message' => 'Device must be online'
             ], 422);
         }
         
@@ -581,6 +623,13 @@ class UspController extends Controller
         if ($device->protocol_type !== 'tr369') {
             return response()->json([
                 'message' => 'Device must support TR-369 USP protocol'
+            ], 422);
+        }
+        
+        // Validate device is online
+        if ($device->status !== 'online') {
+            return response()->json([
+                'message' => 'Device must be online'
             ], 422);
         }
         
