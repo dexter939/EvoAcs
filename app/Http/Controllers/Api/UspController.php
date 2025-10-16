@@ -59,6 +59,11 @@ class UspController extends Controller
             return $this->failureResponse('Device must be online', 422);
         }
         
+        // Validate WebSocket client ID if using WebSocket transport
+        if ($device->mtp_type === 'websocket' && empty($device->websocket_client_id)) {
+            return $this->failureResponse('WebSocket client ID not configured', 422);
+        }
+        
         // Validate request
         $validated = $request->validate([
             'param_paths' => 'required|array|min:1',
