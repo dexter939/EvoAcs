@@ -33,6 +33,7 @@ I prefer clear and concise explanations. When making changes, prioritize core fu
 - **Provisioning API** (7/7 tests): Complete ✅ - TR-069 parameter operations, reboot, connection request (fixed device status validation)
 - **USP WebSocket Transport** (11/11 tests): Complete ✅ - Mockery mocks, transport field, websocket_client_id validation, UUID msgId format
 - **USP HTTP Transport** (1/10 tests): Partial - connection_request_url validation added, remaining tests need Http::fake() setup
+- **Real-time Alarms System** (95% Complete - October 17, 2025): Database schema, Alarm model/service, automatic triggers (device offline, firmware failures, diagnostic failures), web UI with acknowledge/clear actions, severity-based filtering
 
 ### Known Issues
 - **DeviceManagement tests**: 12 tests slow (~30s each, 6+ min total) but likely functional, need extended timeout

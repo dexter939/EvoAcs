@@ -190,6 +190,28 @@ class CpeDevice extends Model
     }
 
     /**
+     * Relazione con alarms real-time
+     * Relationship with real-time alarms
+     * 
+     * @return HasMany
+     */
+    public function alarms(): HasMany
+    {
+        return $this->hasMany(Alarm::class, 'device_id');
+    }
+
+    /**
+     * Ottieni alarm attivi per questo dispositivo
+     * Get active alarms for this device
+     * 
+     * @return HasMany
+     */
+    public function activeAlarms(): HasMany
+    {
+        return $this->alarms()->where('status', 'active');
+    }
+
+    /**
      * Scope per filtrare dispositivi TR-069
      * Scope to filter TR-069 devices
      */
