@@ -33,7 +33,7 @@ I prefer clear and concise explanations. When making changes, prioritize core fu
 - **Provisioning API** (7/7 tests): Complete ✅ - TR-069 parameter operations, reboot, connection request (fixed device status validation)
 - **USP WebSocket Transport** (11/11 tests): Complete ✅ - Mockery mocks, transport field, websocket_client_id validation, UUID msgId format
 - **USP HTTP Transport** (1/10 tests): Partial - connection_request_url validation added, remaining tests need Http::fake() setup
-- **Real-time Alarms System** (95% Complete - October 17, 2025): Database schema, Alarm model/service, automatic triggers (device offline, firmware failures, diagnostic failures), web UI with acknowledge/clear actions, severity-based filtering
+- **Real-time Alarms System** (100% Complete - October 17, 2025): Full production-ready implementation with database schema, Alarm model/service, automatic event-driven triggers (device offline, firmware failures, diagnostic failures), web UI with acknowledge/clear actions, severity-based filtering, SSE real-time push notifications with toast alerts and audio notifications
 
 ### Known Issues
 - **DeviceManagement tests**: 12 tests slow (~30s each, 6+ min total) but likely functional, need extended timeout
@@ -47,7 +47,7 @@ I prefer clear and concise explanations. When making changes, prioritize core fu
 ### UI/UX Decisions
 The web interface uses the Soft UI Dashboard Laravel template, providing a modern, responsive design with navigation, real-time statistics, interactive Chart.js visualizations, filtering, pagination, and modal forms for CRUD operations. The dashboard auto-refreshes every 30 seconds.
 
-**NEW - CPE Configuration Editor (October 17, 2025)**: Interactive modal interface for managing CPE device parameters with 6 specialized tabs:
+**CPE Configuration Editor (October 17, 2025)**: Interactive modal interface for managing CPE device parameters with 6 specialized tabs:
 - **WiFi**: SSID, password, channel selection, enable/disable
 - **LAN**: IP address, subnet mask, DHCP server configuration
 - **Port Forwarding**: NAT port mapping rules (external/internal ports, protocols)
@@ -55,6 +55,15 @@ The web interface uses the Soft UI Dashboard Laravel template, providing a moder
 - **Parental Control**: Content filters, time restrictions, device whitelisting, blocked sites
 - **Advanced**: JSON editor for custom TR-069/TR-369 parameters
 Features auto-detection of protocol type (TR-069/TR-369), real-time validation, loading states, and automatic page reload after successful configuration.
+
+**Real-time Alarms System (October 17, 2025)**: Production-grade event-driven alarm management with:
+- **Database Schema**: alarms table with severity levels (critical/major/minor/warning/info), states (active/acknowledged/cleared), categories (connectivity/firmware/diagnostics), device relationships, acknowledgment tracking, resolution notes
+- **Alarm Service**: AlarmService with raiseAlarm(), acknowledgeAlarm(), clearAlarm(), getActiveAlarms(), getAlarmStats() methods
+- **Automatic Triggers**: Event-driven architecture using Laravel Events/Listeners (DeviceWentOffline → RaiseDeviceOfflineAlarm, FirmwareDeploymentFailed → RaiseFirmwareFailureAlarm, DiagnosticTestFailed → RaiseDiagnosticFailureAlarm)
+- **Web Dashboard**: Full UI at /acs/alarms with stats cards (total active, critical, major, minor), filtering (status/severity/category), pagination, acknowledge/clear AJAX actions
+- **SSE Real-time Push**: Server-Sent Events stream at /acs/alarms/stream with infinite execution timeout, 30-second heartbeat, database polling (2s interval), infinite client reconnection with exponential backoff
+- **Toast Notifications**: Real-time browser notifications with severity-based colors (critical=red, major=orange, minor=yellow, warning=blue, info=gray), FontAwesome icons, audio alerts, auto-dismiss after 6 seconds, page auto-reload after 7 seconds
+- **Security**: XSS protection via escaped Blade output, CSRF tokens on all POST routes, same security model as other dashboard views
 
 ### Technical Implementations
 - **Protocol Support**: Implements TR-069 (CWMP) via a dedicated SOAP endpoint, TR-369 (USP) with Protocol Buffers over MQTT/WebSocket/HTTP/XMPP, and full provisioning/management for various TR protocols including TR-104, TR-140, TR-143, TR-111, TR-64, TR-181, TR-196, and TR-135.
