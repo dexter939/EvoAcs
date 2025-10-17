@@ -46,6 +46,15 @@ I prefer clear and concise explanations. When making changes, prioritize core fu
 ### UI/UX Decisions
 The web interface uses the Soft UI Dashboard Laravel template, providing a modern, responsive design with navigation, real-time statistics, interactive Chart.js visualizations, filtering, pagination, and modal forms for CRUD operations. The dashboard auto-refreshes every 30 seconds.
 
+**NEW - CPE Configuration Editor (October 17, 2025)**: Interactive modal interface for managing CPE device parameters with 6 specialized tabs:
+- **WiFi**: SSID, password, channel selection, enable/disable
+- **LAN**: IP address, subnet mask, DHCP server configuration
+- **Port Forwarding**: NAT port mapping rules (external/internal ports, protocols)
+- **QoS**: Bandwidth management, traffic prioritization (VoIP, video, gaming, downloads)
+- **Parental Control**: Content filters, time restrictions, device whitelisting, blocked sites
+- **Advanced**: JSON editor for custom TR-069/TR-369 parameters
+Features auto-detection of protocol type (TR-069/TR-369), real-time validation, loading states, and automatic page reload after successful configuration.
+
 ### Technical Implementations
 - **Protocol Support**: Implements TR-069 (CWMP) via a dedicated SOAP endpoint, TR-369 (USP) with Protocol Buffers over MQTT/WebSocket/HTTP/XMPP, and full provisioning/management for various TR protocols including TR-104, TR-140, TR-143, TR-111, TR-64, TR-181, TR-196, and TR-135.
 - **XMPP Transport for TR-369 USP**: Proof-of-concept integration with Prosody XMPP server for real-time TR-369 USP message exchange, utilizing `pdahal/php-xmpp` library. USP Protocol Buffers messages are base64 encoded within custom XMPP stanzas.

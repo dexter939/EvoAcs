@@ -958,6 +958,99 @@ async function saveAdvancedParams() {
     }
 }
 
+async function savePortForwardingConfig() {
+    const name = document.getElementById('pf-name').value;
+    const protocol = document.getElementById('pf-protocol').value;
+    const externalPort = document.getElementById('pf-external-port').value;
+    const internalPort = document.getElementById('pf-internal-port').value;
+    const internalIp = document.getElementById('pf-internal-ip').value;
+    const enabled = document.getElementById('pf-enabled').checked;
+    
+    if (!name || !externalPort || !internalPort || !internalIp) {
+        alert('⚠️ Tutti i campi sono obbligatori');
+        return;
+    }
+    
+    const params = {
+        'Device.NAT.PortMapping.1.Enable': enabled ? 'true' : 'false',
+        'Device.NAT.PortMapping.1.Description': name,
+        'Device.NAT.PortMapping.1.Protocol': protocol,
+        'Device.NAT.PortMapping.1.ExternalPort': externalPort,
+        'Device.NAT.PortMapping.1.InternalPort': internalPort,
+        'Device.NAT.PortMapping.1.InternalClient': internalIp
+    };
+    
+    await saveParameters(params, 'Port Forwarding');
+}
+
+async function saveQoSConfig() {
+    const enabled = document.getElementById('qos-enabled').checked;
+    const upload = document.getElementById('qos-upload').value;
+    const download = document.getElementById('qos-download').value;
+    const voip = document.getElementById('qos-voip').value;
+    const video = document.getElementById('qos-video').value;
+    const gaming = document.getElementById('qos-gaming').value;
+    const downloadApps = document.getElementById('qos-download-apps').value;
+    
+    const params = {
+        'Device.QoS.Enable': enabled ? 'true' : 'false'
+    };
+    
+    if (upload) {
+        params['Device.QoS.MaxBandwidth.Upstream'] = upload;
+    }
+    
+    if (download) {
+        params['Device.QoS.MaxBandwidth.Downstream'] = download;
+    }
+    
+    // Map priorities to DSCP values
+    const priorityMap = { high: '46', medium: '26', low: '10' };
+    
+    params['Device.QoS.Classification.1.DSCPMark'] = priorityMap[voip];
+    params['Device.QoS.Classification.2.DSCPMark'] = priorityMap[video];
+    params['Device.QoS.Classification.3.DSCPMark'] = priorityMap[gaming];
+    params['Device.QoS.Classification.4.DSCPMark'] = priorityMap[downloadApps];
+    
+    await saveParameters(params, 'QoS');
+}
+
+async function saveParentalControlConfig() {
+    const enabled = document.getElementById('parental-enabled').checked;
+    const blockAdult = document.getElementById('parental-adult').checked;
+    const blockGambling = document.getElementById('parental-gambling').checked;
+    const blockViolence = document.getElementById('parental-violence').checked;
+    const blockSocial = document.getElementById('parental-social').checked;
+    const startTime = document.getElementById('parental-start-time').value;
+    const endTime = document.getElementById('parental-end-time').value;
+    const devices = document.getElementById('parental-devices').value;
+    const blockedSites = document.getElementById('parental-blocked-sites').value;
+    
+    const params = {
+        'Device.X_ParentalControl.Enable': enabled ? 'true' : 'false',
+        'Device.X_ParentalControl.Filter.Adult': blockAdult ? 'true' : 'false',
+        'Device.X_ParentalControl.Filter.Gambling': blockGambling ? 'true' : 'false',
+        'Device.X_ParentalControl.Filter.Violence': blockViolence ? 'true' : 'false',
+        'Device.X_ParentalControl.Filter.SocialMedia': blockSocial ? 'true' : 'false',
+        'Device.X_ParentalControl.Schedule.StartTime': startTime,
+        'Device.X_ParentalControl.Schedule.EndTime': endTime
+    };
+    
+    if (devices.trim()) {
+        params['Device.X_ParentalControl.MACList'] = devices.trim().replace(/\n/g, ',');
+    }
+    
+    if (blockedSites.trim()) {
+        params['Device.X_ParentalControl.BlockedSites'] = blockedSites.trim().replace(/\n/g, ',');
+    }
+    
+    await saveParameters(params, 'Parental Control');
+}
+
+function addPortForwardingRule() {
+    alert('📋 Funzionalità in sviluppo: Visualizzazione regole esistenti.\n\nPer ora puoi aggiungere una nuova regola usando il form sotto.');
+}
+
 async function saveParameters(params, configType) {
     const deviceId = {{ $device->id }};
     const protocol = '{{ $device->protocol_type }}';
@@ -1030,6 +1123,21 @@ async function saveParameters(params, configType) {
                     <li class="nav-item" role="presentation">
                         <button class="nav-link" id="lan-tab" data-bs-toggle="tab" data-bs-target="#lan-config" type="button" role="tab">
                             <i class="fas fa-network-wired me-2"></i>LAN
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="portfw-tab" data-bs-toggle="tab" data-bs-target="#portfw-config" type="button" role="tab">
+                            <i class="fas fa-exchange-alt me-2"></i>Port Forwarding
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="qos-tab" data-bs-toggle="tab" data-bs-target="#qos-config" type="button" role="tab">
+                            <i class="fas fa-tachometer-alt me-2"></i>QoS
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="parental-tab" data-bs-toggle="tab" data-bs-target="#parental-config" type="button" role="tab">
+                            <i class="fas fa-shield-alt me-2"></i>Parental
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
@@ -1121,6 +1229,205 @@ async function saveParameters(params, configType) {
                             
                             <button type="button" class="btn btn-primary" onclick="saveLANConfig()">
                                 <i class="fas fa-save me-2"></i>Salva Configurazione LAN
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Port Forwarding Tab -->
+                    <div class="tab-pane fade" id="portfw-config" role="tabpanel">
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Attenzione:</strong> Port Forwarding può esporre servizi alla rete pubblica. Configura con attenzione.
+                        </div>
+                        <form id="portfw-form">
+                            <div id="portfw-rules-container">
+                                <!-- Port Forwarding Rules will be added here -->
+                            </div>
+                            
+                            <button type="button" class="btn btn-success btn-sm mb-3" onclick="addPortForwardingRule()">
+                                <i class="fas fa-plus me-2"></i>Aggiungi Regola
+                            </button>
+                            
+                            <hr>
+                            
+                            <h6 class="mb-3">Nuova Regola Port Forwarding</h6>
+                            <div class="row">
+                                <div class="col-md-3 mb-3">
+                                    <label for="pf-name" class="form-label">Nome</label>
+                                    <input type="text" class="form-control" id="pf-name" placeholder="es. Web Server">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="pf-protocol" class="form-label">Protocollo</label>
+                                    <select class="form-select" id="pf-protocol">
+                                        <option value="TCP">TCP</option>
+                                        <option value="UDP">UDP</option>
+                                        <option value="Both">TCP+UDP</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="pf-external-port" class="form-label">Porta Esterna</label>
+                                    <input type="number" class="form-control" id="pf-external-port" placeholder="8080">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label for="pf-internal-port" class="form-label">Porta Interna</label>
+                                    <input type="number" class="form-control" id="pf-internal-port" placeholder="80">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="pf-internal-ip" class="form-label">IP Interno</label>
+                                    <input type="text" class="form-control" id="pf-internal-ip" placeholder="192.168.1.100">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Stato</label>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="pf-enabled" checked>
+                                        <label class="form-check-label" for="pf-enabled">Regola Attiva</label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button type="button" class="btn btn-primary" onclick="savePortForwardingConfig()">
+                                <i class="fas fa-save me-2"></i>Salva Port Forwarding
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- QoS Tab -->
+                    <div class="tab-pane fade" id="qos-config" role="tabpanel">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>QoS (Quality of Service):</strong> Gestisci la priorità del traffico per ottimizzare le prestazioni.
+                        </div>
+                        <form id="qos-form">
+                            <div class="mb-3">
+                                <label class="form-label">Abilita QoS</label>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="qos-enabled">
+                                    <label class="form-check-label" for="qos-enabled">QoS Attivo</label>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="qos-upload" class="form-label">Upload Speed (Mbps)</label>
+                                    <input type="number" class="form-control" id="qos-upload" placeholder="100">
+                                    <small class="text-muted">Velocità massima upload della tua connessione</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="qos-download" class="form-label">Download Speed (Mbps)</label>
+                                    <input type="number" class="form-control" id="qos-download" placeholder="1000">
+                                    <small class="text-muted">Velocità massima download della tua connessione</small>
+                                </div>
+                            </div>
+                            
+                            <h6 class="mb-3">Priorità Applicazioni</h6>
+                            <div class="mb-3">
+                                <label for="qos-voip" class="form-label">VoIP / Chiamate</label>
+                                <select class="form-select" id="qos-voip">
+                                    <option value="high">Alta Priorità</option>
+                                    <option value="medium">Media Priorità</option>
+                                    <option value="low">Bassa Priorità</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="qos-video" class="form-label">Streaming Video</label>
+                                <select class="form-select" id="qos-video">
+                                    <option value="high">Alta Priorità</option>
+                                    <option value="medium" selected>Media Priorità</option>
+                                    <option value="low">Bassa Priorità</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="qos-gaming" class="form-label">Gaming Online</label>
+                                <select class="form-select" id="qos-gaming">
+                                    <option value="high">Alta Priorità</option>
+                                    <option value="medium" selected>Media Priorità</option>
+                                    <option value="low">Bassa Priorità</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="qos-download-apps" class="form-label">Download / P2P</label>
+                                <select class="form-select" id="qos-download-apps">
+                                    <option value="high">Alta Priorità</option>
+                                    <option value="medium">Media Priorità</option>
+                                    <option value="low" selected>Bassa Priorità</option>
+                                </select>
+                            </div>
+                            
+                            <button type="button" class="btn btn-primary" onclick="saveQoSConfig()">
+                                <i class="fas fa-save me-2"></i>Salva Configurazione QoS
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Parental Control Tab -->
+                    <div class="tab-pane fade" id="parental-config" role="tabpanel">
+                        <div class="alert alert-success">
+                            <i class="fas fa-shield-alt me-2"></i>
+                            <strong>Parental Control:</strong> Proteggi i tuoi bambini online con filtri e restrizioni orarie.
+                        </div>
+                        <form id="parental-form">
+                            <div class="mb-3">
+                                <label class="form-label">Abilita Parental Control</label>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="parental-enabled">
+                                    <label class="form-check-label" for="parental-enabled">Filtri Attivi</label>
+                                </div>
+                            </div>
+                            
+                            <h6 class="mb-3">Filtri Contenuti</h6>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="parental-adult" checked>
+                                <label class="form-check-label" for="parental-adult">
+                                    Blocca contenuti per adulti
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="parental-gambling" checked>
+                                <label class="form-check-label" for="parental-gambling">
+                                    Blocca siti di gioco d'azzardo
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="parental-violence">
+                                <label class="form-check-label" for="parental-violence">
+                                    Blocca contenuti violenti
+                                </label>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="parental-social">
+                                <label class="form-check-label" for="parental-social">
+                                    Blocca social media
+                                </label>
+                            </div>
+                            
+                            <h6 class="mb-3">Restrizioni Orarie</h6>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="parental-start-time" class="form-label">Ora Inizio Blocco</label>
+                                    <input type="time" class="form-control" id="parental-start-time" value="22:00">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="parental-end-time" class="form-label">Ora Fine Blocco</label>
+                                    <input type="time" class="form-control" id="parental-end-time" value="07:00">
+                                </div>
+                            </div>
+                            
+                            <h6 class="mb-3">Dispositivi Controllati (MAC Address)</h6>
+                            <div class="mb-3">
+                                <textarea class="form-control font-monospace" id="parental-devices" rows="3" placeholder="AA:BB:CC:DD:EE:FF&#10;11:22:33:44:55:66"></textarea>
+                                <small class="text-muted">Inserisci un MAC address per riga</small>
+                            </div>
+                            
+                            <h6 class="mb-3">Siti Bloccati (Lista Custom)</h6>
+                            <div class="mb-3">
+                                <textarea class="form-control" id="parental-blocked-sites" rows="3" placeholder="facebook.com&#10;instagram.com&#10;tiktok.com"></textarea>
+                                <small class="text-muted">Inserisci un dominio per riga</small>
+                            </div>
+                            
+                            <button type="button" class="btn btn-primary" onclick="saveParentalControlConfig()">
+                                <i class="fas fa-save me-2"></i>Salva Parental Control
                             </button>
                         </form>
                     </div>
