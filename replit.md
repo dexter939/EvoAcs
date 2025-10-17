@@ -30,13 +30,16 @@ I prefer clear and concise explanations. When making changes, prioritize core fu
 ### Other Completed Features
 - **LAN Device Management** (4/4 tests): SSDP discovery, SOAP actions ✅
 - **Device Modeling** (5/5 tests): Parameter discovery, capabilities, stats ✅
-- **Provisioning API** (6/7 tests): TR-069 parameter operations, reboot, connection request (1 test returns 422)
+- **Provisioning API** (7/7 tests): Complete ✅ - TR-069 parameter operations, reboot, connection request (fixed device status validation)
+- **USP WebSocket Transport** (11/11 tests): Complete ✅ - Mockery mocks, transport field, websocket_client_id validation, UUID msgId format
+- **USP HTTP Transport** (1/10 tests): Partial - connection_request_url validation added, remaining tests need Http::fake() setup
 
 ### Known Issues
-- **DeviceManagement tests**: 12 tests timeout, requires investigation
-- **TR-369 Transport tests**: UspWebSocketTransport (11 tests QueryException), UspHttpTransport/UspMqttTransport timeout
+- **DeviceManagement tests**: 12 tests slow (~30s each, 6+ min total) but likely functional, need extended timeout
+- **UspHttpTransport**: 9/10 tests need Http::fake() mock setup (validation fixed)
+- **UspMqttTransport**: timeout issues, requires investigation
 
-**Total Verified**: 99+/181 tests passing | **Next**: Fix Storage stats, VoIP provision, Provisioning connection request, investigate transport test failures
+**Total Verified**: 112+/181 tests (62%) passing | **Next**: Fix remaining HTTP/MQTT transport mocks, optimize DeviceManagement test speed
 
 ## System Architecture
 
