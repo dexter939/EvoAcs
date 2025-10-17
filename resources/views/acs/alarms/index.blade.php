@@ -191,6 +191,107 @@ document.addEventListener('DOMContentLoaded', function() {
         params.set('severity', this.value);
         window.location.href = `?${params.toString()}`;
     });
+
+    let lastAlarmId = {{ $alarms->max('id') ?? 0 }};
+    let eventSource = null;
+    let reconnectAttempts = 0;
+
+    function connectSSE() {
+        if (eventSource) {
+            eventSource.close();
+        }
+
+        eventSource = new EventSource(`{{ route('acs.alarms.stream') }}?lastId=${lastAlarmId}`);
+
+        eventSource.onopen = function() {
+            console.log('✅ SSE connected');
+            reconnectAttempts = 0;
+        };
+
+        eventSource.onmessage = function(event) {
+            try {
+                const alarm = JSON.parse(event.data);
+                lastAlarmId = Math.max(lastAlarmId, alarm.id);
+                
+                showAlarmNotification(alarm);
+            } catch (e) {
+                console.error('SSE parse error:', e);
+            }
+        };
+
+        eventSource.onerror = function(error) {
+            console.error('SSE error:', error);
+            eventSource.close();
+            
+            reconnectAttempts++;
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+            console.log(`🔄 Reconnecting SSE in ${delay}ms (attempt ${reconnectAttempts})`);
+            setTimeout(connectSSE, delay);
+        };
+    }
+
+    function showAlarmNotification(alarm) {
+        const severityColors = {
+            critical: '#dc3545',
+            major: '#fd7e14',
+            minor: '#ffc107',
+            warning: '#0dcaf0',
+            info: '#6c757d'
+        };
+
+        const severityIcons = {
+            critical: 'fas fa-exclamation-triangle',
+            major: 'fas fa-exclamation-circle',
+            minor: 'fas fa-info-circle',
+            warning: 'fas fa-bell',
+            info: 'fas fa-info'
+        };
+
+        const notification = document.createElement('div');
+        notification.className = 'toast align-items-center border-0';
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 350px;
+            background: linear-gradient(135deg, ${severityColors[alarm.severity]} 0%, ${severityColors[alarm.severity]}dd 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        `;
+        notification.setAttribute('role', 'alert');
+        notification.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="${severityIcons[alarm.severity]} me-2"></i>
+                    <strong>${alarm.severity.toUpperCase()} ALARM</strong><br>
+                    <small>${alarm.title} - ${alarm.device_name}</small><br>
+                    <small class="opacity-75">${alarm.raised_at}</small>
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        `;
+
+        document.body.appendChild(notification);
+        const toast = new bootstrap.Toast(notification, { autohide: true, delay: 6000 });
+        toast.show();
+
+        notification.addEventListener('hidden.bs.toast', () => notification.remove());
+
+        const alertSound = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSyBzvLZiTYIGGS56+mjUBELTKXh8bllHQU2jdXu0n0pBSd+zPDajzsKFGO56OykUhELSKDe8bllHgY2jdTu0n0qBSd+zPDajzsKFGK46OykUhEMSp/f8LllHgY2jdXu0n0qBSZ9y/DajzsKFGK46OykUhEMSp/f8LllHgY2jdTu0n0qBSd+zPDajzsKFGK46OykUhELTKLg8bllHQU2jdXt0n0pBSd9y/DajzsKFGO56+mjUBELTKLg8rllHQU2jdXu0n0qBSd+zPDajzsKE2S66+mjUBELTKLg8rllHQU2jdXu0n0qBSd+zPDajzsKFGO56+mjUBEMSp/f8LllHgY2jdXu0n0qBSd+zPDajzsKFGK46OykUhEMSp/f8LllHgY2jdXu0n0qBSd+zPDajzsKFGK46OykUhEMSp/f8LllHgY2jdXu0n0qBSd+zPDajzsKFGK46OykUhEMSp/f8LllHgY2jdXu0n0qBSd+zPDajzsKFGO56+mjUBEMSp/f8LllHgY2jdXu0n0qBSd+zPDajzsKFGK46OykUhEMSp/f8LllHgY2jdXu0n0qBSd+zPDajzsKFGK46OykUhEMSp/f8LllHgY2jdXu0n0qBSd+zPDajzsKFGK46OykUhEMSp/f8LllHgY2jdXu0n0qBSd+zPDajzsKFGK46OykUhEMSp/f8LllHgY2jdXu0n0qBSd+zPDajzsKFGK46OykUhEMSp/f8LllHgY2jdXu0n0qBSd+zPDajzsKFGK46OykUhEMSp/f8LllHgY2jdXu0n0qBSd+zPDajzsKFGK46OykUhEMSp/f8LllHgY2jdXu0n0qBSd+zPDajzsKFGK46OykUhEMSp/f8LllHgY2jdXu0n0qBSd+zPDajzsKFGK46OykUhEMSp/f8LllHgY2jdXu0n0qBSd+zPDajzsKFGK46OykUhEMSp/f8LllHgY2jdXu0n0qBSd+zPDajzsKFGK46OykUhEMSp/f8LllHgY2jdXu0n0qBSd+zPDajzsKFGK46OykUhEMSp/f8LllHgY2jdXu0n0qBSd+zPDajzsKFGK46OykUhEMSp/f8LllHgY2jdXu0n0qBSd+zPDajzsKFGK46OykUhEMSp/f8LllHgY2jdXu0n0qBSd+zPDajzsKFGK46OykUhEMSp/f8LllHgY2jdXu0n0qBSd+zPDajzsKFGK46OykUhEMSp/f8A==');
+        alertSound.volume = 0.3;
+        alertSound.play().catch(e => console.log('Audio play failed:', e));
+
+        setTimeout(() => location.reload(), 7000);
+    }
+
+    connectSSE();
+
+    window.addEventListener('beforeunload', function() {
+        if (eventSource) {
+            eventSource.close();
+        }
+    });
 });
 </script>
 @endsection

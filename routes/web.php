@@ -68,6 +68,7 @@ Route::prefix('acs')->name('acs.')->group(function () {
     Route::post('/alarms/{id}/acknowledge', [\App\Http\Controllers\AlarmsController::class, 'acknowledge'])->name('alarms.acknowledge');
     Route::post('/alarms/{id}/clear', [\App\Http\Controllers\AlarmsController::class, 'clear'])->name('alarms.clear');
     Route::get('/alarms/stats', [\App\Http\Controllers\AlarmsController::class, 'getStats'])->name('alarms.stats');
+    Route::get('/alarms/stream', [\App\Http\Controllers\AlarmsController::class, 'stream'])->name('alarms.stream');
     
     // Profili Configurazione CRUD
     Route::get('/profiles', [AcsController::class, 'profiles'])->name('profiles');

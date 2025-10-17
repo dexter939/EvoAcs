@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\AlarmCreated;
 use App\Models\Alarm;
 use App\Models\CpeDevice;
 use Illuminate\Support\Collection;
@@ -29,6 +30,8 @@ class AlarmService
             'severity' => $alarm->severity,
             'device_id' => $alarm->device_id,
         ]);
+
+        event(new AlarmCreated($alarm));
 
         return $alarm;
     }
