@@ -43,6 +43,9 @@
                 </table>
                 
                 <div class="mt-3">
+                    <button class="btn btn-gradient-primary btn-sm w-100 mb-2" data-bs-toggle="modal" data-bs-target="#editConfigModal">
+                        <i class="fas fa-edit me-2"></i>Modifica Configurazione
+                    </button>
                     <button class="btn btn-success btn-sm w-100 mb-2" onclick="provisionDevice({{ $device->id }}, '{{ $device->serial_number }}')">
                         <i class="fas fa-cog me-2"></i>Provisioning
                     </button>
@@ -867,6 +870,308 @@ async function cancelPendingCommand(commandId) {
         }
     } catch (error) {
         alert('❌ Connection error: ' + error.message);
+    }
+}
+
+// ====================
+// CPE Configuration Editor
+// ====================
+function openConfigEditor() {
+    document.getElementById('editConfigModal').style.display = 'block';
+}
+
+async function saveWiFiConfig() {
+    const ssid = document.getElementById('wifi-ssid').value;
+    const password = document.getElementById('wifi-password').value;
+    const channel = document.getElementById('wifi-channel').value;
+    const enabled = document.getElementById('wifi-enabled').checked;
+    
+    if (!ssid) {
+        alert('⚠️ SSID is required');
+        return;
+    }
+    
+    const params = {
+        'Device.WiFi.SSID.1.SSID': ssid,
+        'Device.WiFi.SSID.1.Enable': enabled ? 'true' : 'false'
+    };
+    
+    if (password) {
+        params['Device.WiFi.AccessPoint.1.Security.KeyPassphrase'] = password;
+    }
+    
+    if (channel) {
+        params['Device.WiFi.Radio.1.Channel'] = channel;
+    }
+    
+    await saveParameters(params, 'WiFi');
+}
+
+async function saveLANConfig() {
+    const ipAddress = document.getElementById('lan-ip').value;
+    const subnetMask = document.getElementById('lan-subnet').value;
+    const dhcpEnabled = document.getElementById('lan-dhcp-enabled').checked;
+    const dhcpStart = document.getElementById('lan-dhcp-start').value;
+    const dhcpEnd = document.getElementById('lan-dhcp-end').value;
+    
+    if (!ipAddress) {
+        alert('⚠️ IP Address is required');
+        return;
+    }
+    
+    const params = {
+        'Device.IP.Interface.1.IPv4Address.1.IPAddress': ipAddress
+    };
+    
+    if (subnetMask) {
+        params['Device.IP.Interface.1.IPv4Address.1.SubnetMask'] = subnetMask;
+    }
+    
+    if (dhcpEnabled !== undefined) {
+        params['Device.DHCPv4.Server.Enable'] = dhcpEnabled ? 'true' : 'false';
+    }
+    
+    if (dhcpStart) {
+        params['Device.DHCPv4.Server.Pool.1.MinAddress'] = dhcpStart;
+    }
+    
+    if (dhcpEnd) {
+        params['Device.DHCPv4.Server.Pool.1.MaxAddress'] = dhcpEnd;
+    }
+    
+    await saveParameters(params, 'LAN');
+}
+
+async function saveAdvancedParams() {
+    const customParams = document.getElementById('advanced-params').value;
+    
+    if (!customParams.trim()) {
+        alert('⚠️ No parameters to save');
+        return;
+    }
+    
+    try {
+        const params = JSON.parse(customParams);
+        await saveParameters(params, 'Advanced');
+    } catch (e) {
+        alert('⚠️ Invalid JSON format:\n' + e.message);
+    }
+}
+
+async function saveParameters(params, configType) {
+    const deviceId = {{ $device->id }};
+    const protocol = '{{ $device->protocol_type }}';
+    
+    const submitBtn = event.target;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+    
+    try {
+        let url, payload;
+        
+        if (protocol === 'tr369') {
+            url = `/api/v1/usp/devices/${deviceId}/set-params`;
+            payload = { param_paths: params };
+        } else {
+            url = `/api/v1/devices/${deviceId}/parameters/set`;
+            payload = { parameters: params };
+        }
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': 'test-api-key-12345', // TODO: Use real API key
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            alert(`✅ ${configType} configuration saved successfully!\n\nDevice will apply changes shortly.`);
+            
+            // Close modal and reload page after 2 seconds
+            setTimeout(() => {
+                bootstrap.Modal.getInstance(document.getElementById('editConfigModal')).hide();
+                location.reload();
+            }, 2000);
+        } else {
+            alert(`❌ Error saving ${configType} configuration:\n${result.message || 'Unknown error'}`);
+        }
+    } catch (error) {
+        alert(`❌ Connection error:\n${error.message}`);
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save Changes';
+    }
+}
+</script>
+
+<!-- Modal for CPE Configuration -->
+<div class="modal fade" id="editConfigModal" tabindex="-1" aria-labelledby="editConfigModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-primary">
+                <h5 class="modal-title text-white" id="editConfigModalLabel">
+                    <i class="fas fa-sliders-h me-2"></i>Modifica Configurazione CPE
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Nav tabs -->
+                <ul class="nav nav-pills nav-fill mb-4" id="configTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="wifi-tab" data-bs-toggle="tab" data-bs-target="#wifi-config" type="button" role="tab">
+                            <i class="fas fa-wifi me-2"></i>WiFi
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="lan-tab" data-bs-toggle="tab" data-bs-target="#lan-config" type="button" role="tab">
+                            <i class="fas fa-network-wired me-2"></i>LAN
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="advanced-tab" data-bs-toggle="tab" data-bs-target="#advanced-config" type="button" role="tab">
+                            <i class="fas fa-cogs me-2"></i>Advanced
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Tab content -->
+                <div class="tab-content" id="configTabContent">
+                    <!-- WiFi Tab -->
+                    <div class="tab-pane fade show active" id="wifi-config" role="tabpanel">
+                        <form id="wifi-form">
+                            <div class="mb-3">
+                                <label for="wifi-ssid" class="form-label">SSID (Nome Rete)</label>
+                                <input type="text" class="form-control" id="wifi-ssid" placeholder="es. MyWiFi_5G">
+                            </div>
+                            <div class="mb-3">
+                                <label for="wifi-password" class="form-label">Password WiFi</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="wifi-password" placeholder="Minimo 8 caratteri">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('wifi-password')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <small class="text-muted">Lascia vuoto per non modificare</small>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="wifi-channel" class="form-label">Canale WiFi</label>
+                                    <select class="form-select" id="wifi-channel">
+                                        <option value="">Auto</option>
+                                        <option value="1">1 (2.4GHz)</option>
+                                        <option value="6">6 (2.4GHz)</option>
+                                        <option value="11">11 (2.4GHz)</option>
+                                        <option value="36">36 (5GHz)</option>
+                                        <option value="40">40 (5GHz)</option>
+                                        <option value="44">44 (5GHz)</option>
+                                        <option value="48">48 (5GHz)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Stato WiFi</label>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="wifi-enabled" checked>
+                                        <label class="form-check-label" for="wifi-enabled">WiFi Abilitato</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-primary" onclick="saveWiFiConfig()">
+                                <i class="fas fa-save me-2"></i>Salva Configurazione WiFi
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- LAN Tab -->
+                    <div class="tab-pane fade" id="lan-config" role="tabpanel">
+                        <form id="lan-form">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="lan-ip" class="form-label">IP Address LAN</label>
+                                    <input type="text" class="form-control" id="lan-ip" placeholder="es. 192.168.1.1">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="lan-subnet" class="form-label">Subnet Mask</label>
+                                    <input type="text" class="form-control" id="lan-subnet" placeholder="es. 255.255.255.0">
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">DHCP Server</label>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="lan-dhcp-enabled" checked>
+                                    <label class="form-check-label" for="lan-dhcp-enabled">DHCP Abilitato</label>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="lan-dhcp-start" class="form-label">DHCP Start IP</label>
+                                    <input type="text" class="form-control" id="lan-dhcp-start" placeholder="es. 192.168.1.100">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="lan-dhcp-end" class="form-label">DHCP End IP</label>
+                                    <input type="text" class="form-control" id="lan-dhcp-end" placeholder="es. 192.168.1.200">
+                                </div>
+                            </div>
+                            
+                            <button type="button" class="btn btn-primary" onclick="saveLANConfig()">
+                                <i class="fas fa-save me-2"></i>Salva Configurazione LAN
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Advanced Tab -->
+                    <div class="tab-pane fade" id="advanced-config" role="tabpanel">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Modalità Avanzata:</strong> Inserisci parametri TR-069/TR-369 in formato JSON
+                        </div>
+                        <form id="advanced-form">
+                            <div class="mb-3">
+                                <label for="advanced-params" class="form-label">Parametri JSON</label>
+                                <textarea class="form-control font-monospace" id="advanced-params" rows="10" placeholder='{
+  "Device.ManagementServer.PeriodicInformInterval": "300",
+  "Device.Time.NTPServer1": "pool.ntp.org",
+  "Device.DNS.Client.Server.1.DNSServer": "8.8.8.8"
+}'></textarea>
+                                <small class="text-muted">Formato: { "parameter_path": "value", ... }</small>
+                            </div>
+                            
+                            <button type="button" class="btn btn-primary" onclick="saveAdvancedParams()">
+                                <i class="fas fa-save me-2"></i>Salva Parametri Avanzati
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Chiudi
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePasswordVisibility(inputId) {
+    const input = document.getElementById(inputId);
+    const btn = event.target.closest('button');
+    const icon = btn.querySelector('i');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
     }
 }
 </script>
