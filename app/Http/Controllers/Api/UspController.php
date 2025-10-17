@@ -64,6 +64,11 @@ class UspController extends Controller
             return $this->failureResponse('WebSocket client ID not configured', 422);
         }
         
+        // Validate HTTP connection URL if using HTTP transport
+        if ($device->mtp_type === 'http' && empty($device->connection_request_url)) {
+            return $this->failureResponse('HTTP connection URL not configured', 422);
+        }
+        
         // Validate request
         $validated = $request->validate([
             'param_paths' => 'required|array|min:1',
