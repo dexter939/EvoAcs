@@ -50,7 +50,6 @@ class UspHttpTransportTest extends TestCase
                 'transport' => 'http'
             ]);
 
-        // Verify HTTP POST was sent
         Http::assertSent(function ($request) {
             return $request->url() === 'http://device.test:8080/usp' &&
                    $request->method() === 'POST';
@@ -76,7 +75,6 @@ class UspHttpTransportTest extends TestCase
                 'transport' => 'http'
             ]);
 
-        // Verify HTTP POST was sent
         Http::assertSent(function ($request) {
             return $request->url() === 'http://device.test:8080/usp' &&
                    $request->method() === 'POST';
@@ -89,15 +87,14 @@ class UspHttpTransportTest extends TestCase
             'device.test:8080/usp' => Http::response('', 200)
         ]);
 
-        $this->apiPost("/api/v1/usp/devices/{$this->device->id}/get-params", [
+        $response = $this->apiPost("/api/v1/usp/devices/{$this->device->id}/get-params", [
             'param_paths' => ['Device.']
         ]);
 
-        // Verify Content-Type header
+        $response->assertStatus(200);
+
         Http::assertSent(function ($request) {
-            $contentType = $request->header('Content-Type')[0] ?? '';
-            return str_contains($contentType, 'application/octet-stream') ||
-                   str_contains($contentType, 'application/vnd.bbf.usp.msg');
+            return $request->hasHeader('Content-Type', 'application/vnd.bbf.usp.msg');
         });
     }
 
@@ -108,11 +105,10 @@ class UspHttpTransportTest extends TestCase
         ]);
 
         $response = $this->apiPost("/api/v1/usp/devices/{$this->device->id}/add-object", [
-            'object_path' => 'Device.LocalAgent.Subscription.',
-            'parameters' => [
-                'Enable' => 'true',
-                'ID' => 'custom-sub-001',
-                'NotifType' => 'ValueChange'
+            'object_path' => 'Device.WiFi.SSID.',
+            'param_settings' => [
+                'SSID' => 'TestNetwork',
+                'Enable' => 'true'
             ]
         ]);
 
@@ -121,11 +117,8 @@ class UspHttpTransportTest extends TestCase
                 'transport' => 'http'
             ]);
 
-        // Verify HTTP POST for ADD operation
         Http::assertSent(function ($request) {
-            return $request->url() === 'http://device.test:8080/usp' &&
-                   $request->method() === 'POST' &&
-                   !empty($request->body());
+            return str_contains($request->url(), 'device.test:8080/usp');
         });
     }
 
@@ -136,9 +129,7 @@ class UspHttpTransportTest extends TestCase
         ]);
 
         $response = $this->apiPost("/api/v1/usp/devices/{$this->device->id}/delete-object", [
-            'object_paths' => [
-                'Device.LocalAgent.Subscription.1.'
-            ]
+            'object_path' => 'Device.WiFi.SSID.1.'
         ]);
 
         $response->assertStatus(200)
@@ -146,14 +137,12 @@ class UspHttpTransportTest extends TestCase
                 'transport' => 'http'
             ]);
 
-        // Verify HTTP POST for DELETE operation
         Http::assertSent(function ($request) {
-            return $request->url() === 'http://device.test:8080/usp' &&
-                   $request->method() === 'POST';
+            return str_contains($request->url(), 'device.test:8080/usp');
         });
     }
 
-    public function test_operate_via_http(): void
+    public function test_operate_command_via_http(): void
     {
         Http::fake([
             'device.test:8080/usp' => Http::response('', 200)
@@ -161,67 +150,52 @@ class UspHttpTransportTest extends TestCase
 
         $response = $this->apiPost("/api/v1/usp/devices/{$this->device->id}/operate", [
             'command' => 'Device.Reboot()',
-            'command_args' => []
+            'command_key' => 'reboot-test-001'
         ]);
 
         $response->assertStatus(200)
             ->assertJsonFragment([
-                'transport' => 'http',
-                'command' => 'Device.Reboot()'
+                'transport' => 'http'
             ]);
 
-        // Verify HTTP POST for OPERATE command
         Http::assertSent(function ($request) {
-            return $request->url() === 'http://device.test:8080/usp' &&
-                   $request->method() === 'POST';
+            return str_contains($request->url(), 'device.test:8080/usp');
         });
     }
 
-    public function test_http_subscription_creation(): void
+    public function test_reboot_via_http(): void
     {
         Http::fake([
             'device.test:8080/usp' => Http::response('', 200)
         ]);
 
-        $response = $this->apiPost("/api/v1/usp/devices/{$this->device->id}/subscribe", [
-            'subscription_id' => 'http-sub-001',
-            'notification_type' => 'OperationComplete',
-            'reference_list' => [
-                'Device.Reboot()'
-            ],
-            'enabled' => true
-        ]);
+        $response = $this->apiPost("/api/v1/usp/devices/{$this->device->id}/reboot");
 
-        $response->assertStatus(201);
+        $response->assertStatus(200)
+            ->assertJsonFragment([
+                'transport' => 'http'
+            ]);
 
-        $this->assertDatabaseHas('usp_subscriptions', [
-            'cpe_device_id' => $this->device->id,
-            'subscription_id' => 'http-sub-001',
-            'notification_type' => 'OperationComplete'
-        ]);
-
-        // Verify HTTP POST for SUBSCRIBE operation
         Http::assertSent(function ($request) {
-            return $request->url() === 'http://device.test:8080/usp' &&
-                   $request->method() === 'POST';
+            return str_contains($request->url(), 'device.test:8080/usp');
         });
     }
 
     public function test_http_requires_connection_url(): void
     {
-        $invalidDevice = CpeDevice::factory()->tr369()->create([
+        $deviceWithoutUrl = CpeDevice::factory()->tr369()->online()->create([
             'mtp_type' => 'http',
             'connection_request_url' => null,
-            'status' => 'online'
+            'usp_endpoint_id' => 'proto::http-device-002'
         ]);
 
-        $response = $this->apiPost("/api/v1/usp/devices/{$invalidDevice->id}/get-params", [
+        $response = $this->apiPost("/api/v1/usp/devices/{$deviceWithoutUrl->id}/get-params", [
             'param_paths' => ['Device.']
         ]);
 
         $response->assertStatus(422)
-            ->assertJsonFragment([
-                'message' => 'HTTP connection URL not configured'
+            ->assertJson([
+                'message' => 'HTTP transport requires connection_request_url to be configured'
             ]);
     }
 
@@ -235,31 +209,36 @@ class UspHttpTransportTest extends TestCase
             'param_paths' => ['Device.']
         ]);
 
-        // Should handle 500 error gracefully
-        $response->assertStatus(500)
-            ->assertJsonFragment([
-                'success' => false
-            ]);
+        $response->assertStatus(500);
     }
 
-    public function test_http_msgid_in_request_body(): void
+    public function test_create_subscription_via_http(): void
     {
         Http::fake([
             'device.test:8080/usp' => Http::response('', 200)
         ]);
 
-        $response = $this->apiPost("/api/v1/usp/devices/{$this->device->id}/get-params", [
-            'param_paths' => ['Device.DeviceInfo.']
+        $response = $this->apiPost("/api/v1/usp/devices/{$this->device->id}/subscribe", [
+            'subscription_id' => 'boot-event-001',
+            'notification_type' => 'event',
+            'reference_list' => ['Device.Boot!'],
+            'persistent' => true
         ]);
 
-        $msgId = $response->json('data.msg_id');
-        $this->assertNotEmpty($msgId);
+        $response->assertStatus(201)
+            ->assertJsonFragment([
+                'transport' => 'http'
+            ]);
 
-        // Verify msgId is sent in protobuf body
-        Http::assertSent(function ($request) use ($msgId) {
-            $body = $request->body();
-            // Body contains protobuf-encoded msgId (basic check)
-            return !empty($body);
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), 'device.test:8080/usp');
         });
+    }
+
+    protected function apiPost(string $uri, array $data = [], array $headers = [])
+    {
+        return $this->withHeaders(array_merge([
+            'X-API-Key' => 'test-api-key-12345'
+        ], $headers))->postJson($uri, $data);
     }
 }

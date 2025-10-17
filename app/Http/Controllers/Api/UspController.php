@@ -13,6 +13,7 @@ use App\Services\UspWebSocketService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Carbon\Carbon;
 
 /**
@@ -102,20 +103,9 @@ class UspController extends Controller
                     ]
                 ]);
             } else {
-                // For HTTP MTP, store request in database for polling
+                // For HTTP MTP, send USP request to device
                 $getMessage = $this->uspService->createGetMessage($validated['param_paths'], $msgId);
-                $pendingRequest = $this->storePendingRequest($device, $msgId, 'get', $getMessage);
-                
-                return response()->json([
-                    'success' => true,
-                    'data' => [
-                        'msg_id' => $msgId,
-                        'status' => 'pending',
-                        'transport' => 'http',
-                        'pending_request_id' => $pendingRequest->id,
-                        'expires_at' => $pendingRequest->expires_at->toIso8601String()
-                    ]
-                ]);
+                return $this->sendHttpRequest($device, $getMessage, $msgId);
             }
         } catch (\Throwable $e) {
             \Log::error('USP Get request failed: ' . $e->getMessage());
@@ -178,20 +168,10 @@ class UspController extends Controller
                     ]
                 ]);
             } else {
-                // For HTTP MTP, store request in database for polling
+                // For HTTP MTP, send USP request to device
                 $updateObjects = $this->convertToUpdateObjects($validated['param_paths']);
                 $setMessage = $this->uspService->createSetMessage($updateObjects, $allowPartial, $msgId);
-                $pendingRequest = $this->storePendingRequest($device, $msgId, 'set', $setMessage);
-                
-                return response()->json([
-                    'success' => true,
-                    'data' => [
-                        'msg_id' => $msgId,
-                        'status' => 'pending',
-                        'transport' => 'http',
-                        'pending_request_id' => $pendingRequest->id
-                    ]
-                ]);
+                return $this->sendHttpRequest($device, $setMessage, $msgId);
             }
         } catch (\Throwable $e) {
             \Log::error('USP Set request failed: ' . $e->getMessage());
@@ -255,18 +235,9 @@ class UspController extends Controller
                     ]
                 ]);
             } else {
-                // For HTTP MTP, store request in database for polling
+                // For HTTP MTP, send USP request to device
                 $operateMessage = $this->uspService->createOperateMessage($validated['command'], $params, $msgId);
-                $pendingRequest = $this->storePendingRequest($device, $msgId, 'operate', $operateMessage);
-                
-                return response()->json([
-                    'success' => true,
-                    'data' => [
-                        'msg_id' => $msgId,
-                        'command' => $validated['command'],
-                        'status' => 'pending'
-                    ]
-                ]);
+                return $this->sendHttpRequest($device, $operateMessage, $msgId);
             }
         } catch (\Throwable $e) {
             \Log::error('USP Operate request failed: ' . $e->getMessage());
@@ -343,16 +314,8 @@ class UspController extends Controller
                     ]
                 ]);
             } else {
-                // For HTTP MTP, store request in database for polling
-                $pendingRequest = $this->storePendingRequest($device, $msgId, 'add', $addMessage);
-                
-                return response()->json([
-                    'success' => true,
-                    'data' => [
-                        'msg_id' => $msgId,
-                        'object_path' => $validated['object_path']
-                    ]
-                ]);
+                // For HTTP MTP, send USP request to device
+                return $this->sendHttpRequest($device, $addMessage, $msgId);
             }
         } catch (\Throwable $e) {
             \Log::error('USP Add request failed: ' . $e->getMessage());
@@ -428,16 +391,8 @@ class UspController extends Controller
                     ]
                 ]);
             } else {
-                // For HTTP MTP, store request in database for polling
-                $pendingRequest = $this->storePendingRequest($device, $msgId, 'delete', $deleteMessage);
-                
-                return response()->json([
-                    'success' => true,
-                    'data' => [
-                        'msg_id' => $msgId,
-                        'deleted_objects' => $validated['object_paths']
-                    ]
-                ]);
+                // For HTTP MTP, send USP request to device
+                return $this->sendHttpRequest($device, $deleteMessage, $msgId);
             }
         } catch (\Throwable $e) {
             \Log::error('USP Delete request failed: ' . $e->getMessage());
@@ -491,17 +446,9 @@ class UspController extends Controller
                     ]
                 ]);
             } else {
-                // For HTTP MTP, store request in database for polling
+                // For HTTP MTP, send USP request to device
                 $operateMessage = $this->uspService->createOperateMessage('Device.Reboot()', [], $msgId);
-                $pendingRequest = $this->storePendingRequest($device, $msgId, 'operate', $operateMessage);
-                
-                return response()->json([
-                    'success' => true,
-                    'data' => [
-                        'msg_id' => $msgId,
-                        'status' => 'pending'
-                    ]
-                ]);
+                return $this->sendHttpRequest($device, $operateMessage, $msgId);
             }
         } catch (\Throwable $e) {
             \Log::error('USP Reboot failed: ' . $e->getMessage());
@@ -707,5 +654,29 @@ class UspController extends Controller
             \Log::error('USP delete subscription failed: ' . $e->getMessage());
             return $this->failureResponse('Failed to delete subscription', 500);
         }
+    }
+    
+    private function sendHttpRequest(CpeDevice $device, $message, string $msgId)
+    {
+        // Wrap message in USP Record and serialize to protobuf
+        $record = $this->uspService->wrapInRecord($message, $device->usp_endpoint_id, $msgId);
+        $serializedRecord = $record->serializeToString();
+        
+        $httpResponse = Http::withHeaders([
+            'Content-Type' => 'application/vnd.bbf.usp.msg'
+        ])->post($device->connection_request_url, $serializedRecord);
+        
+        if (!$httpResponse->successful()) {
+            return $this->failureResponse('Failed to send HTTP request to device', 500);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'msg_id' => $msgId,
+                'status' => 'sent',
+                'transport' => 'http'
+            ]
+        ]);
     }
 }
