@@ -48,11 +48,11 @@ I prefer clear and concise explanations. When making changes, prioritize core fu
 The web interface uses the Soft UI Dashboard Laravel template, providing a modern, responsive design with navigation, real-time statistics, interactive Chart.js visualizations, filtering, pagination, and modal forms for CRUD operations. The dashboard auto-refreshes every 30 seconds.
 
 **CPE Device Addition UI (October 18, 2025)**: Enhanced "Add Device" modal with hierarchical manufacturer/model selection:
-- **Dropdown Mode (default)**: Select from 10 major CPE manufacturers (Huawei, ZTE, Zyxel, TP-Link, MikroTik, D-Link, Netgear, Nokia, Technicolor, Sercomm) with 38+ real-world models from 2020-2025
+- **Dropdown Mode (default)**: Select from 11 major CPE manufacturers (Huawei, ZTE, Zyxel, TP-Link, MikroTik, D-Link, Netgear, Nokia, Technicolor, AVM, Sercomm) with 46 real-world models from 2020-2025
 - **Auto-fill**: OUI, Product Class, WiFi standard, TR-069/TR-369 support auto-populated from database
 - **Manual Mode**: Toggle for devices not in pre-loaded catalog with manual OUI entry
 - **Data Model**: Extended router_manufacturers and router_products tables with website, description, ports_count, max_speed_mbps, supports_tr069/tr369 columns
-- **Seeder**: CpeProductsSeeder with production data (5G CPE, LTE routers, WiFi 6/7 models, mesh systems, enterprise routers)
+- **Seeder**: CpeProductsSeeder with production data (5G CPE, LTE routers, WiFi 6/7 models including AVM FritzBox, mesh systems, enterprise routers)
 
 **CPE Configuration Editor (October 17, 2025)**: Interactive modal interface for managing CPE device parameters with 6 specialized tabs:
 - **WiFi**: SSID, password, channel selection, enable/disable

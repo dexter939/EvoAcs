@@ -125,6 +125,21 @@ class CpeProductsSeeder extends Seeder
                 ],
             ],
             [
+                'name' => 'AVM',
+                'website' => 'https://fritz.com',
+                'country' => 'Germany',
+                'description' => 'Leading European manufacturer of broadband equipment and smart home solutions',
+                'products' => [
+                    ['model_name' => 'FritzBox 5690 Pro', 'oui' => '3810D5', 'product_class' => 'Fiber Gateway', 'release_year' => 2024, 'wifi_standard' => 'Wi-Fi 7', 'max_speed_mbps' => 18490, 'ports_count' => 4, 'has_usb' => true, 'supports_tr069' => true, 'supports_tr369' => false],
+                    ['model_name' => 'FritzBox 5690 XGS', 'oui' => '3CA62F', 'product_class' => 'XGS-PON Gateway', 'release_year' => 2023, 'wifi_standard' => 'Wi-Fi 7', 'max_speed_mbps' => 18490, 'ports_count' => 4, 'has_usb' => true, 'supports_tr069' => true, 'supports_tr369' => false],
+                    ['model_name' => 'FritzBox 7690', 'oui' => 'C02506', 'product_class' => 'DSL Gateway', 'release_year' => 2024, 'wifi_standard' => 'Wi-Fi 7', 'max_speed_mbps' => 7200, 'ports_count' => 4, 'has_usb' => true, 'supports_tr069' => true, 'supports_tr369' => false],
+                    ['model_name' => 'FritzBox 7682', 'oui' => '7CFF4D', 'product_class' => 'DSL Gateway', 'release_year' => 2024, 'wifi_standard' => 'Wi-Fi 6/7', 'max_speed_mbps' => 7000, 'ports_count' => 4, 'has_usb' => true, 'supports_tr069' => true, 'supports_tr369' => false],
+                    ['model_name' => 'FritzBox 6690 Cable', 'oui' => '9CC7A6', 'product_class' => 'Cable Gateway', 'release_year' => 2023, 'wifi_standard' => 'Wi-Fi 6', 'max_speed_mbps' => 4800, 'ports_count' => 4, 'has_usb' => true, 'supports_tr069' => true, 'supports_tr369' => false],
+                    ['model_name' => 'FritzBox 6670 Cable', 'oui' => '001A4F', 'product_class' => 'Cable Gateway', 'release_year' => 2024, 'wifi_standard' => 'Wi-Fi 6', 'max_speed_mbps' => 4800, 'ports_count' => 4, 'has_usb' => true, 'supports_tr069' => true, 'supports_tr369' => false],
+                    ['model_name' => 'FritzBox 7590 AX', 'oui' => '00040E', 'product_class' => 'DSL Gateway', 'release_year' => 2021, 'wifi_standard' => 'Wi-Fi 6', 'max_speed_mbps' => 3600, 'ports_count' => 4, 'has_usb' => true, 'supports_tr069' => true, 'supports_tr369' => false],
+                ],
+            ],
+            [
                 'name' => 'Sercomm',
                 'website' => 'https://www.sercomm.com',
                 'country' => 'Taiwan',
