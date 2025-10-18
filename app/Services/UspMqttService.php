@@ -10,12 +10,50 @@ use PhpMqtt\Client\ConnectionSettings;
 class UspMqttService
 {
     protected UspMessageService $uspMessageService;
+    protected int $qos = 1; // QoS 1 for at-least-once delivery
 
     public function __construct(UspMessageService $uspMessageService)
     {
         $this->uspMessageService = $uspMessageService;
     }
 
+    /**
+     * Publish USP Record to specific MQTT topic
+     * 
+     * @param string $topic MQTT topic
+     * @param \Usp\Msg\Record $record USP Record object (will be serialized)
+     * @return bool
+     */
+    public function publish(string $topic, $record): bool
+    {
+        try {
+            // Serialize Record to binary
+            $binary = $this->uspMessageService->serializeRecord($record);
+            
+            $mqtt = MQTT::connection();
+            $mqtt->publish(
+                $topic,
+                $binary,
+                $this->qos, // Use QoS 1 for at-least-once delivery
+                false // Not retained
+            );
+
+            Log::info('USP Record published via MQTT', [
+                'topic' => $topic,
+                'size' => strlen($binary)
+            ]);
+
+            return true;
+
+        } catch (\Exception $e) {
+            Log::error('Failed to publish USP Record via MQTT', [
+                'topic' => $topic,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
+    }
+    
     /**
      * Publish USP Record to device via MQTT
      */
@@ -226,5 +264,34 @@ class UspMqttService
         
         $binary = $this->uspMessageService->serializeRecord($record);
         return $this->publishToDevice($device, $binary);
+    }
+    
+    /**
+     * Build MQTT topic for device request
+     * Format: usp/request/{endpoint-id}
+     */
+    public function buildTopicForDevice(CpeDevice $device): string
+    {
+        return "usp/request/{$device->usp_endpoint_id}";
+    }
+    
+    /**
+     * Build MQTT topic for device response
+     * Format: usp/response/{endpoint-id}
+     */
+    public function buildResponseTopic(CpeDevice $device): string
+    {
+        return "usp/response/{$device->usp_endpoint_id}";
+    }
+    
+    /**
+     * Extract endpoint ID from MQTT topic
+     * Format: usp/request/{endpoint-id} or usp/response/{endpoint-id}
+     */
+    public function extractEndpointIdFromTopic(string $topic): ?string
+    {
+        // Topic format: usp/request/{endpoint-id} or usp/response/{endpoint-id}
+        $parts = explode('/', $topic);
+        return $parts[2] ?? null;
     }
 }

@@ -24,6 +24,16 @@ class UspMqttTransportTest extends TestCase
             'mqtt_client_id' => 'mqtt-test-device-001',
             'usp_endpoint_id' => 'proto::mqtt-device-001'
         ]);
+        
+        // Mock MQTT service globally to prevent timeout on MQTT::connection()
+        $this->mockMqttService = Mockery::mock(UspMqttService::class);
+        $this->mockMqttService->shouldReceive('sendGetRequest')->andReturn(true);
+        $this->mockMqttService->shouldReceive('sendSetRequest')->andReturn(true);
+        $this->mockMqttService->shouldReceive('sendOperateRequest')->andReturn(true);
+        $this->mockMqttService->shouldReceive('sendDeleteRequest')->andReturn(true);
+        $this->mockMqttService->shouldReceive('sendSubscriptionRequest')->andReturn(true);
+        $this->mockMqttService->shouldReceive('publish')->andReturn(true);
+        $this->app->instance(UspMqttService::class, $this->mockMqttService);
     }
 
     public function test_get_parameters_via_mqtt_transport(): void
@@ -78,41 +88,45 @@ class UspMqttTransportTest extends TestCase
         $msgId = $response->json('data.msg_id');
         $this->assertNotEmpty($msgId);
 
-        // Verify MQTT publish was called
-        $mqttSpy->shouldHaveReceived('publishMessage')
+        // Verify MQTT sendSetRequest was called
+        $mqttSpy->shouldHaveReceived('sendSetRequest')
             ->with(Mockery::on(function ($device) {
                 return $device->id === $this->device->id;
-            }), Mockery::type('string'), Mockery::type('string'))
+            }), Mockery::type('array'))
             ->once();
     }
 
     public function test_mqtt_topic_routing_for_device(): void
     {
-        $mqttService = app(UspMqttService::class);
+        // Use real service for testing helper methods (not API calls)
+        $uspMessageService = app(\App\Services\UspMessageService::class);
+        $realMqttService = new UspMqttService($uspMessageService);
 
         // Test request topic
-        $requestTopic = $mqttService->buildTopicForDevice($this->device);
+        $requestTopic = $realMqttService->buildTopicForDevice($this->device);
         $this->assertEquals('usp/request/proto::mqtt-device-001', $requestTopic);
 
         // Test response topic
-        $responseTopic = $mqttService->buildResponseTopic($this->device);
+        $responseTopic = $realMqttService->buildResponseTopic($this->device);
         $this->assertEquals('usp/response/proto::mqtt-device-001', $responseTopic);
 
         // Test endpoint ID extraction
-        $extractedId = $mqttService->extractEndpointIdFromTopic('usp/request/proto::mqtt-device-001');
+        $extractedId = $realMqttService->extractEndpointIdFromTopic('usp/request/proto::mqtt-device-001');
         $this->assertEquals('proto::mqtt-device-001', $extractedId);
     }
 
     public function test_mqtt_publish_uses_qos_1(): void
     {
-        $mqttService = app(UspMqttService::class);
+        // Use real service for testing property values (not API calls)
+        $uspMessageService = app(\App\Services\UspMessageService::class);
+        $realMqttService = new UspMqttService($uspMessageService);
 
         // Verify QoS level for at-least-once delivery
-        $reflection = new \ReflectionClass($mqttService);
+        $reflection = new \ReflectionClass($realMqttService);
         $property = $reflection->getProperty('qos');
         $property->setAccessible(true);
         
-        $qos = $property->getValue($mqttService);
+        $qos = $property->getValue($realMqttService);
         $this->assertEquals(1, $qos, 'MQTT QoS should be 1 for at-least-once delivery');
     }
 

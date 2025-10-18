@@ -70,6 +70,11 @@ class UspController extends Controller
             return $this->failureResponse('HTTP connection URL not configured', 422);
         }
         
+        // Validate MQTT client ID if using MQTT transport
+        if ($device->mtp_type === 'mqtt' && empty($device->mqtt_client_id)) {
+            return $this->failureResponse('MQTT client ID not configured', 422);
+        }
+        
         // Validate request
         $validated = $request->validate([
             'param_paths' => 'required|array|min:1',
@@ -230,7 +235,8 @@ class UspController extends Controller
                     'data' => [
                         'msg_id' => $msgId,
                         'command' => $validated['command'],
-                        'status' => 'sent'
+                        'status' => 'sent',
+                        'transport' => 'mqtt'
                     ]
                 ]);
             } elseif ($device->mtp_type === 'websocket') {
@@ -310,7 +316,8 @@ class UspController extends Controller
                     'success' => true,
                     'data' => [
                         'msg_id' => $msgId,
-                        'object_path' => $validated['object_path']
+                        'object_path' => $validated['object_path'],
+                        'transport' => 'mqtt'
                     ]
                 ]);
             } elseif ($device->mtp_type === 'websocket') {
@@ -387,7 +394,8 @@ class UspController extends Controller
                     'success' => true,
                     'data' => [
                         'msg_id' => $msgId,
-                        'deleted_objects' => $validated['object_paths']
+                        'deleted_objects' => $validated['object_paths'],
+                        'transport' => 'mqtt'
                     ]
                 ]);
             } elseif ($device->mtp_type === 'websocket') {
