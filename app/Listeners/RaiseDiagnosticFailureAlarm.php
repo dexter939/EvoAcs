@@ -14,9 +14,9 @@ class RaiseDiagnosticFailureAlarm
     public function handle(DiagnosticTestFailed $event): void
     {
         $severity = match($event->test->test_type) {
-            'ping' => 'minor',
-            'traceroute' => 'info',
-            'download_diagnostics', 'upload_diagnostics' => 'warning',
+            'IPPing' => 'minor',
+            'TraceRoute' => 'info',
+            'DownloadDiagnostics', 'UploadDiagnostics' => 'warning',
             default => 'info',
         };
 

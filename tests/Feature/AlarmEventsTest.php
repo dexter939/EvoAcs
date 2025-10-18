@@ -138,8 +138,7 @@ class AlarmEventsTest extends TestCase
 
     public function test_diagnostic_failure_listener_creates_alarm()
     {
-        $test = DiagnosticTest::factory()->create([
-            'diagnostic_type' => 'ping',
+        $test = DiagnosticTest::factory()->ping()->create([
             'status' => 'failed',
         ]);
         $event = new DiagnosticTestFailed($test, 'Packet loss 100%');
@@ -156,8 +155,8 @@ class AlarmEventsTest extends TestCase
 
     public function test_diagnostic_failure_listener_severity_based_on_test_type()
     {
-        $pingTest = DiagnosticTest::factory()->create(['diagnostic_type' => 'ping']);
-        $downloadTest = DiagnosticTest::factory()->create(['diagnostic_type' => 'download_diagnostics']);
+        $pingTest = DiagnosticTest::factory()->ping()->create();
+        $downloadTest = DiagnosticTest::factory()->download()->create();
 
         $listener = app(RaiseDiagnosticFailureAlarm::class);
         $listener->handle(new DiagnosticTestFailed($pingTest, 'Failed'));

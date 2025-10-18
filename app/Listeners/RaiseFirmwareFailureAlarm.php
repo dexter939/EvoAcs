@@ -13,12 +13,14 @@ class RaiseFirmwareFailureAlarm
 
     public function handle(FirmwareDeploymentFailed $event): void
     {
+        $deviceSerial = $event->deployment->cpeDevice?->serial_number ?? 'Unknown Device';
+        
         $this->alarmService->raiseAlarm([
             'device_id' => $event->deployment->cpe_device_id,
             'alarm_type' => 'firmware_deployment_failed',
             'severity' => 'major',
             'category' => 'firmware',
-            'title' => "Firmware Deployment Failed: {$event->deployment->cpe_device->serial_number}",
+            'title' => "Firmware Deployment Failed: {$deviceSerial}",
             'description' => "Firmware deployment #{$event->deployment->id} failed: {$event->errorMessage}",
             'metadata' => [
                 'deployment_id' => $event->deployment->id,

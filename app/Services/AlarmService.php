@@ -13,6 +13,21 @@ class AlarmService
 {
     public function raiseAlarm(array $data): Alarm
     {
+        // Check for existing active alarm of same type for same device
+        $existingAlarm = Alarm::where('device_id', $data['device_id'] ?? null)
+            ->where('alarm_type', $data['alarm_type'])
+            ->where('status', 'active')
+            ->first();
+
+        if ($existingAlarm) {
+            Log::info("Alarm already exists, skipping duplicate: {$existingAlarm->title}", [
+                'alarm_id' => $existingAlarm->id,
+                'alarm_type' => $data['alarm_type'],
+                'device_id' => $data['device_id'] ?? null,
+            ]);
+            return $existingAlarm;
+        }
+
         $alarm = Alarm::create([
             'device_id' => $data['device_id'] ?? null,
             'alarm_type' => $data['alarm_type'],
