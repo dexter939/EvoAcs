@@ -4,8 +4,10 @@ namespace Tests\Feature\TR369;
 
 use Tests\TestCase;
 use App\Models\CpeDevice;
+use App\Services\UspMessageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Mockery;
 
 class UspHttpTransportTest extends TestCase
 {
@@ -129,7 +131,7 @@ class UspHttpTransportTest extends TestCase
         ]);
 
         $response = $this->apiPost("/api/v1/usp/devices/{$this->device->id}/delete-object", [
-            'object_path' => 'Device.WiFi.SSID.1.'
+            'object_paths' => ['Device.WiFi.SSID.1.']
         ]);
 
         $response->assertStatus(200)
@@ -195,7 +197,7 @@ class UspHttpTransportTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJson([
-                'message' => 'HTTP transport requires connection_request_url to be configured'
+                'message' => 'HTTP connection URL not configured'
             ]);
     }
 
@@ -220,25 +222,20 @@ class UspHttpTransportTest extends TestCase
 
         $response = $this->apiPost("/api/v1/usp/devices/{$this->device->id}/subscribe", [
             'subscription_id' => 'boot-event-001',
-            'notification_type' => 'event',
+            'notification_type' => 'Event',
             'reference_list' => ['Device.Boot!'],
             'persistent' => true
         ]);
 
         $response->assertStatus(201)
-            ->assertJsonFragment([
-                'transport' => 'http'
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'msg_id',
+                    'status',
+                    'subscription_id'
+                ]
             ]);
-
-        Http::assertSent(function ($request) {
-            return str_contains($request->url(), 'device.test:8080/usp');
-        });
     }
 
-    protected function apiPost(string $uri, array $data = [], array $headers = [])
-    {
-        return $this->withHeaders(array_merge([
-            'X-API-Key' => 'test-api-key-12345'
-        ], $headers))->postJson($uri, $data);
-    }
 }

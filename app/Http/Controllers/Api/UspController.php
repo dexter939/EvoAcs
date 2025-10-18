@@ -169,7 +169,18 @@ class UspController extends Controller
                 ]);
             } else {
                 // For HTTP MTP, send USP request to device
-                $updateObjects = $this->convertToUpdateObjects($validated['param_paths']);
+                // Check if payload is already in nested format (values are arrays)
+                $firstValue = reset($validated['param_paths']);
+                $isNestedFormat = is_array($firstValue);
+                
+                if ($isNestedFormat) {
+                    // Already in updateObjects format, use directly
+                    $updateObjects = $validated['param_paths'];
+                } else {
+                    // Convert from flat to nested format
+                    $updateObjects = $this->convertToUpdateObjects($validated['param_paths']);
+                }
+                
                 $setMessage = $this->uspService->createSetMessage($updateObjects, $allowPartial, $msgId);
                 return $this->sendHttpRequest($device, $setMessage, $msgId);
             }
