@@ -9,6 +9,8 @@ use App\Models\FirmwareDeployment;
 use App\Models\FirmwareVersion;
 use App\Models\ConfigurationProfile;
 use App\Models\UspSubscription;
+use App\Models\RouterManufacturer;
+use App\Models\RouterProduct;
 use App\Services\ConnectionRequestService;
 use App\Services\UspMessageService;
 use Illuminate\Support\Facades\DB;
@@ -27,7 +29,8 @@ class AcsController extends Controller
     public function dashboard()
     {
         $stats = $this->getDashboardStats();
-        return view('acs.dashboard', compact('stats'));
+        $manufacturers = RouterManufacturer::with('products')->orderBy('name')->get();
+        return view('acs.dashboard', compact('stats', 'manufacturers'));
     }
     
     /**

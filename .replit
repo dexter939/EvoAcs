@@ -16,27 +16,15 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "ACS Server"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "Queue Worker"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "Prosody XMPP Server"
 
-[[workflows.workflow]]
-name = "ACS Server"
-author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "webview"
-
 [[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "export DB_HOST=$PGHOST DB_PORT=$PGPORT DB_DATABASE=$PGDATABASE DB_USERNAME=$PGUSER DB_PASSWORD=$PGPASSWORD; pkill -9 php 2>/dev/null || true; sleep 1; php artisan serve --host=0.0.0.0 --port=5000"
-waitForPort = 5000
+task = "workflow.run"
+args = "ACS Server"
 
 [[workflows.workflow]]
 name = "Queue Worker"
@@ -61,29 +49,41 @@ task = "shell.exec"
 args = "prosody --config prosody.cfg.lua"
 waitForPort = 6000
 
+[[workflows.workflow]]
+name = "ACS Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "export DB_HOST=$PGHOST DB_PORT=$PGPORT DB_DATABASE=$PGDATABASE DB_USERNAME=$PGUSER DB_PASSWORD=$PGPASSWORD && php artisan config:clear && php artisan serve --host=0.0.0.0 --port=5000"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 6000
-externalPort = 6000
 
 [[ports]]
 localPort = 6001
 externalPort = 6800
 
 [[ports]]
+localPort = 9000
+externalPort = 9000
+
+[[ports]]
 localPort = 33501
 externalPort = 5173
 
 [[ports]]
-localPort = 34597
-externalPort = 5000
+localPort = 33545
+externalPort = 8008
 
 [[ports]]
-localPort = 34599
-externalPort = 8008
+localPort = 34597
+externalPort = 5000
 
 [[ports]]
 localPort = 35867

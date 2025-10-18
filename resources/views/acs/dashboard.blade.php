@@ -649,6 +649,84 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// Device Add Form - Hierarchical Selection Logic
+const manufacturersData = @json($manufacturers);
+
+function toggleInputMode() {
+    const isManual = document.getElementById('useManualInput').checked;
+    const dropdownMode = document.getElementById('dropdownMode');
+    const manualMode = document.getElementById('manualMode');
+    const mfgSelect = document.getElementById('manufacturer_select');
+    const productSelect = document.getElementById('product_select');
+    
+    if (isManual) {
+        dropdownMode.style.display = 'none';
+        manualMode.style.display = 'block';
+        mfgSelect.removeAttribute('required');
+        productSelect.removeAttribute('required');
+    } else {
+        dropdownMode.style.display = 'block';
+        manualMode.style.display = 'none';
+        mfgSelect.setAttribute('required', 'required');
+        productSelect.setAttribute('required', 'required');
+    }
+}
+
+function loadProducts(manufacturerId) {
+    const productSelect = document.getElementById('product_select');
+    const productInfo = document.getElementById('productInfo');
+    
+    productSelect.innerHTML = '<option value="">-- Seleziona Modello --</option>';
+    productInfo.textContent = '';
+    
+    if (!manufacturerId) {
+        productSelect.disabled = true;
+        return;
+    }
+    
+    const manufacturer = manufacturersData.find(m => m.id == manufacturerId);
+    if (manufacturer && manufacturer.products && manufacturer.products.length > 0) {
+        productSelect.disabled = false;
+        manufacturer.products.forEach(product => {
+            const option = document.createElement('option');
+            option.value = product.id;
+            option.textContent = product.model_name;
+            option.dataset.oui = product.oui || '';
+            option.dataset.productClass = product.product_class || '';
+            option.dataset.manufacturer = manufacturer.name;
+            option.dataset.modelName = product.model_name;
+            productSelect.appendChild(option);
+        });
+        productInfo.textContent = `${manufacturer.products.length} modelli disponibili`;
+    } else {
+        productSelect.disabled = true;
+        productInfo.innerHTML = '<span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Nessun modello disponibile per questo produttore</span>';
+    }
+}
+
+function fillDeviceInfo() {
+    const productSelect = document.getElementById('product_select');
+    const selectedOption = productSelect.options[productSelect.selectedIndex];
+    
+    if (!selectedOption || !selectedOption.value) return;
+    
+    document.getElementById('manufacturer_hidden').value = selectedOption.dataset.manufacturer || '';
+    document.getElementById('model_name_hidden').value = selectedOption.dataset.modelName || '';
+    document.getElementById('oui_hidden').value = selectedOption.dataset.oui || '';
+    document.getElementById('product_class_hidden').value = selectedOption.dataset.productClass || '';
+    
+    const productInfo = document.getElementById('productInfo');
+    productInfo.innerHTML = `<i class="fas fa-check-circle text-success me-1"></i>OUI: <strong>${selectedOption.dataset.oui || 'N/A'}</strong> | Product Class: <strong>${selectedOption.dataset.productClass || 'N/A'}</strong>`;
+}
+
+document.getElementById('addDeviceModal').addEventListener('hidden.bs.modal', function () {
+    document.getElementById('addDeviceForm').reset();
+    document.getElementById('useManualInput').checked = false;
+    toggleInputMode();
+    document.getElementById('product_select').disabled = true;
+    document.getElementById('productInfo').textContent = '';
+});
 </script>
 
 <!-- Real-time Dashboard Updates -->
@@ -666,28 +744,85 @@ document.addEventListener('DOMContentLoaded', function() {
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="/acs/devices" method="POST">
+            <form action="/acs/devices" method="POST" id="addDeviceForm">
                 @csrf
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="serial_number" class="form-label">Serial Number <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="serial_number" name="serial_number" required>
+                    <!-- Input Mode Toggle -->
+                    <div class="mb-4">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="useManualInput" onchange="toggleInputMode()">
+                            <label class="form-check-label" for="useManualInput">
+                                Inserimento manuale (per dispositivi non in lista)
+                            </label>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="manufacturer" class="form-label">Produttore</label>
-                        <input type="text" class="form-control" id="manufacturer" name="manufacturer" placeholder="es. TP-Link">
+
+                    <!-- Dropdown Selection Mode (default) -->
+                    <div id="dropdownMode">
+                        <div class="mb-3">
+                            <label for="manufacturer_select" class="form-label">
+                                Produttore <span class="text-danger">*</span>
+                                <i class="fas fa-info-circle ms-1" data-bs-toggle="tooltip" title="Seleziona il produttore del dispositivo dalla lista"></i>
+                            </label>
+                            <select class="form-select" id="manufacturer_select" onchange="loadProducts(this.value)" required>
+                                <option value="">-- Seleziona Produttore --</option>
+                                @foreach($manufacturers as $mfr)
+                                    <option value="{{ $mfr->id }}" data-name="{{ $mfr->name }}">{{ $mfr->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="product_select" class="form-label">
+                                Modello <span class="text-danger">*</span>
+                                <i class="fas fa-info-circle ms-1" data-bs-toggle="tooltip" title="Seleziona il modello del router"></i>
+                            </label>
+                            <select class="form-select" id="product_select" onchange="fillDeviceInfo()" disabled required>
+                                <option value="">-- Prima seleziona un produttore --</option>
+                            </select>
+                            <small class="text-muted" id="productInfo"></small>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="model_name" class="form-label">Modello</label>
-                        <input type="text" class="form-control" id="model_name" name="model_name" placeholder="es. Archer C6">
+
+                    <!-- Manual Input Mode (hidden by default) -->
+                    <div id="manualMode" style="display: none;">
+                        <div class="alert alert-info alert-sm">
+                            <i class="fas fa-lightbulb me-2"></i>
+                            Usa questa modalità solo se il tuo dispositivo non è presente nella lista dei produttori.
+                        </div>
+                        <div class="mb-3">
+                            <label for="manufacturer_manual" class="form-label">Produttore</label>
+                            <input type="text" class="form-control" id="manufacturer_manual" name="manufacturer" placeholder="es. TP-Link">
+                        </div>
+                        <div class="mb-3">
+                            <label for="model_name_manual" class="form-label">Modello</label>
+                            <input type="text" class="form-control" id="model_name_manual" name="model_name" placeholder="es. Archer C6">
+                        </div>
+                        <div class="mb-3">
+                            <label for="oui_manual" class="form-label">
+                                OUI <i class="fas fa-info-circle ms-1" data-bs-toggle="tooltip" title="Codice esadecimale a 6 cifre del produttore (es. 48D38B per MikroTik)"></i>
+                            </label>
+                            <input type="text" class="form-control" id="oui_manual" name="oui" placeholder="es. 48D38B" maxlength="6" pattern="[0-9A-Fa-f]{6}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="product_class_manual" class="form-label">Product Class</label>
+                            <input type="text" class="form-control" id="product_class_manual" name="product_class">
+                        </div>
                     </div>
+
+                    <!-- Hidden fields for dropdown mode -->
+                    <input type="hidden" id="manufacturer_hidden" name="manufacturer">
+                    <input type="hidden" id="model_name_hidden" name="model_name">
+                    <input type="hidden" id="oui_hidden" name="oui">
+                    <input type="hidden" id="product_class_hidden" name="product_class">
+
+                    <!-- Serial Number (always visible) -->
                     <div class="mb-3">
-                        <label for="oui" class="form-label">OUI</label>
-                        <input type="text" class="form-control" id="oui" name="oui" placeholder="es. 001234">
-                    </div>
-                    <div class="mb-3">
-                        <label for="product_class" class="form-label">Product Class</label>
-                        <input type="text" class="form-control" id="product_class" name="product_class">
+                        <label for="serial_number" class="form-label">
+                            Serial Number <span class="text-danger">*</span>
+                            <i class="fas fa-info-circle ms-1" data-bs-toggle="tooltip" title="Numero di serie univoco del dispositivo"></i>
+                        </label>
+                        <input type="text" class="form-control" id="serial_number" name="serial_number" required placeholder="es. ABC123456789">
                     </div>
                 </div>
                 <div class="modal-footer">
