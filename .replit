@@ -94,8 +94,8 @@ localPort = 35867
 externalPort = 3002
 
 [[ports]]
-localPort = 38141
-externalPort = 8080
+localPort = 35929
+externalPort = 8008
 
 [[ports]]
 localPort = 39429

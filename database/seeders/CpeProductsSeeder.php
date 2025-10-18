@@ -130,13 +130,32 @@ class CpeProductsSeeder extends Seeder
                 'country' => 'Germany',
                 'description' => 'Leading European manufacturer of broadband equipment and smart home solutions',
                 'products' => [
+                    // Fiber Models
                     ['model_name' => 'FritzBox 5690 Pro', 'oui' => '3810D5', 'product_class' => 'Fiber Gateway', 'release_year' => 2024, 'wifi_standard' => 'Wi-Fi 7', 'max_speed_mbps' => 18490, 'ports_count' => 4, 'has_usb' => true, 'supports_tr069' => true, 'supports_tr369' => false],
                     ['model_name' => 'FritzBox 5690 XGS', 'oui' => '3CA62F', 'product_class' => 'XGS-PON Gateway', 'release_year' => 2023, 'wifi_standard' => 'Wi-Fi 7', 'max_speed_mbps' => 18490, 'ports_count' => 4, 'has_usb' => true, 'supports_tr069' => true, 'supports_tr369' => false],
+                    ['model_name' => 'FritzBox 5590 Fiber', 'oui' => 'FC7516', 'product_class' => 'Fiber Gateway', 'release_year' => 2022, 'wifi_standard' => 'Wi-Fi 6', 'max_speed_mbps' => 3600, 'ports_count' => 3, 'has_usb' => false, 'supports_tr069' => true, 'supports_tr369' => false],
+                    ['model_name' => 'FritzBox 5530 Fiber', 'oui' => 'E0286D', 'product_class' => 'Fiber Gateway', 'release_year' => 2021, 'wifi_standard' => 'Wi-Fi 6', 'max_speed_mbps' => 3000, 'ports_count' => 3, 'has_usb' => false, 'supports_tr069' => true, 'supports_tr369' => false],
+                    
+                    // DSL Models
                     ['model_name' => 'FritzBox 7690', 'oui' => 'C02506', 'product_class' => 'DSL Gateway', 'release_year' => 2024, 'wifi_standard' => 'Wi-Fi 7', 'max_speed_mbps' => 7200, 'ports_count' => 4, 'has_usb' => true, 'supports_tr069' => true, 'supports_tr369' => false],
                     ['model_name' => 'FritzBox 7682', 'oui' => '7CFF4D', 'product_class' => 'DSL Gateway', 'release_year' => 2024, 'wifi_standard' => 'Wi-Fi 6/7', 'max_speed_mbps' => 7000, 'ports_count' => 4, 'has_usb' => true, 'supports_tr069' => true, 'supports_tr369' => false],
+                    ['model_name' => 'FritzBox 7590 AX', 'oui' => '00040E', 'product_class' => 'DSL Gateway', 'release_year' => 2021, 'wifi_standard' => 'Wi-Fi 6', 'max_speed_mbps' => 3600, 'ports_count' => 4, 'has_usb' => true, 'supports_tr069' => true, 'supports_tr369' => false],
+                    ['model_name' => 'FritzBox 7530 AX', 'oui' => 'C80E14', 'product_class' => 'DSL Gateway', 'release_year' => 2021, 'wifi_standard' => 'Wi-Fi 6', 'max_speed_mbps' => 2400, 'ports_count' => 4, 'has_usb' => true, 'supports_tr069' => true, 'supports_tr369' => false],
+                    ['model_name' => 'FritzBox 7510', 'oui' => '444E6D', 'product_class' => 'DSL Gateway', 'release_year' => 2021, 'wifi_standard' => 'Wi-Fi 6', 'max_speed_mbps' => 600, 'ports_count' => 1, 'has_usb' => false, 'supports_tr069' => true, 'supports_tr369' => false],
+                    
+                    // Cable Models
                     ['model_name' => 'FritzBox 6690 Cable', 'oui' => '9CC7A6', 'product_class' => 'Cable Gateway', 'release_year' => 2023, 'wifi_standard' => 'Wi-Fi 6', 'max_speed_mbps' => 4800, 'ports_count' => 4, 'has_usb' => true, 'supports_tr069' => true, 'supports_tr369' => false],
                     ['model_name' => 'FritzBox 6670 Cable', 'oui' => '001A4F', 'product_class' => 'Cable Gateway', 'release_year' => 2024, 'wifi_standard' => 'Wi-Fi 6', 'max_speed_mbps' => 4800, 'ports_count' => 4, 'has_usb' => true, 'supports_tr069' => true, 'supports_tr369' => false],
-                    ['model_name' => 'FritzBox 7590 AX', 'oui' => '00040E', 'product_class' => 'DSL Gateway', 'release_year' => 2021, 'wifi_standard' => 'Wi-Fi 6', 'max_speed_mbps' => 3600, 'ports_count' => 4, 'has_usb' => true, 'supports_tr069' => true, 'supports_tr369' => false],
+                    ['model_name' => 'FritzBox 6660 Cable', 'oui' => '989BCB', 'product_class' => 'Cable Gateway', 'release_year' => 2021, 'wifi_standard' => 'Wi-Fi 6', 'max_speed_mbps' => 3600, 'ports_count' => 4, 'has_usb' => true, 'supports_tr069' => true, 'supports_tr369' => false],
+                    
+                    // 5G/LTE Models
+                    ['model_name' => 'FritzBox 6860 5G', 'oui' => '0896D7', 'product_class' => '5G CPE', 'release_year' => 2024, 'wifi_standard' => 'Wi-Fi 6', 'max_speed_mbps' => 3000, 'ports_count' => 4, 'has_usb' => false, 'supports_tr069' => true, 'supports_tr369' => false],
+                    ['model_name' => 'FritzBox 6850 5G', 'oui' => '8478AC', 'product_class' => '5G CPE', 'release_year' => 2021, 'wifi_standard' => 'Wi-Fi 6', 'max_speed_mbps' => 2400, 'ports_count' => 4, 'has_usb' => true, 'supports_tr069' => true, 'supports_tr369' => false],
+                    ['model_name' => 'FritzBox 6890 LTE', 'oui' => '78421D', 'product_class' => 'LTE Gateway', 'release_year' => 2020, 'wifi_standard' => 'Wi-Fi 5', 'max_speed_mbps' => 2533, 'ports_count' => 4, 'has_usb' => true, 'supports_tr069' => true, 'supports_tr369' => false],
+                    ['model_name' => 'FritzBox 6850 LTE', 'oui' => 'A81B6A', 'product_class' => 'LTE Gateway', 'release_year' => 2020, 'wifi_standard' => 'Wi-Fi 6', 'max_speed_mbps' => 2400, 'ports_count' => 4, 'has_usb' => true, 'supports_tr069' => true, 'supports_tr369' => false],
+                    
+                    // Network Router (No Modem)
+                    ['model_name' => 'FritzBox 4060', 'oui' => 'B0A73E', 'product_class' => 'Network Router', 'release_year' => 2022, 'wifi_standard' => 'Wi-Fi 6', 'max_speed_mbps' => 6000, 'ports_count' => 3, 'has_usb' => true, 'supports_tr069' => true, 'supports_tr369' => false],
                 ],
             ],
             [
