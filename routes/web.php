@@ -6,6 +6,7 @@ use App\Http\Controllers\UspController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AcsController;
 use App\Http\Controllers\DataModelController;
+use App\Http\Controllers\UserController;
 
 require __DIR__.'/auth.php';
 
@@ -118,6 +119,13 @@ Route::prefix('acs')->name('acs.')->middleware('auth')->group(function () {
     Route::get('/security/data', [AcsController::class, 'securityDashboardData'])->name('security.data');
     Route::post('/security/block-ip', [AcsController::class, 'blockIpAddress'])->name('security.block-ip');
     Route::post('/security/unblock-ip', [AcsController::class, 'unblockIpAddress'])->name('security.unblock-ip');
+    
+    // Users Management (RBAC)
+    Route::get('/users', [UserController::class, 'index'])->name('users');
+    Route::post('/users', [UserController::class, 'store'])->name('users.store');
+    Route::put('/users/{id}', [UserController::class, 'update'])->name('users.update');
+    Route::delete('/users/{id}', [UserController::class, 'destroy'])->name('users.destroy');
+    Route::post('/users/{id}/assign-role', [UserController::class, 'assignRole'])->name('users.assign-role');
     
     // Router Manufacturers & Products Database
     Route::get('/manufacturers', [AcsController::class, 'manufacturers'])->name('manufacturers');
