@@ -8,6 +8,11 @@ use Illuminate\Support\Facades\DB;
 return new class extends Migration
 {
     /**
+     * Disable transaction wrapper for CONCURRENTLY indexes
+     */
+    public $withinTransaction = false;
+    
+    /**
      * Run the migrations.
      * Aggiunge indici strategici per ottimizzare performance e scalabilità carrier-grade (100,000+ dispositivi CPE)
      */
