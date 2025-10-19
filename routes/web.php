@@ -7,6 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AcsController;
 use App\Http\Controllers\DataModelController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\RoleController;
 
 require __DIR__.'/auth.php';
 
@@ -126,6 +127,13 @@ Route::prefix('acs')->name('acs.')->middleware('auth')->group(function () {
     Route::put('/users/{id}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{id}', [UserController::class, 'destroy'])->name('users.destroy');
     Route::post('/users/{id}/assign-role', [UserController::class, 'assignRole'])->name('users.assign-role');
+    
+    // Roles Management (RBAC)
+    Route::get('/roles', [RoleController::class, 'index'])->name('roles');
+    Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
+    Route::put('/roles/{id}', [RoleController::class, 'update'])->name('roles.update');
+    Route::delete('/roles/{id}', [RoleController::class, 'destroy'])->name('roles.destroy');
+    Route::post('/roles/{id}/assign-permissions', [RoleController::class, 'assignPermissions'])->name('roles.assign-permissions');
     
     // Router Manufacturers & Products Database
     Route::get('/manufacturers', [AcsController::class, 'manufacturers'])->name('manufacturers');
