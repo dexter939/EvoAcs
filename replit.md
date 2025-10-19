@@ -16,14 +16,21 @@ The web interface utilizes the Soft UI Dashboard Laravel template, offering a mo
 - **AI-Powered Configuration Assistant Dashboard**: Interactive interface with 5 AI-powered tools (Template Generation, Configuration Validation, Optimization, Diagnostic Analysis, Historical Pattern Detection) featuring modal-based workflows, real-time results display, and OpenAI GPT-4o-mini integration.
 - **Network Topology Map**: Real-time interactive visualization dashboard using vis.js library with device selection dropdown, connection type filters (LAN, 2.4GHz, 5GHz, 6GHz WiFi), color-coded nodes, auto-refresh capability, manual network scan trigger, and detailed node information panel with signal strength display.
 - **Advanced Provisioning Dashboard**: Enterprise-level provisioning interface with bulk operations (multi-device selection and filtering), scheduled provisioning calendar, templates library with 8 categories, conditional provisioning rules, configuration history with rollback, pre-flight validation checks, staged rollout strategy, and real-time analytics with Chart.js visualization.
+- **Performance Monitoring Dashboard**: Real-time system performance dashboard with database query metrics (queries/sec, slow queries analysis), Redis cache statistics (hit rate, memory usage, connected clients), Laravel Horizon queue monitoring (jobs/min, pending/failed counts), average response time tracking, database indexes analysis with usage statistics, and auto-refresh capability (30-second intervals).
 
 ## Technical Implementations
 - **Protocol Support**: Comprehensive implementation of TR-069 (CWMP) via SOAP and TR-369 (USP) using Protocol Buffers over MQTT/WebSocket/HTTP/XMPP, alongside other TR protocols.
 - **XMPP Transport for TR-369 USP**: Proof-of-concept integration with Prosody XMPP server.
 - **Database**: PostgreSQL with optimized indexing and multi-tenancy.
+- **Performance Optimizations**: 
+  - **Database Indexes**: Strategic composite indexes on high-traffic tables (cpe_devices, device_parameters, provisioning_tasks, tr069_sessions, alarms, network_clients) created with CONCURRENTLY for zero-downtime deployment
+  - **Redis Caching Strategy**: Multi-tier caching with TTL optimization (device data: 5min, parameters: 10min, profiles: 30min, data models: 1hr) for 100,000+ devices
+  - **CacheService**: Centralized cache management with device data caching, parameter caching, topology caching, statistics caching, bulk invalidation, cache warm-up, and hit-rate tracking
+  - **Query Result Caching**: Automatic caching for frequent queries (online devices, dashboard statistics, network topology)
+  - **Performance Monitoring**: Real-time metrics dashboard tracking database performance, cache efficiency, queue throughput, and index usage statistics
 - **Asynchronous Processing**: Laravel Horizon with Redis queues for provisioning, firmware, and TR-069 requests.
 - **API Security**: API Key authentication for v1 RESTful endpoints.
-- **Scalability**: Achieved through database optimizations and a high-throughput queue system.
+- **Scalability**: Achieved through database optimizations, Redis caching layer, and a high-throughput queue system capable of managing 100,000+ CPE devices.
 - **Configuration**: Laravel environment variables.
 
 ## Feature Specifications
