@@ -8,6 +8,7 @@ use App\Http\Controllers\AcsController;
 use App\Http\Controllers\DataModelController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\ProfileController;
 
 require __DIR__.'/auth.php';
 
@@ -134,6 +135,11 @@ Route::prefix('acs')->name('acs.')->middleware('auth')->group(function () {
     Route::put('/roles/{id}', [RoleController::class, 'update'])->name('roles.update');
     Route::delete('/roles/{id}', [RoleController::class, 'destroy'])->name('roles.destroy');
     Route::post('/roles/{id}/assign-permissions', [RoleController::class, 'assignPermissions'])->name('roles.assign-permissions');
+    
+    // User Profile
+    Route::get('/profile', [ProfileController::class, 'show'])->name('profile');
+    Route::put('/profile/info', [ProfileController::class, 'updateInfo'])->name('profile.update-info');
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.update-password');
     
     // Router Manufacturers & Products Database
     Route::get('/manufacturers', [AcsController::class, 'manufacturers'])->name('manufacturers');
