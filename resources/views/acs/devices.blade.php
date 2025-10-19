@@ -4,189 +4,260 @@
 @section('page-title', 'Gestione Dispositivi')
 
 @section('content')
-<!-- Filters Row -->
+<!-- Header Section -->
+<div class="row mb-4">
+    <div class="col-lg-8 col-md-6">
+        <h6 class="text-white">Dispositivi CPE Registrati</h6>
+        <p class="text-sm mb-0 text-white opacity-8">
+            {{ $devices->total() }} {{ $devices->total() === 1 ? 'dispositivo' : 'dispositivi' }} 
+            @if(request()->hasAny(['protocol', 'mtp_type', 'status']))
+                (filtrati)
+            @endif
+        </p>
+    </div>
+    <div class="col-lg-4 col-md-6 text-md-end">
+        <button class="btn bg-gradient-primary mt-4 mb-0" data-bs-toggle="modal" data-bs-target="#addDeviceModal">
+            <i class="fas fa-plus me-2"></i>Info Auto-Registration
+        </button>
+    </div>
+</div>
+
+<!-- Filters Toolbar -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-body">
-                <form method="GET" action="{{ route('acs.devices') }}" class="row align-items-end">
-                    <div class="col-md-3">
-                        <label class="form-label text-xs">Protocollo</label>
-                        <select name="protocol" class="form-select form-select-sm">
-                            <option value="all" {{ request('protocol', 'all') == 'all' ? 'selected' : '' }}>Tutti</option>
-                            <option value="tr069" {{ request('protocol') == 'tr069' ? 'selected' : '' }}>TR-069 (CWMP)</option>
-                            <option value="tr369" {{ request('protocol') == 'tr369' ? 'selected' : '' }}>TR-369 (USP)</option>
-                        </select>
+        <div class="card card-body border card-plain border-radius-lg d-flex align-items-center flex-row">
+            <form method="GET" action="{{ route('acs.devices') }}" class="row w-100 align-items-center">
+                <div class="col-md-2">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text text-body"><i class="fas fa-search" aria-hidden="true"></i></span>
+                        <input type="text" name="search" class="form-control" placeholder="Cerca..." value="{{ request('search') }}">
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label text-xs">MTP Type (TR-369)</label>
-                        <select name="mtp_type" class="form-select form-select-sm">
-                            <option value="all" {{ request('mtp_type', 'all') == 'all' ? 'selected' : '' }}>Tutti</option>
-                            <option value="mqtt" {{ request('mtp_type') == 'mqtt' ? 'selected' : '' }}>MQTT</option>
-                            <option value="http" {{ request('mtp_type') == 'http' ? 'selected' : '' }}>HTTP</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label text-xs">Stato</label>
-                        <select name="status" class="form-select form-select-sm">
-                            <option value="all" {{ request('status', 'all') == 'all' ? 'selected' : '' }}>Tutti</option>
-                            <option value="online" {{ request('status') == 'online' ? 'selected' : '' }}>Online</option>
-                            <option value="offline" {{ request('status') == 'offline' ? 'selected' : '' }}>Offline</option>
-                            <option value="provisioning" {{ request('status') == 'provisioning' ? 'selected' : '' }}>Provisioning</option>
-                            <option value="error" {{ request('status') == 'error' ? 'selected' : '' }}>Error</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <button type="submit" class="btn btn-sm btn-primary w-100">
-                            <i class="fas fa-filter me-2"></i>Filtra
-                        </button>
-                    </div>
-                </form>
-            </div>
+                </div>
+                <div class="col-md-2">
+                    <select name="protocol" class="form-select form-select-sm">
+                        <option value="">Tutti i protocolli</option>
+                        <option value="tr069" {{ request('protocol') == 'tr069' ? 'selected' : '' }}>TR-069 (CWMP)</option>
+                        <option value="tr369" {{ request('protocol') == 'tr369' ? 'selected' : '' }}>TR-369 (USP)</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="mtp_type" class="form-select form-select-sm">
+                        <option value="">Tutti MTP</option>
+                        <option value="mqtt" {{ request('mtp_type') == 'mqtt' ? 'selected' : '' }}>MQTT</option>
+                        <option value="http" {{ request('mtp_type') == 'http' ? 'selected' : '' }}>HTTP</option>
+                        <option value="stomp" {{ request('mtp_type') == 'stomp' ? 'selected' : '' }}>STOMP</option>
+                        <option value="websocket" {{ request('mtp_type') == 'websocket' ? 'selected' : '' }}>WebSocket</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="status" class="form-select form-select-sm">
+                        <option value="">Tutti gli stati</option>
+                        <option value="online" {{ request('status') == 'online' ? 'selected' : '' }}>Online</option>
+                        <option value="offline" {{ request('status') == 'offline' ? 'selected' : '' }}>Offline</option>
+                        <option value="provisioning" {{ request('status') == 'provisioning' ? 'selected' : '' }}>Provisioning</option>
+                        <option value="error" {{ request('status') == 'error' ? 'selected' : '' }}>Error</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-sm bg-gradient-dark w-100 mb-0">Filtra</button>
+                </div>
+                <div class="col-md-2">
+                    @if(request()->hasAny(['protocol', 'mtp_type', 'status', 'search']))
+                    <a href="{{ route('acs.devices') }}" class="btn btn-sm btn-outline-secondary w-100 mb-0">Reset</a>
+                    @endif
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
+<!-- Devices Grid (Profile-Teams Pattern) -->
 <div class="row">
-    <div class="col-12">
-        <div class="card mb-4">
-            <div class="card-header pb-0 d-flex justify-content-between align-items-center">
-                <h6>Dispositivi CPE Registrati</h6>
-                @if(request()->hasAny(['protocol', 'mtp_type', 'status']))
-                <a href="{{ route('acs.devices') }}" class="btn btn-sm btn-outline-secondary">
-                    <i class="fas fa-times me-1"></i>Reset Filtri
+    @forelse($devices as $device)
+    <div class="col-xl-4 col-md-6 mb-4">
+        <div class="card card-blog card-plain">
+            <div class="card-header p-0 mt-n4 mx-3">
+                <a class="d-block shadow-xl border-radius-xl">
+                    <div class="position-relative">
+                        <!-- Device Icon/Image with Gradient Background -->
+                        <div class="p-5 text-center bg-gradient-{{ $device->protocol_type === 'tr369' ? 'success' : 'primary' }} border-radius-lg">
+                            <i class="fas fa-{{ $device->protocol_type === 'tr369' ? 'satellite-dish' : 'router' }} fa-4x text-white opacity-10"></i>
+                        </div>
+                        <!-- Status Badge Overlay -->
+                        <div class="position-absolute top-0 end-0 m-3">
+                            <span class="badge badge-sm bg-gradient-{{ $device->status == 'online' ? 'success' : ($device->status == 'offline' ? 'secondary' : ($device->status == 'provisioning' ? 'warning' : 'danger')) }}">
+                                {{ ucfirst($device->status) }}
+                            </span>
+                        </div>
+                    </div>
                 </a>
-                @endif
             </div>
-            <div class="card-body px-0 pt-0 pb-2">
-                <div class="table-responsive p-0">
-                    <table id="devicesTable" class="table align-items-center mb-0">
-                        <thead>
-                            <tr>
-                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Dispositivo</th>
-                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Protocollo</th>
-                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Stato</th>
-                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Servizio</th>
-                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Data Model</th>
-                                <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">IP Address</th>
-                                <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Ultimo Contatto</th>
-                                <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Azioni</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($devices as $device)
-                            <tr>
-                                <td>
-                                    <div class="d-flex px-2 py-1">
-                                        <div>
-                                            <i class="fas fa-{{ $device->protocol_type === 'tr369' ? 'satellite-dish' : 'router' }} text-{{ $device->protocol_type === 'tr369' ? 'success' : 'primary' }} me-3"></i>
-                                        </div>
-                                        <div class="d-flex flex-column justify-content-center">
-                                            <h6 class="mb-0 text-sm">{{ $device->serial_number }}</h6>
-                                            <p class="text-xs text-secondary mb-0">{{ $device->manufacturer }} - {{ $device->model_name }}</p>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    @if($device->protocol_type === 'tr369')
-                                        <span class="badge badge-sm bg-gradient-success">TR-369</span>
-                                        @if($device->mtp_type)
-                                            <span class="badge badge-sm bg-gradient-{{ $device->mtp_type === 'mqtt' ? 'warning' : 'info' }}">
-                                                {{ strtoupper($device->mtp_type) }}
-                                            </span>
-                                        @endif
-                                    @else
-                                        <span class="badge badge-sm bg-gradient-primary">TR-069</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    <span class="badge badge-sm bg-gradient-{{ $device->status == 'online' ? 'success' : ($device->status == 'offline' ? 'secondary' : 'warning') }}">
-                                        {{ ucfirst($device->status) }}
-                                    </span>
-                                </td>
-                                <td>
-                                    @if($device->service)
-                                        <a href="{{ route('acs.services.detail', $device->service_id) }}" class="text-xs text-primary font-weight-bold">
-                                            {{ $device->service->name }}
-                                        </a>
-                                        <p class="text-xxs text-secondary mb-0">{{ $device->service->customer->name }}</p>
-                                    @else
-                                        <span class="text-xs text-secondary">Non assegnato</span>
-                                    @endif
-                                    <button class="btn btn-link text-success px-1 mb-0" onclick="assignService({{ $device->id }}, '{{ $device->serial_number }}')" title="Assegna a Servizio">
-                                        <i class="fas fa-link text-xs"></i>
-                                    </button>
-                                </td>
-                                <td>
-                                    @if($device->dataModel)
-                                        <div class="d-flex align-items-center">
-                                            <span class="badge badge-sm bg-gradient-{{ 
-                                                $device->dataModel->protocol_version == 'TR-181' || $device->dataModel->protocol_version == 'TR-181 Issue 2' ? 'info' : 
-                                                ($device->dataModel->protocol_version == 'TR-098' ? 'primary' : 
-                                                ($device->dataModel->protocol_version == 'TR-104' ? 'success' : 
-                                                ($device->dataModel->protocol_version == 'TR-143' ? 'secondary' : 'warning')))
-                                            }}" title="{{ $device->dataModel->spec_name }}">
-                                                {{ $device->dataModel->protocol_version }}
-                                            </span>
-                                            <span class="text-xxs text-secondary ms-2" title="{{ $device->dataModel->spec_name }}">
-                                                {{ $device->dataModel->vendor === 'Broadband Forum' ? 'BBF' : $device->dataModel->vendor }}
-                                            </span>
-                                        </div>
-                                        <p class="text-xxs text-secondary mb-0">{{ $device->dataModel->model_name }}</p>
-                                    @else
-                                        <span class="text-xs text-warning">
-                                            <i class="fas fa-exclamation-triangle me-1"></i>Auto-map
-                                        </span>
-                                    @endif
-                                </td>
-                                <td class="align-middle text-center text-sm">
-                                    <span class="text-secondary text-xs font-weight-bold">{{ $device->ip_address ?? 'N/A' }}</span>
-                                </td>
-                                <td class="align-middle text-center">
-                                    <span class="text-secondary text-xs font-weight-bold">
-                                        {{ ($device->last_contact ?? $device->last_inform) ? ($device->last_contact ?? $device->last_inform)->format('d/m/Y H:i') : 'Mai' }}
-                                    </span>
-                                </td>
-                                <td class="align-middle text-center">
-                                    <button class="btn btn-link text-info px-2 mb-0" onclick="viewDevice({{ $device->id }})">
-                                        <i class="fas fa-eye text-xs"></i>
-                                    </button>
-                                    <button class="btn btn-link text-success px-2 mb-0" onclick="provisionDevice({{ $device->id }}, '{{ $device->serial_number }}')">
-                                        <i class="fas fa-cog text-xs"></i>
-                                    </button>
-                                    <button class="btn btn-link text-primary px-2 mb-0" onclick="connectionRequest({{ $device->id }}, '{{ $device->serial_number }}', {{ $device->connection_request_url ? 'true' : 'false' }})" title="Connection Request">
-                                        <i class="fas fa-bell text-xs"></i>
-                                    </button>
-                                    <button class="btn btn-link text-warning px-2 mb-0" onclick="rebootDevice({{ $device->id }}, '{{ $device->serial_number }}')">
-                                        <i class="fas fa-sync text-xs"></i>
-                                    </button>
-                                    <button class="btn btn-link text-danger px-2 mb-0" onclick="diagnosticDevice({{ $device->id }}, '{{ $device->serial_number }}')" title="Diagnostica TR-143">
-                                        <i class="fas fa-stethoscope text-xs"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="8" class="text-center text-sm text-muted py-4">
-                                    Nessun dispositivo registrato. I dispositivi si registreranno automaticamente al primo Inform TR-069 o USP Record TR-369.
-                                </td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+            <div class="card-body px-3 pt-3">
+                <!-- Device Title -->
+                <h5 class="mb-0">{{ $device->serial_number }}</h5>
+                <p class="text-sm text-secondary mb-2">
+                    {{ $device->manufacturer }} - {{ $device->model_name }}
+                </p>
+
+                <!-- Protocol Badges -->
+                <div class="mb-3">
+                    @if($device->protocol_type === 'tr369')
+                        <span class="badge badge-sm bg-gradient-success me-1">TR-369 USP</span>
+                        @if($device->mtp_type)
+                            <span class="badge badge-sm bg-gradient-{{ $device->mtp_type === 'mqtt' ? 'warning' : ($device->mtp_type === 'stomp' ? 'info' : 'dark') }}">
+                                {{ strtoupper($device->mtp_type) }}
+                            </span>
+                        @endif
+                    @else
+                        <span class="badge badge-sm bg-gradient-primary">TR-069 CWMP</span>
+                    @endif
+                </div>
+
+                <!-- Device Info -->
+                <p class="mb-1 text-xs">
+                    <i class="fas fa-network-wired text-primary me-1"></i>
+                    <strong>IP:</strong> {{ $device->ip_address ?? 'N/A' }}
+                </p>
+                <p class="mb-1 text-xs">
+                    <i class="far fa-clock text-info me-1"></i>
+                    <strong>Ultimo contatto:</strong> 
+                    {{ ($device->last_contact ?? $device->last_inform) ? ($device->last_contact ?? $device->last_inform)->diffForHumans() : 'Mai' }}
+                </p>
+                
+                @if($device->service)
+                <p class="mb-1 text-xs">
+                    <i class="fas fa-building text-success me-1"></i>
+                    <strong>Servizio:</strong> {{ $device->service->name }}
+                </p>
+                @endif
+
+                @if($device->dataModel)
+                <p class="mb-3 text-xs">
+                    <i class="fas fa-database text-warning me-1"></i>
+                    <strong>Data Model:</strong> 
+                    <span class="badge badge-sm bg-gradient-{{ 
+                        $device->dataModel->protocol_version == 'TR-181' || $device->dataModel->protocol_version == 'TR-181 Issue 2' ? 'info' : 
+                        ($device->dataModel->protocol_version == 'TR-098' ? 'primary' : 'secondary')
+                    }}">{{ $device->dataModel->protocol_version }}</span>
+                </p>
+                @else
+                <p class="mb-3 text-xs text-warning">
+                    <i class="fas fa-exclamation-triangle me-1"></i>Data Model non assegnato
+                </p>
+                @endif
+
+                <!-- Actions -->
+                <div class="d-flex align-items-center justify-content-between">
+                    <button class="btn btn-sm btn-outline-primary px-3 mb-0" onclick="viewDeviceDetails({{ $device->id }})">
+                        <i class="fas fa-eye me-1"></i>Dettagli
+                    </button>
+                    
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-link text-success px-2 mb-0" onclick="provisionDevice({{ $device->id }}, '{{ $device->serial_number }}')" title="Provisioning">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                        <button class="btn btn-link text-primary px-2 mb-0" onclick="connectionRequest({{ $device->id }}, '{{ $device->serial_number }}', {{ $device->connection_request_url ? 'true' : 'false' }})" title="Connection Request">
+                            <i class="fas fa-bell"></i>
+                        </button>
+                        <button class="btn btn-link text-warning px-2 mb-0" onclick="rebootDevice({{ $device->id }}, '{{ $device->serial_number }}')" title="Reboot">
+                            <i class="fas fa-sync"></i>
+                        </button>
+                        <button class="btn btn-link text-info px-2 mb-0" onclick="diagnosticDevice({{ $device->id }}, '{{ $device->serial_number }}')" title="Diagnostica">
+                            <i class="fas fa-stethoscope"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-        
-        @if($devices->hasPages())
-        <div class="d-flex justify-content-center">
-            {{ $devices->links() }}
+    </div>
+    @empty
+    <div class="col-12">
+        <div class="card card-body border card-plain border-radius-lg d-flex align-items-center flex-row">
+            <div class="text-center py-5 w-100">
+                <i class="fas fa-router fa-3x text-secondary opacity-6 mb-3"></i>
+                <h6 class="text-secondary mb-2">Nessun dispositivo registrato</h6>
+                <p class="text-sm text-secondary mb-0">I dispositivi si registreranno automaticamente al primo Inform TR-069 o USP Record TR-369.</p>
+            </div>
         </div>
-        @endif
+    </div>
+    @endforelse
+</div>
+
+<!-- Pagination -->
+@if($devices->hasPages())
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-center mt-4">
+            {{ $devices->appends(request()->query())->links() }}
+        </div>
+    </div>
+</div>
+@endif
+
+<!-- Modal: Auto-Registration Info -->
+<div class="modal fade" id="addDeviceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Auto-Registration Info</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>I dispositivi si registrano automaticamente</strong> quando inviano il primo Inform TR-069 o USP Record TR-369.
+                </div>
+                
+                <h6 class="mb-3">Configurazione CPE TR-069 (CWMP)</h6>
+                <div class="bg-gray-100 p-3 border-radius-lg mb-4">
+                    <p class="mb-1"><strong>ACS URL:</strong> <code>{{ url('/tr069') }}</code></p>
+                    <p class="mb-1"><strong>Username:</strong> <code>acs_admin</code></p>
+                    <p class="mb-0"><strong>Password:</strong> <code>configurato nel CPE</code></p>
+                </div>
+
+                <h6 class="mb-3">Configurazione CPE TR-369 (USP)</h6>
+                <div class="bg-gray-100 p-3 border-radius-lg mb-4">
+                    <p class="mb-2"><strong>Controller Endpoint:</strong></p>
+                    <ul class="mb-0">
+                        <li><strong>MQTT:</strong> <code>mqtt://{{ request()->getHost() }}:1883</code></li>
+                        <li><strong>HTTP:</strong> <code>{{ url('/tr369/usp') }}</code></li>
+                        <li><strong>WebSocket:</strong> <code>ws://{{ request()->getHost() }}:8080</code></li>
+                        <li><strong>STOMP:</strong> <code>stomp://{{ request()->getHost() }}:61613</code></li>
+                    </ul>
+                </div>
+
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Assicurati che il CPE sia configurato con l'URL ACS corretto prima di accenderlo.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- Modal Provisioning Dispositivo -->
+<!-- Modal: Device Details (Comprehensive) -->
+<div class="modal fade" id="deviceDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Dettagli Dispositivo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="deviceDetailsContent">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Caricamento...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Modal Provisioning Dispositivo -->
 <div class="modal fade" id="provisionModal" tabindex="-1" aria-hidden="true">
@@ -403,30 +474,20 @@
                     <div class="alert alert-info">
                         <i class="fas fa-router me-2"></i>Dispositivo: <strong id="assign_device_sn"></strong>
                     </div>
-                    
                     <div class="mb-3">
-                        <label class="form-label">Cliente *</label>
-                        <select class="form-select" id="assign_customer_id" required>
+                        <label class="form-label">Cliente</label>
+                        <select class="form-select" name="customer_id" id="customer_select" onchange="loadCustomerServices(this.value)">
                             <option value="">Seleziona cliente...</option>
-                            @foreach(\App\Models\Customer::where('status', 'active')->orderBy('name')->get() as $customer)
+                            @foreach(App\Models\Customer::all() as $customer)
                             <option value="{{ $customer->id }}">{{ $customer->name }}</option>
                             @endforeach
                         </select>
                     </div>
-                    
                     <div class="mb-3">
                         <label class="form-label">Servizio *</label>
-                        <select class="form-select" id="assign_service_id" name="service_id" required disabled>
-                            <option value="">Seleziona prima un cliente...</option>
+                        <select class="form-select" name="service_id" id="service_select" required>
+                            <option value="">Seleziona prima il cliente...</option>
                         </select>
-                        <small class="text-muted">Il servizio determina il cliente e le configurazioni associate al dispositivo</small>
-                    </div>
-                    
-                    <div id="assign_loading" class="text-center" style="display: none;">
-                        <div class="spinner-border spinner-border-sm text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <span class="text-sm ms-2">Caricamento servizi...</span>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -441,235 +502,137 @@
 
 @push('scripts')
 <script>
-function viewDevice(id) {
-    window.location.href = '/acs/devices/' + id;
-}
-
-function provisionDevice(id, sn) {
-    document.getElementById('provisionForm').action = '/acs/devices/' + id + '/provision';
-    document.getElementById('provision_device_sn').textContent = sn;
-    new bootstrap.Modal(document.getElementById('provisionModal')).show();
-}
-
-function rebootDevice(id, sn) {
-    document.getElementById('rebootForm').action = '/acs/devices/' + id + '/reboot';
-    document.getElementById('reboot_device_sn').textContent = sn;
-    new bootstrap.Modal(document.getElementById('rebootModal')).show();
-}
-
 let currentDeviceId = null;
+let currentConnectionRequestUrl = null;
 
-function connectionRequest(id, sn, hasUrl) {
-    currentDeviceId = id;
-    document.getElementById('connreq_device_sn').textContent = sn;
-    document.getElementById('connreq_result').style.display = 'none';
-    document.getElementById('sendConnectionRequestBtn').disabled = false;
+// View Device Details (Load via AJAX)
+function viewDeviceDetails(deviceId) {
+    const modal = new bootstrap.Modal(document.getElementById('deviceDetailsModal'));
+    modal.show();
     
-    if (!hasUrl) {
-        document.getElementById('connreq_result').innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>Dispositivo non ha ConnectionRequestURL configurata</div>';
-        document.getElementById('connreq_result').style.display = 'block';
-        document.getElementById('sendConnectionRequestBtn').disabled = true;
-    }
-    
-    new bootstrap.Modal(document.getElementById('connectionRequestModal')).show();
-}
-
-function sendConnectionRequest() {
-    const btn = document.getElementById('sendConnectionRequestBtn');
-    const resultDiv = document.getElementById('connreq_result');
-    
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Invio in corso...';
-    
-    fetch('/acs/devices/' + currentDeviceId + '/connection-request', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        btn.innerHTML = '<i class="fas fa-bell me-2"></i>Invia Connection Request';
-        
-        if (data.success) {
-            resultDiv.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>' + data.message + '<br><small class="text-muted">Metodo: ' + (data.auth_method || 'N/A') + ' | HTTP: ' + (data.http_status || 'N/A') + '</small></div>';
-        } else {
-            resultDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times-circle me-2"></i>' + data.message + '<br><small class="text-muted">Errore: ' + (data.error_code || 'N/A') + '</small></div>';
-        }
-        
-        resultDiv.style.display = 'block';
-        
-        setTimeout(() => {
-            btn.disabled = false;
-        }, 2000);
-    })
-    .catch(error => {
-        btn.innerHTML = '<i class="fas fa-bell me-2"></i>Invia Connection Request';
-        btn.disabled = false;
-        resultDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times-circle me-2"></i>Errore di rete: ' + error.message + '</div>';
-        resultDiv.style.display = 'block';
-    });
-}
-
-let currentDiagDeviceId = null;
-
-function diagnosticDevice(id, sn) {
-    currentDiagDeviceId = id;
-    document.getElementById('diag_device_sn').textContent = sn;
-    document.getElementById('diagnostic_result').style.display = 'none';
-    new bootstrap.Modal(document.getElementById('diagnosticModal')).show();
-}
-
-function handleDiagnosticForm(formId, testType) {
-    const form = document.getElementById(formId);
-    const resultDiv = document.getElementById('diagnostic_result');
-    
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const formData = new FormData(form);
-        const data = Object.fromEntries(formData.entries());
-        
-        resultDiv.innerHTML = '<div class="alert alert-info"><span class="spinner-border spinner-border-sm me-2"></span>Test in corso...</div>';
-        resultDiv.style.display = 'block';
-        
-        fetch(`/acs/devices/${currentDiagDeviceId}/diagnostics/${testType}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify(data)
-        })
+    fetch(`/acs/devices/${deviceId}`)
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                resultDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin me-2"></i>Test avviato. Attendi risultati...<br><small class="text-muted">Test ID: ' + data.diagnostic.id + '</small></div>';
-                pollDiagnosticResults(data.diagnostic.id);
-            } else {
-                resultDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times-circle me-2"></i>' + data.message + '</div>';
-            }
+            renderDeviceDetails(data);
         })
         .catch(error => {
-            resultDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times-circle me-2"></i>Errore: ' + error.message + '</div>';
+            document.getElementById('deviceDetailsContent').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Errore nel caricamento dei dettagli del dispositivo.
+                </div>
+            `;
         });
-    });
 }
 
-handleDiagnosticForm('pingForm', 'ping');
-handleDiagnosticForm('tracerouteForm', 'traceroute');
-handleDiagnosticForm('downloadForm', 'download');
-handleDiagnosticForm('uploadForm', 'upload');
-
-function pollDiagnosticResults(diagnosticId) {
-    const resultDiv = document.getElementById('diagnostic_result');
-    let pollInterval = setInterval(() => {
-        fetch(`/acs/diagnostics/${diagnosticId}/results?device_id=${currentDiagDeviceId}`, {
-            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.diagnostic.status === 'completed') {
-                clearInterval(pollInterval);
-                let resultsHtml = '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>Test completato!<br>';
-                if (data.summary) {
-                    Object.keys(data.summary).forEach(key => {
-                        const value = typeof data.summary[key] === 'object' ? JSON.stringify(data.summary[key], null, 2) : data.summary[key];
-                        resultsHtml += `<small><strong>${key}:</strong> ${value}</small><br>`;
-                    });
-                }
-                resultsHtml += `<small class="text-muted">Durata: ${data.duration_seconds || 0}s</small></div>`;
-                resultDiv.innerHTML = resultsHtml;
-            } else if (data.diagnostic.status === 'failed') {
-                clearInterval(pollInterval);
-                resultDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times-circle me-2"></i>Test fallito: ' + (data.diagnostic.error_message || 'Errore sconosciuto') + '</div>';
-            }
-        })
-        .catch(() => clearInterval(pollInterval));
-    }, 2000);
-}
-
-// Assign Service Modal
-let currentAssignDeviceId = null;
-
-function assignService(id, sn) {
-    currentAssignDeviceId = id;
-    document.getElementById('assign_device_sn').textContent = sn;
-    document.getElementById('assign_customer_id').value = '';
-    document.getElementById('assign_service_id').innerHTML = '<option value="">Seleziona prima un cliente...</option>';
-    document.getElementById('assign_service_id').disabled = true;
-    document.getElementById('assignServiceForm').action = '/acs/devices/' + id + '/assign-service';
-    new bootstrap.Modal(document.getElementById('assignServiceModal')).show();
-}
-
-// Load services when customer is selected
-document.getElementById('assign_customer_id').addEventListener('change', function() {
-    const customerId = this.value;
-    const serviceSelect = document.getElementById('assign_service_id');
-    const loadingDiv = document.getElementById('assign_loading');
+function renderDeviceDetails(device) {
+    const statusColors = {
+        'online': 'success',
+        'offline': 'secondary',
+        'provisioning': 'warning',
+        'error': 'danger'
+    };
     
-    if (!customerId) {
-        serviceSelect.innerHTML = '<option value="">Seleziona prima un cliente...</option>';
-        serviceSelect.disabled = true;
-        return;
-    }
-    
-    serviceSelect.disabled = true;
-    loadingDiv.style.display = 'block';
-    
-    fetch(`/acs/customers/${customerId}/services-list`)
-        .then(response => response.json())
-        .then(data => {
-            serviceSelect.innerHTML = '<option value="">Seleziona servizio...</option>';
+    const html = `
+        <div class="row">
+            <!-- Device Overview -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <div class="icon icon-shape bg-gradient-${device.protocol_type === 'tr369' ? 'success' : 'primary'} shadow text-center border-radius-xl mb-3">
+                            <i class="fas fa-${device.protocol_type === 'tr369' ? 'satellite-dish' : 'router'} fa-3x text-white opacity-10"></i>
+                        </div>
+                        <h5 class="mb-0">${device.serial_number}</h5>
+                        <p class="text-sm text-secondary mb-2">${device.manufacturer} - ${device.model_name}</p>
+                        <span class="badge bg-gradient-${statusColors[device.status]}">${device.status.toUpperCase()}</span>
+                    </div>
+                </div>
+            </div>
             
-            if (data.services && data.services.length > 0) {
-                data.services.forEach(service => {
-                    const option = document.createElement('option');
-                    option.value = service.id;
-                    option.textContent = `${service.name} (${service.service_type})`;
-                    serviceSelect.appendChild(option);
-                });
-                serviceSelect.disabled = false;
-            } else {
-                serviceSelect.innerHTML = '<option value="">Nessun servizio disponibile per questo cliente</option>';
-            }
-            
-            loadingDiv.style.display = 'none';
-        })
-        .catch(error => {
-            serviceSelect.innerHTML = '<option value="">Errore caricamento servizi</option>';
-            loadingDiv.style.display = 'none';
-            console.error('Error loading services:', error);
-        });
-});
+            <!-- Device Information Tabs -->
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header p-3">
+                        <ul class="nav nav-tabs" id="deviceTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button">Info</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="params-tab" data-bs-toggle="tab" data-bs-target="#params" type="button">Parameters</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button">History</button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content" id="deviceTabContent">
+                            <!-- Info Tab -->
+                            <div class="tab-pane fade show active" id="info" role="tabpanel">
+                                <table class="table table-sm">
+                                    <tbody>
+                                        <tr><td><strong>Serial Number:</strong></td><td>${device.serial_number}</td></tr>
+                                        <tr><td><strong>Manufacturer:</strong></td><td>${device.manufacturer}</td></tr>
+                                        <tr><td><strong>Model:</strong></td><td>${device.model_name}</td></tr>
+                                        <tr><td><strong>OUI:</strong></td><td>${device.oui || 'N/A'}</td></tr>
+                                        <tr><td><strong>Product Class:</strong></td><td>${device.product_class || 'N/A'}</td></tr>
+                                        <tr><td><strong>IP Address:</strong></td><td>${device.ip_address || 'N/A'}</td></tr>
+                                        <tr><td><strong>Protocol:</strong></td><td>${device.protocol_type === 'tr369' ? 'TR-369 USP' : 'TR-069 CWMP'}</td></tr>
+                                        ${device.mtp_type ? `<tr><td><strong>MTP Type:</strong></td><td>${device.mtp_type.toUpperCase()}</td></tr>` : ''}
+                                        <tr><td><strong>Firmware Version:</strong></td><td>${device.firmware_version || 'N/A'}</td></tr>
+                                        <tr><td><strong>Hardware Version:</strong></td><td>${device.hardware_version || 'N/A'}</td></tr>
+                                        <tr><td><strong>Last Contact:</strong></td><td>${device.last_contact_formatted || 'Mai'}</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Parameters Tab -->
+                            <div class="tab-pane fade" id="params" role="tabpanel">
+                                <p class="text-sm text-secondary">Caricamento parametri in corso...</p>
+                            </div>
+                            
+                            <!-- History Tab -->
+                            <div class="tab-pane fade" id="history" role="tabpanel">
+                                <p class="text-sm text-secondary">Cronologia eventi in corso...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('deviceDetailsContent').innerHTML = html;
+}
 
-// Handle form submission
-document.getElementById('assignServiceForm').addEventListener('submit', function(e) {
+// Provisioning
+function provisionDevice(deviceId, serialNumber) {
+    currentDeviceId = deviceId;
+    document.getElementById('provision_device_sn').textContent = serialNumber;
+    document.getElementById('provisionForm').action = `/acs/devices/${deviceId}/provision`;
+    const modal = new bootstrap.Modal(document.getElementById('provisionModal'));
+    modal.show();
+}
+
+document.getElementById('provisionForm')?.addEventListener('submit', function(e) {
     e.preventDefault();
-    
-    const serviceId = document.getElementById('assign_service_id').value;
-    
-    if (!serviceId) {
-        alert('Seleziona un servizio');
-        return;
-    }
+    const formData = new FormData(this);
     
     fetch(this.action, {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Accept': 'application/json'
         },
-        body: JSON.stringify({ service_id: serviceId })
+        body: formData
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
-            bootstrap.Modal.getInstance(document.getElementById('assignServiceModal')).hide();
-            window.location.reload();
+        if(data.success) {
+            alert('Provisioning avviato con successo!');
+            bootstrap.Modal.getInstance(document.getElementById('provisionModal')).hide();
+            location.reload();
         } else {
-            alert('Errore: ' + (data.message || 'Impossibile assegnare servizio'));
+            alert('Errore: ' + (data.message || 'Provisioning fallito'));
         }
     })
     .catch(error => {
@@ -677,153 +640,213 @@ document.getElementById('assignServiceForm').addEventListener('submit', function
     });
 });
 
-// Initialize jQuery DataTables with server-side processing for 100K+ devices
-$(document).ready(function() {
-    // Get current filter values from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const protocol = urlParams.get('protocol') || 'all';
-    const mtpType = urlParams.get('mtp_type') || 'all';
-    const status = urlParams.get('status') || 'all';
+// Reboot
+function rebootDevice(deviceId, serialNumber) {
+    currentDeviceId = deviceId;
+    document.getElementById('reboot_device_sn').textContent = serialNumber;
+    document.getElementById('rebootForm').action = `/acs/devices/${deviceId}/reboot`;
+    const modal = new bootstrap.Modal(document.getElementById('rebootModal'));
+    modal.show();
+}
+
+document.getElementById('rebootForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
     
-    $('#devicesTable').DataTable({
-        processing: true,
-        serverSide: true,
-        ajax: {
-            url: '{{ route("acs.devices.datatable") }}',
-            data: function(d) {
-                // Add filter parameters
-                d.protocol = protocol;
-                d.mtp_type = mtpType;
-                d.status = status;
-            }
-        },
-        columns: [
-            {
-                data: null,
-                orderable: true,
-                render: function(data, type, row) {
-                    const icon = row.protocol_type === 'tr369' ? 'satellite-dish' : 'router';
-                    const color = row.protocol_type === 'tr369' ? 'success' : 'primary';
-                    return `
-                        <div class="d-flex px-2 py-1">
-                            <div><i class="fas fa-${icon} text-${color} me-3"></i></div>
-                            <div class="d-flex flex-column justify-content-center">
-                                <h6 class="mb-0 text-sm">${row.serial_number}</h6>
-                                <p class="text-xs text-secondary mb-0">${row.manufacturer || ''} - ${row.model_name || ''}</p>
-                            </div>
-                        </div>`;
-                }
-            },
-            {
-                data: 'protocol_type',
-                orderable: true,
-                render: function(data, type, row) {
-                    let badges = '';
-                    if (row.protocol_type === 'tr369') {
-                        badges += '<span class="badge badge-sm bg-gradient-success">TR-369</span>';
-                        if (row.mtp_type) {
-                            const mtpColor = row.mtp_type === 'mqtt' ? 'warning' : 'info';
-                            badges += ` <span class="badge badge-sm bg-gradient-${mtpColor}">${row.mtp_type.toUpperCase()}</span>`;
-                        }
-                    } else {
-                        badges += '<span class="badge badge-sm bg-gradient-primary">TR-069</span>';
-                    }
-                    return badges;
-                }
-            },
-            {
-                data: 'status',
-                orderable: true,
-                render: function(data, type, row) {
-                    const statusColors = {online: 'success', offline: 'secondary', provisioning: 'warning', error: 'danger'};
-                    const color = statusColors[row.status] || 'secondary';
-                    return `<span class="badge badge-sm bg-gradient-${color}">${row.status.charAt(0).toUpperCase() + row.status.slice(1)}</span>`;
-                }
-            },
-            {
-                data: 'service_name',
-                orderable: true,
-                render: function(data, type, row) {
-                    if (row.service_name) {
-                        return `
-                            <a href="/acs/services/${row.service_id}" class="text-xs text-primary font-weight-bold">${row.service_name}</a>
-                            <p class="text-xxs text-secondary mb-0">${row.customer_name || ''}</p>
-                            <button class="btn btn-link text-success px-1 mb-0" onclick="assignService(${row.id}, '${row.serial_number}')" title="Assegna a Servizio"><i class="fas fa-link text-xs"></i></button>`;
-                    } else {
-                        return `<span class="text-xs text-secondary">Non assegnato</span>
-                            <button class="btn btn-link text-success px-1 mb-0" onclick="assignService(${row.id}, '${row.serial_number}')" title="Assegna a Servizio"><i class="fas fa-link text-xs"></i></button>`;
-                    }
-                }
-            },
-            {
-                data: 'data_model_protocol',
-                orderable: true,
-                render: function(data, type, row) {
-                    if (row.data_model_protocol) {
-                        const colors = {'TR-181': 'info', 'TR-181 Issue 2': 'info', 'TR-098': 'primary', 'TR-104': 'success', 'TR-143': 'secondary'};
-                        const color = colors[row.data_model_protocol] || 'warning';
-                        const vendor = row.data_model_vendor === 'Broadband Forum' ? 'BBF' : row.data_model_vendor;
-                        return `
-                            <div class="d-flex align-items-center">
-                                <span class="badge badge-sm bg-gradient-${color}">${row.data_model_protocol}</span>
-                                <span class="text-xxs text-secondary ms-2">${vendor || ''}</span>
-                            </div>
-                            <p class="text-xxs text-secondary mb-0">${row.data_model_name || ''}</p>`;
-                    } else {
-                        return '<span class="text-xs text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Auto-map</span>';
-                    }
-                }
-            },
-            {
-                data: 'ip_address',
-                orderable: true,
-                render: function(data, type, row) {
-                    return `<span class="text-secondary text-xs font-weight-bold">${row.ip_address || 'N/A'}</span>`;
-                }
-            },
-            {
-                data: 'last_contact',
-                orderable: true,
-                render: function(data, type, row) {
-                    return `<span class="text-secondary text-xs font-weight-bold">${row.last_contact}</span>`;
-                }
-            },
-            {
-                data: null,
-                orderable: false,
-                render: function(data, type, row) {
-                    const hasUrl = row.connection_request_url;
-                    return `
-                        <button class="btn btn-link text-info px-2 mb-0" onclick="viewDevice(${row.id})"><i class="fas fa-eye text-xs"></i></button>
-                        <button class="btn btn-link text-success px-2 mb-0" onclick="provisionDevice(${row.id}, '${row.serial_number}')"><i class="fas fa-cog text-xs"></i></button>
-                        <button class="btn btn-link text-primary px-2 mb-0" onclick="connectionRequest(${row.id}, '${row.serial_number}', ${hasUrl})" title="Connection Request"><i class="fas fa-bell text-xs"></i></button>
-                        <button class="btn btn-link text-warning px-2 mb-0" onclick="rebootDevice(${row.id}, '${row.serial_number}')"><i class="fas fa-sync text-xs"></i></button>
-                        <button class="btn btn-link text-danger px-2 mb-0" onclick="diagnosticDevice(${row.id}, '${row.serial_number}')" title="Diagnostica TR-143"><i class="fas fa-stethoscope text-xs"></i></button>`;
-                }
-            }
-        ],
-        pageLength: 25,
-        lengthMenu: [[10, 25, 50, 100, 500, 1000], [10, 25, 50, 100, 500, 1000]],
-        order: [[6, 'desc']], // Default sort by last_contact descending
-        language: {
-            search: "Cerca:",
-            lengthMenu: "Mostra _MENU_ dispositivi per pagina",
-            info: "Mostrando da _START_ a _END_ di _TOTAL_ dispositivi",
-            infoEmpty: "Nessun dispositivo disponibile",
-            infoFiltered: "(filtrati da _MAX_ dispositivi totali)",
-            paginate: {
-                first: "Prima",
-                last: "Ultima",
-                next: "Successiva",
-                previous: "Precedente"
-            },
-            processing: "Caricamento...",
-            zeroRecords: "Nessun dispositivo trovato"
+    fetch(this.action, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Accept': 'application/json'
         }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if(data.success) {
+            alert('Comando di reboot inviato!');
+            bootstrap.Modal.getInstance(document.getElementById('rebootModal')).hide();
+        } else {
+            alert('Errore: ' + (data.message || 'Reboot fallito'));
+        }
+    })
+    .catch(error => {
+        alert('Errore di rete: ' + error.message);
     });
+});
+
+// Connection Request
+function connectionRequest(deviceId, serialNumber, hasUrl) {
+    currentDeviceId = deviceId;
+    currentConnectionRequestUrl = hasUrl;
+    document.getElementById('connreq_device_sn').textContent = serialNumber;
+    document.getElementById('connreq_result').style.display = 'none';
     
-    console.log('🚀 jQuery DataTables initialized with server-side processing for 100K+ devices');
-    console.log('✅ Endpoint: {{ route("acs.devices.datatable") }}');
+    if(!hasUrl) {
+        document.getElementById('connreq_result').innerHTML = `
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Questo dispositivo non ha un Connection Request URL configurato. Potrebbe trovarsi dietro NAT/firewall.
+            </div>
+        `;
+        document.getElementById('connreq_result').style.display = 'block';
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('connectionRequestModal'));
+    modal.show();
+}
+
+function sendConnectionRequest() {
+    document.getElementById('sendConnectionRequestBtn').disabled = true;
+    document.getElementById('connreq_result').innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div> Invio in corso...';
+    document.getElementById('connreq_result').style.display = 'block';
+    
+    fetch(`/acs/devices/${currentDeviceId}/connection-request`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('sendConnectionRequestBtn').disabled = false;
+        if(data.success) {
+            document.getElementById('connreq_result').innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>${data.message}
+                </div>
+            `;
+        } else {
+            document.getElementById('connreq_result').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-times-circle me-2"></i>${data.message || 'Connection Request fallito'}
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        document.getElementById('sendConnectionRequestBtn').disabled = false;
+        document.getElementById('connreq_result').innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-times-circle me-2"></i>Errore di rete: ${error.message}
+            </div>
+        `;
+    });
+}
+
+// Diagnostic
+function diagnosticDevice(deviceId, serialNumber) {
+    currentDeviceId = deviceId;
+    document.getElementById('diag_device_sn').textContent = serialNumber;
+    document.getElementById('diagnostic_result').style.display = 'none';
+    const modal = new bootstrap.Modal(document.getElementById('diagnosticModal'));
+    modal.show();
+}
+
+// Diagnostic Forms Handlers
+['ping', 'traceroute', 'download', 'upload'].forEach(testType => {
+    document.getElementById(`${testType}Form`)?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const params = Object.fromEntries(formData.entries());
+        
+        document.getElementById('diagnostic_result').innerHTML = '<div class="spinner-border" role="status"></div> Test in corso...';
+        document.getElementById('diagnostic_result').style.display = 'block';
+        
+        fetch(`/acs/devices/${currentDeviceId}/diagnostics/${testType}`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(params)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.success) {
+                document.getElementById('diagnostic_result').innerHTML = `
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>${data.message}
+                        <pre class="mt-2 bg-gray-100 p-2 border-radius-md">${JSON.stringify(data.result, null, 2)}</pre>
+                    </div>
+                `;
+            } else {
+                document.getElementById('diagnostic_result').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-times-circle me-2"></i>${data.message || 'Test fallito'}
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            document.getElementById('diagnostic_result').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-times-circle me-2"></i>Errore: ${error.message}
+                </div>
+            `;
+        });
+    });
+});
+
+// Assign Service
+function assignService(deviceId, serialNumber) {
+    currentDeviceId = deviceId;
+    document.getElementById('assign_device_sn').textContent = serialNumber;
+    document.getElementById('assignServiceForm').action = `/acs/devices/${deviceId}/assign-service`;
+    const modal = new bootstrap.Modal(document.getElementById('assignServiceModal'));
+    modal.show();
+}
+
+function loadCustomerServices(customerId) {
+    const serviceSelect = document.getElementById('service_select');
+    serviceSelect.innerHTML = '<option value="">Caricamento...</option>';
+    
+    if(!customerId) {
+        serviceSelect.innerHTML = '<option value="">Seleziona prima il cliente...</option>';
+        return;
+    }
+    
+    fetch(`/acs/customers/${customerId}/services`)
+        .then(response => response.json())
+        .then(services => {
+            serviceSelect.innerHTML = '<option value="">Seleziona servizio...</option>';
+            services.forEach(service => {
+                const option = document.createElement('option');
+                option.value = service.id;
+                option.textContent = service.name;
+                serviceSelect.appendChild(option);
+            });
+        })
+        .catch(error => {
+            serviceSelect.innerHTML = '<option value="">Errore nel caricamento</option>';
+        });
+}
+
+document.getElementById('assignServiceForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    fetch(this.action, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Accept': 'application/json'
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if(data.success) {
+            alert('Dispositivo assegnato con successo!');
+            bootstrap.Modal.getInstance(document.getElementById('assignServiceModal')).hide();
+            location.reload();
+        } else {
+            alert('Errore: ' + (data.message || 'Assegnazione fallita'));
+        }
+    })
+    .catch(error => {
+        alert('Errore di rete: ' + error.message);
+    });
 });
 </script>
 @endpush
