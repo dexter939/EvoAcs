@@ -74,3 +74,39 @@ Production-ready redesign following official Soft UI PRO `dashboard-default` dem
 - **Gradient Charts**: Doughnut (device status), Bar (tasks), Line (firmware) with full Soft UI PRO gradient configuration
 - **Diagnostics Dashboard**: Border-dashed cards with text-gradient icons for Ping/Traceroute/Download/Upload statistics
 - **Architect Review**: PASS - "Delivers PRO layout with functional sparkline charts, Security: none observed"
+
+### Device Details Modal - Complete Implementation (October 19, 2025)
+Production-ready tabbed modal with hierarchical parameters and event history:
+
+**Tab Parameters - Hierarchical TR-181 Tree:**
+- **Dual View Modes**: Toggle between Tree (hierarchical) and Table (flat) views with button group
+- **Tree View**: Recursive rendering with folder/file icons, expand/collapse chevron toggles, progressive indentation (level * 20px)
+- **Table View**: Sortable table with columns (Percorso, Valore, Tipo, RW)
+- **Live Search**: Real-time filter across both views, matching parameter paths/names
+- **Data Badges**: Color-coded type badges (string=primary, int=info, boolean=warning), R/W permission badges
+- **API Endpoint**: `/acs/devices/{id}/parameters` returns JSON with `parameters` array and `hierarchy` object
+- **Performance**: Device-keyed cache (`parametersCache[deviceId]`) prevents redundant API calls
+- **Security**: `escapeHtml()` function sanitizes all device-supplied data (path, value, name, type) to prevent stored XSS
+- **UX**: Loading spinner, error handling with retry, empty state message
+
+**Tab History - Event Timeline:**
+- **Migration**: `device_events` table (Laravel Blueprint) with fields: type, title, description, status, triggered_by, device_id, timestamps
+- **Model**: `DeviceEvent` with fillable, casts (datetime), relationships (belongsTo CpeDevice), scopes (recent, completed, failed)
+- **Timeline UI**: Vertical Soft UI Dashboard timeline with gradient line, colored activity dots
+- **Event Types**: provisioning, reboot, firmware_update, diagnostic, connection_request, parameter_change (differentiated icons)
+- **Status Badges**: pending=warning, processing=info, completed=success, failed=danger
+- **API Endpoint**: `/acs/devices/{id}/history` returns last 50 events with metadata
+- **Performance**: Device-keyed cache (`historyCache[deviceId]`)
+- **Security**: All event data (title, description, triggered_by, status) escaped via `escapeHtml()` to prevent XSS
+- **UX**: Loading spinner, error handling, empty state for devices without history
+
+**Tab Info:**
+- Device metadata table with manufacturer, model, firmware, serial, MAC, IP, connection URIs, status
+- "Edit Device" button for quick updates
+
+**Architecture:**
+- **Cache Strategy**: Per-device cache objects prevent stale data bugs when opening multiple device modals
+- **Security-First**: Centralized `escapeHtml()` helper protects against stored XSS from malicious CPE devices
+- **AJAX-Powered**: JSON endpoints with `wantsJson()` conditional branching, backward-compatible Blade fallback
+- **CSRF Protection**: X-CSRF-TOKEN header on all fetch requests
+- **Architect Review**: PASS - "Satisfies hierarchical parameters/history requirements and eliminates stored-XSS exposure via centralized HTML escaping. Security: no serious issues observed."
