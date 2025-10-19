@@ -99,7 +99,7 @@ function generateTemplate() {
     showLoading('AI is generating your configuration template...');
     
     $.ajax({
-        url: '{{ route("profiles.ai-generate") }}',
+        url: '{{ route("acs.profiles.ai-generate") }}',
         method: 'POST',
         data: data,
         headers: {

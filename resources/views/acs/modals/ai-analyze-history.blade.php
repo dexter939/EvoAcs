@@ -40,7 +40,7 @@ $('#analyzeHistoryModal').on('show.bs.modal', function() {
 
 function loadDevicesForHistory() {
     $.ajax({
-        url: '{{ route("devices.index") }}',
+        url: '{{ route("acs.devices") }}',
         method: 'GET',
         success: function(response) {
             const select = $('#historyDeviceSelect');

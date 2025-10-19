@@ -40,7 +40,7 @@ $('#analyzeDiagnosticModal').on('show.bs.modal', function() {
 
 function loadDiagnostics() {
     $.ajax({
-        url: '{{ route("diagnostics.index") }}',
+        url: '{{ route("acs.diagnostics") }}',
         method: 'GET',
         success: function(response) {
             const select = $('#diagnosticSelect');

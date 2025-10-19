@@ -40,7 +40,7 @@ $('#validateConfigModal').on('show.bs.modal', function() {
 
 function loadProfiles(selectId) {
     $.ajax({
-        url: '{{ route("profiles.index") }}',
+        url: '{{ route("acs.profiles") }}',
         method: 'GET',
         success: function(response) {
             const select = $('#' + selectId);
