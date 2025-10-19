@@ -359,6 +359,147 @@ class AcsController extends Controller
     }
     
     /**
+     * Advanced Provisioning Dashboard
+     * Dashboard avanzato con bulk provisioning, scheduling, templates
+     */
+    public function advancedProvisioning()
+    {
+        return view('acs.advanced-provisioning');
+    }
+    
+    /**
+     * Provisioning Statistics API
+     * Statistiche provisioning per dashboard
+     */
+    public function provisioningStatistics()
+    {
+        $total = ProvisioningTask::count();
+        $completed = ProvisioningTask::where('status', 'completed')->count();
+        $pending = ProvisioningTask::where('status', 'pending')->count();
+        $failed = ProvisioningTask::where('status', 'failed')->count();
+        
+        return response()->json([
+            'total' => $total,
+            'completed' => $completed,
+            'pending' => $pending,
+            'failed' => $failed,
+            'success_rate' => $total > 0 ? round(($completed / $total) * 100, 2) : 0,
+        ]);
+    }
+    
+    /**
+     * Bulk Provisioning
+     * Esegue provisioning massivo su più dispositivi
+     */
+    public function bulkProvisioning(Request $request)
+    {
+        $validated = $request->validate([
+            'device_ids' => 'required|array|min:1',
+            'device_ids.*' => 'exists:cpe_devices,id',
+            'config_source' => 'required|in:profile,template,custom,ai',
+            'profile_id' => 'required_if:config_source,profile|exists:configuration_profiles,id',
+            'template_id' => 'required_if:config_source,template',
+            'custom_parameters' => 'required_if:config_source,custom|json',
+            'execution_mode' => 'required|in:immediate,scheduled,staged',
+            'scheduled_at' => 'required_if:execution_mode,scheduled|date',
+            'batch_size' => 'integer|min:1|max:100',
+            'batch_delay' => 'integer|min:1|max:1440',
+            'enable_rollback' => 'boolean',
+        ]);
+        
+        $createdTasks = [];
+        
+        foreach ($validated['device_ids'] as $deviceId) {
+            $taskData = [
+                'config_source' => $validated['config_source'],
+                'execution_mode' => $validated['execution_mode'],
+            ];
+            
+            if ($validated['config_source'] === 'profile') {
+                $profile = ConfigurationProfile::findOrFail($validated['profile_id']);
+                $taskData['parameters'] = $profile->parameters;
+            } elseif ($validated['config_source'] === 'custom') {
+                $taskData['parameters'] = json_decode($validated['custom_parameters'], true);
+            }
+            
+            $task = ProvisioningTask::create([
+                'cpe_device_id' => $deviceId,
+                'task_type' => 'set_parameters',
+                'status' => $validated['execution_mode'] === 'immediate' ? 'pending' : 'scheduled',
+                'task_data' => $taskData,
+                'scheduled_at' => $validated['execution_mode'] === 'scheduled' ? $validated['scheduled_at'] : null,
+                'max_retries' => 3,
+            ]);
+            
+            $createdTasks[] = $task;
+            
+            if ($validated['execution_mode'] === 'immediate') {
+                \App\Jobs\ProcessProvisioningTask::dispatch($task->id);
+            }
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => count($createdTasks) . ' provisioning tasks created successfully',
+            'tasks' => $createdTasks,
+        ]);
+    }
+    
+    /**
+     * Schedule Provisioning
+     * Programma provisioning per data/ora futura
+     */
+    public function scheduleProvisioning(Request $request)
+    {
+        $validated = $request->validate([
+            'device_ids' => 'required|array',
+            'profile_id' => 'required|exists:configuration_profiles,id',
+            'scheduled_at' => 'required|date|after:now',
+            'recurrence' => 'nullable|in:once,daily,weekly,monthly',
+        ]);
+        
+        foreach ($validated['device_ids'] as $deviceId) {
+            ProvisioningTask::create([
+                'cpe_device_id' => $deviceId,
+                'task_type' => 'set_parameters',
+                'status' => 'scheduled',
+                'task_data' => ['profile_id' => $validated['profile_id']],
+                'scheduled_at' => $validated['scheduled_at'],
+            ]);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Provisioning scheduled successfully',
+        ]);
+    }
+    
+    /**
+     * Rollback Configuration
+     * Ripristina configurazione precedente dispositivo
+     */
+    public function rollbackConfiguration($deviceId, $version)
+    {
+        $device = CpeDevice::findOrFail($deviceId);
+        
+        $task = ProvisioningTask::create([
+            'cpe_device_id' => $deviceId,
+            'task_type' => 'rollback_configuration',
+            'status' => 'pending',
+            'task_data' => ['rollback_to_version' => $version],
+            'max_retries' => 3,
+        ]);
+        
+        \App\Jobs\ProcessProvisioningTask::dispatch($task->id);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Configuration rollback initiated',
+            'task_id' => $task->id,
+        ]);
+    }
+    
+    /**
      * Pagina gestione firmware
      * Firmware management page
      */

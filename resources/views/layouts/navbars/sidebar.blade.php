@@ -37,11 +37,20 @@
             </li>
             
             <li class="nav-item">
-                <a class="nav-link {{ Request::is('acs/provisioning*') ? 'active' : '' }}" href="{{ route('acs.provisioning') }}">
+                <a class="nav-link {{ Request::is('acs/provisioning') && !Request::is('acs/advanced-provisioning*') ? 'active' : '' }}" href="{{ route('acs.provisioning') }}">
                     <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
                         <i class="fas fa-cogs text-info text-sm opacity-10"></i>
                     </div>
                     <span class="nav-link-text ms-1">Provisioning</span>
+                </a>
+            </li>
+            
+            <li class="nav-item">
+                <a class="nav-link {{ Request::is('acs/advanced-provisioning*') ? 'active' : '' }}" href="{{ route('acs.advanced-provisioning') }}">
+                    <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
+                        <i class="fas fa-layer-group text-warning text-sm opacity-10"></i>
+                    </div>
+                    <span class="nav-link-text ms-1">Advanced Provisioning</span>
                 </a>
             </li>
             

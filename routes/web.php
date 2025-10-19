@@ -57,6 +57,11 @@ Route::prefix('acs')->name('acs.')->group(function () {
     
     // Provisioning
     Route::get('/provisioning', [AcsController::class, 'provisioning'])->name('provisioning');
+    Route::get('/advanced-provisioning', [AcsController::class, 'advancedProvisioning'])->name('advanced-provisioning');
+    Route::get('/provisioning/statistics', [AcsController::class, 'provisioningStatistics'])->name('provisioning.statistics');
+    Route::post('/provisioning/bulk', [AcsController::class, 'bulkProvisioning'])->name('provisioning.bulk');
+    Route::post('/provisioning/schedule', [AcsController::class, 'scheduleProvisioning'])->name('provisioning.schedule');
+    Route::post('/provisioning/rollback/{deviceId}/{version}', [AcsController::class, 'rollbackConfiguration'])->name('provisioning.rollback');
     
     // Firmware
     Route::get('/firmware', [AcsController::class, 'firmware'])->name('firmware');
