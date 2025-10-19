@@ -1,0 +1,130 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     * Aggiunge indici strategici per ottimizzare performance e scalabilità carrier-grade (100,000+ dispositivi CPE)
+     */
+    public function up(): void
+    {
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_cpe_status_last_inform ON cpe_devices(status, last_inform)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_cpe_manufacturer_model ON cpe_devices(manufacturer, model_name)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_cpe_service_status ON cpe_devices(service_id, status)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_cpe_last_contact ON cpe_devices(last_contact)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_cpe_profile ON cpe_devices(configuration_profile_id)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_cpe_protocol_status ON cpe_devices(protocol_type, status)');
+        
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_params_device_name ON device_parameters(device_id, parameter_name)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_params_name_updated ON device_parameters(parameter_name, updated_at)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_params_updated ON device_parameters(updated_at)');
+        
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tasks_status_scheduled ON provisioning_tasks(status, scheduled_at)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tasks_device_status ON provisioning_tasks(cpe_device_id, status)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tasks_type_status ON provisioning_tasks(task_type, status)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tasks_created ON provisioning_tasks(created_at)');
+        
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_sessions_device_status ON tr069_sessions(device_id, session_status)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_sessions_status_created ON tr069_sessions(session_status, created_at)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_sessions_last_activity ON tr069_sessions(last_activity)');
+        
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_uspsubs_device_active ON usp_subscriptions(device_id, is_active)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_uspsubs_subscription_id ON usp_subscriptions(subscription_id)');
+        
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_diag_device_type_created ON diagnostic_tests(cpe_device_id, test_type, created_at)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_diag_type_status ON diagnostic_tests(test_type, status)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_diag_created ON diagnostic_tests(created_at)');
+        
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_alarms_device_severity_ack ON alarms(device_id, severity, acknowledged)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_alarms_severity_created ON alarms(severity, created_at)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_alarms_ack_created ON alarms(acknowledged, created_at)');
+        
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_fwdeploy_device_status ON firmware_deployments(cpe_device_id, status)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_fwdeploy_version_status ON firmware_deployments(firmware_version_id, status)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_fwdeploy_scheduled ON firmware_deployments(scheduled_at)');
+        
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_events_device_type_created ON device_events(device_id, event_type, created_at)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_events_type_created ON device_events(event_type, created_at)');
+        
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_profiles_active ON configuration_profiles(is_active)');
+        
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_netclients_device_active ON network_clients(device_id, active)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_netclients_type_active ON network_clients(connection_type, active)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_netclients_last_seen ON network_clients(last_seen)');
+        
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_pendcmd_device_status ON pending_commands(device_id, status)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_pendcmd_status_created ON pending_commands(status, created_at)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_pendcmd_expires ON pending_commands(expires_at)');
+        
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_datamodels_manufacturer_model ON tr069_data_models(manufacturer, model)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_datamodels_active ON tr069_data_models(is_active)');
+        
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_services_customer_active ON services(customer_id, is_active)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_customers_active ON customers(is_active)');
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_cpe_status_last_inform');
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_cpe_manufacturer_model');
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_cpe_service_status');
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_cpe_last_contact');
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_cpe_profile');
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_cpe_protocol_status');
+        
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_params_device_name');
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_params_name_updated');
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_params_updated');
+        
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_tasks_status_scheduled');
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_tasks_device_status');
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_tasks_type_status');
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_tasks_created');
+        
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_sessions_device_status');
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_sessions_status_created');
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_sessions_last_activity');
+        
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_uspsubs_device_active');
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_uspsubs_subscription_id');
+        
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_diag_device_type_created');
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_diag_type_status');
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_diag_created');
+        
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_alarms_device_severity_ack');
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_alarms_severity_created');
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_alarms_ack_created');
+        
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_fwdeploy_device_status');
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_fwdeploy_version_status');
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_fwdeploy_scheduled');
+        
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_events_device_type_created');
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_events_type_created');
+        
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_profiles_active');
+        
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_netclients_device_active');
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_netclients_type_active');
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_netclients_last_seen');
+        
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_pendcmd_device_status');
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_pendcmd_status_created');
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_pendcmd_expires');
+        
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_datamodels_manufacturer_model');
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_datamodels_active');
+        
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_services_customer_active');
+        DB::statement('DROP INDEX CONCURRENTLY IF EXISTS idx_customers_active');
+    }
+};

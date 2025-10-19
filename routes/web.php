@@ -101,6 +101,10 @@ Route::prefix('acs')->name('acs.')->group(function () {
     // Network Topology Map
     Route::get('/network-topology', [AcsController::class, 'networkTopology'])->name('network-topology');
     
+    // Performance Monitoring
+    Route::get('/performance-monitoring', [AcsController::class, 'performanceMonitoring'])->name('performance-monitoring');
+    Route::get('/performance/metrics', [AcsController::class, 'performanceMetrics'])->name('performance.metrics');
+    
     // Router Manufacturers & Products Database
     Route::get('/manufacturers', [AcsController::class, 'manufacturers'])->name('manufacturers');
     Route::get('/manufacturers/{id}/products', [AcsController::class, 'manufacturerProducts'])->name('manufacturers.products');
