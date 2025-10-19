@@ -6,6 +6,7 @@ use App\Events\AlarmCreated;
 use App\Models\Alarm;
 use App\Services\AlarmService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class AlarmsController extends Controller
 {
@@ -18,8 +19,10 @@ class AlarmsController extends Controller
         $query = Alarm::with(['device', 'acknowledgedBy'])
             ->orderBy('raised_at', 'desc');
 
-        if ($request->has('status') && $request->status !== 'all') {
-            $query->where('status', $request->status);
+        // Default to "active" status if not specified
+        $status = $request->input('status', 'active');
+        if ($status !== 'all') {
+            $query->where('status', $status);
         }
 
         if ($request->has('severity') && $request->severity !== 'all') {
@@ -30,10 +33,10 @@ class AlarmsController extends Controller
             $query->where('category', $request->category);
         }
 
-        $alarms = $query->paginate(50);
+        $alarms = $query->paginate(50)->appends($request->except('page'));
         $stats = $this->alarmService->getAlarmStats();
 
-        return view('acs.alarms.index', compact('alarms', 'stats'));
+        return view('acs.alarms.index', compact('alarms', 'stats', 'status'));
     }
 
     public function acknowledge(Request $request, int $id)
@@ -89,16 +92,22 @@ class AlarmsController extends Controller
     public function stream(Request $request)
     {
         return response()->stream(function () {
-            set_time_limit(0);
-            ignore_user_abort(true);
+            set_time_limit(300); // 5min max per connection (carrier-grade: rotate connections)
+            ignore_user_abort(false); // Detect client disconnect properly
             
             $lastId = request('lastId', 0);
             $heartbeatCounter = 0;
+            $maxIterations = 150; // Max 5 min at 2s intervals (carrier-grade: prevent runaway loops)
+            $iteration = 0;
             
-            while (true) {
+            while ($iteration < $maxIterations) {
+                $iteration++;
+                
+                // Carrier-grade optimization: use index and limit query
                 $newAlarms = Alarm::where('id', '>', $lastId)
-                    ->with(['device'])
+                    ->with(['device:id,hostname,serial_number']) // Eager load only needed fields
                     ->orderBy('id', 'asc')
+                    ->limit(10) // Batch size limit
                     ->get();
                 
                 if ($newAlarms->isNotEmpty()) {
@@ -108,7 +117,7 @@ class AlarmsController extends Controller
                             'title' => $alarm->title,
                             'severity' => $alarm->severity,
                             'category' => $alarm->category,
-                            'device_name' => $alarm->device?->hostname ?? 'Unknown',
+                            'device_name' => $alarm->device?->serial_number ?? 'System',
                             'raised_at' => $alarm->raised_at->diffForHumans(),
                         ];
                         
@@ -118,28 +127,46 @@ class AlarmsController extends Controller
                     }
                     
                     $heartbeatCounter = 0;
-                    ob_flush();
-                    flush();
+                    @ob_flush();
+                    @flush();
                 }
                 
+                // Heartbeat every 30 seconds (reduced network overhead)
                 $heartbeatCounter++;
                 if ($heartbeatCounter >= 15) {
                     echo ": heartbeat\n\n";
                     $heartbeatCounter = 0;
-                    ob_flush();
-                    flush();
+                    @ob_flush();
+                    @flush();
                 }
                 
-                sleep(2);
-                
+                // Check connection before sleep (faster disconnect detection)
                 if (connection_aborted()) {
+                    Log::info('SSE connection aborted', ['lastId' => $lastId]);
                     break;
                 }
+                
+                sleep(2); // Carrier-grade: Consider Redis pub/sub for true real-time
+                
+                // Double-check after sleep
+                if (connection_aborted()) {
+                    Log::info('SSE connection aborted after sleep', ['lastId' => $lastId]);
+                    break;
+                }
+            }
+            
+            // Max iterations reached - client should reconnect
+            if ($iteration >= $maxIterations) {
+                Log::info('SSE max iterations reached - forcing reconnect', ['lastId' => $lastId]);
+                echo "event: reconnect\ndata: {\"reason\": \"max_duration\"}\n\n";
+                @ob_flush();
+                @flush();
             }
         }, 200, [
             'Content-Type' => 'text/event-stream',
             'Cache-Control' => 'no-cache',
             'X-Accel-Buffering' => 'no',
+            'Connection' => 'keep-alive',
         ]);
     }
 }

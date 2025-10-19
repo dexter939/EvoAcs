@@ -133,10 +133,10 @@
                                 <h6 class="mb-0">Alarms List</h6>
                                 <div class="d-flex gap-2">
                                     <select class="form-select form-select-sm" id="filterStatus" style="width: auto;">
-                                        <option value="all">All Status</option>
-                                        <option value="active" selected>Active</option>
-                                        <option value="acknowledged">Acknowledged</option>
-                                        <option value="cleared">Cleared</option>
+                                        <option value="all" {{ $status === 'all' ? 'selected' : '' }}>All Status</option>
+                                        <option value="active" {{ $status === 'active' ? 'selected' : '' }}>Active</option>
+                                        <option value="acknowledged" {{ $status === 'acknowledged' ? 'selected' : '' }}>Acknowledged</option>
+                                        <option value="cleared" {{ $status === 'cleared' ? 'selected' : '' }}>Cleared</option>
                                     </select>
                                     <select class="form-select form-select-sm" id="filterSeverity" style="width: auto;">
                                         <option value="all">All Severities</option>
@@ -459,12 +459,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
     
-    // Simulated trend data (last 24 hours) - in production fetch from API
-    const hours = Array.from({length: 24}, (_, i) => i);
-    const totalData = [12, 15, 11, 18, 14, 12, 16, 19, 14, 16, 13, 17, 15, 14, 18, 16, 15, 19, 17, 15, 18, 16, {{ $stats['total_active'] - 2 }}, {{ $stats['total_active'] }}];
-    const criticalData = [2, 3, 2, 4, 3, 2, 3, 4, 3, 3, 2, 4, 3, 2, 3, 3, 2, 4, 3, 2, 3, 2, {{ max($stats['critical'] - 1, 0) }}, {{ $stats['critical'] }}];
-    const majorData = [4, 5, 4, 6, 5, 4, 6, 7, 5, 6, 5, 7, 6, 5, 7, 6, 5, 7, 6, 5, 7, 6, {{ max($stats['major'] - 1, 0) }}, {{ $stats['major'] }}];
-    const minorData = [6, 7, 5, 8, 6, 6, 7, 8, 6, 7, 6, 6, 6, 7, 8, 7, 8, 8, 8, 8, 8, 8, {{ max($stats['minor'] + $stats['warning'] + $stats['info'] - 1, 0) }}, {{ $stats['minor'] + $stats['warning'] + $stats['info'] }}];
+    // Real 24h trend data from backend
+    const hours = @json($stats['trends_24h']['labels']);
+    const totalData = @json($stats['trends_24h']['total']);
+    const criticalData = @json($stats['trends_24h']['critical']);
+    const majorData = @json($stats['trends_24h']['major']);
+    const minorData = @json($stats['trends_24h']['minor']);
     
     new Chart(document.getElementById('sparkline-total').getContext('2d'), {
         ...sparklineConfig,

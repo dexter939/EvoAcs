@@ -134,6 +134,37 @@ class AlarmService
                 ->selectRaw('category, count(*) as count')
                 ->pluck('count', 'category')
                 ->toArray(),
+            'trends_24h' => $this->getAlarmTrends24h(),
+        ];
+    }
+    
+    public function getAlarmTrends24h(): array
+    {
+        $hoursAgo = 24;
+        $hourlyData = [];
+        
+        for ($i = $hoursAgo - 1; $i >= 0; $i--) {
+            $startHour = now()->subHours($i + 1);
+            $endHour = now()->subHours($i);
+            
+            $hourlyData[] = [
+                'hour' => $endHour->format('H:i'),
+                'total' => Alarm::whereBetween('raised_at', [$startHour, $endHour])->count(),
+                'critical' => Alarm::whereBetween('raised_at', [$startHour, $endHour])
+                    ->where('severity', 'critical')->count(),
+                'major' => Alarm::whereBetween('raised_at', [$startHour, $endHour])
+                    ->where('severity', 'major')->count(),
+                'minor' => Alarm::whereBetween('raised_at', [$startHour, $endHour])
+                    ->whereIn('severity', ['minor', 'warning', 'info'])->count(),
+            ];
+        }
+        
+        return [
+            'labels' => array_column($hourlyData, 'hour'),
+            'total' => array_column($hourlyData, 'total'),
+            'critical' => array_column($hourlyData, 'critical'),
+            'major' => array_column($hourlyData, 'major'),
+            'minor' => array_column($hourlyData, 'minor'),
         ];
     }
 
