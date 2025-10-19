@@ -5,10 +5,49 @@
 
 @push('styles')
 <link href="/assets/css/dashboard-enhancements.css" rel="stylesheet" />
+<style>
+.mini-chart-container {
+    height: 50px;
+    width: 100%;
+}
+.trend-indicator {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+.trend-up { color: #82d616; }
+.trend-down { color: #ea0606; }
+.activity-timeline {
+    position: relative;
+    padding-left: 2rem;
+}
+.activity-timeline::before {
+    content: '';
+    position: absolute;
+    left: 0.5rem;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, #cb0c9f, #17c1e8);
+}
+.activity-item {
+    position: relative;
+    padding-bottom: 1.5rem;
+}
+.activity-dot {
+    position: absolute;
+    left: -1.65rem;
+    top: 0.25rem;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 0 0 2px currentColor;
+}
+</style>
 @endpush
 
 @section('content')
-<!-- Statistics Cards -->
+<!-- Main Statistics Cards with Trend Indicators -->
 <div class="row">
     <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
         <div class="card">
@@ -16,16 +55,27 @@
                 <div class="row">
                     <div class="col-8">
                         <div class="numbers">
-                            <p class="text-sm mb-0 text-capitalize font-weight-bold">Dispositivi Online</p>
+                            <p class="text-sm mb-0 text-capitalize font-weight-bold">Dispositivi Totali</p>
                             <h5 class="font-weight-bolder mb-0">
-                                <span class="stat-devices-online">{{ $stats['devices']['online'] ?? 0 }}</span>
-                                <span class="text-sm text-muted">/ <span class="stat-devices-total">{{ $stats['devices']['total'] ?? 0 }}</span></span>
+                                <span class="stat-devices-total">{{ $stats['devices']['total'] ?? 0 }}</span>
                             </h5>
+                            <p class="mb-0">
+                                <span class="text-success text-sm font-weight-bolder trend-indicator">
+                                    <i class="fas fa-arrow-up"></i> {{ $stats['devices']['online'] ?? 0 }} online
+                                </span>
+                            </p>
                         </div>
                     </div>
                     <div class="col-4 text-end">
-                        <div class="icon icon-shape bg-gradient-success shadow text-center border-radius-md">
-                            <i class="fas fa-network-wired text-lg opacity-10" aria-hidden="true"></i>
+                        <div class="icon icon-shape bg-gradient-primary shadow text-center border-radius-md">
+                            <i class="ni ni-world text-lg opacity-10" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <div class="mini-chart-container">
+                            <canvas id="miniDevicesChart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -39,16 +89,27 @@
                 <div class="row">
                     <div class="col-8">
                         <div class="numbers">
-                            <p class="text-sm mb-0 text-capitalize font-weight-bold">Task Pending</p>
+                            <p class="text-sm mb-0 text-capitalize font-weight-bold">Task in Coda</p>
                             <h5 class="font-weight-bolder mb-0">
                                 <span class="stat-tasks-pending">{{ $stats['tasks']['pending'] ?? 0 }}</span>
-                                <span class="text-sm text-warning">in coda</span>
                             </h5>
+                            <p class="mb-0">
+                                <span class="text-warning text-sm font-weight-bolder">
+                                    <i class="fas fa-clock"></i> {{ $stats['tasks']['processing'] ?? 0 }} in elaborazione
+                                </span>
+                            </p>
                         </div>
                     </div>
                     <div class="col-4 text-end">
                         <div class="icon icon-shape bg-gradient-warning shadow text-center border-radius-md">
-                            <i class="fas fa-tasks text-lg opacity-10" aria-hidden="true"></i>
+                            <i class="ni ni-paper-diploma text-lg opacity-10" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <div class="mini-chart-container">
+                            <canvas id="miniTasksChart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -65,13 +126,24 @@
                             <p class="text-sm mb-0 text-capitalize font-weight-bold">Firmware Deploy</p>
                             <h5 class="font-weight-bolder mb-0">
                                 <span class="stat-firmware-total">{{ $stats['firmware']['total_deployments'] ?? 0 }}</span>
-                                <span class="text-sm text-info">totali</span>
                             </h5>
+                            <p class="mb-0">
+                                <span class="text-success text-sm font-weight-bolder">
+                                    <i class="fas fa-check"></i> {{ $stats['firmware']['completed'] ?? 0 }} completati
+                                </span>
+                            </p>
                         </div>
                     </div>
                     <div class="col-4 text-end">
-                        <div class="icon icon-shape bg-gradient-info shadow text-center border-radius-md">
-                            <i class="fas fa-microchip text-lg opacity-10" aria-hidden="true"></i>
+                        <div class="icon icon-shape bg-gradient-success shadow text-center border-radius-md">
+                            <i class="ni ni-atom text-lg opacity-10" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <div class="mini-chart-container">
+                            <canvas id="miniFirmwareChart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -80,38 +152,6 @@
     </div>
     
     <div class="col-xl-3 col-sm-6">
-        <div class="card">
-            <div class="card-body p-3">
-                <div class="row">
-                    <div class="col-8">
-                        <div class="numbers">
-                            <p class="text-sm mb-0 text-capitalize font-weight-bold">Task Completati</p>
-                            <h5 class="font-weight-bolder mb-0">
-                                <span class="stat-tasks-completed">{{ $stats['tasks']['completed'] ?? 0 }}</span>
-                                <span class="text-success text-sm font-weight-bolder stat-tasks-completion">
-                                    @if(($stats['tasks']['total'] ?? 0) > 0)
-                                        {{ round(($stats['tasks']['completed'] / $stats['tasks']['total']) * 100) }}%
-                                    @else
-                                        0%
-                                    @endif
-                                </span>
-                            </h5>
-                        </div>
-                    </div>
-                    <div class="col-4 text-end">
-                        <div class="icon icon-shape bg-gradient-primary shadow text-center border-radius-md">
-                            <i class="fas fa-check-circle text-lg opacity-10" aria-hidden="true"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Second Row Stats -->
-<div class="row mt-4">
-    <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
         <div class="card">
             <div class="card-body p-3">
                 <div class="row">
@@ -119,80 +159,29 @@
                         <div class="numbers">
                             <p class="text-sm mb-0 text-capitalize font-weight-bold">Test Diagnostici</p>
                             <h5 class="font-weight-bolder mb-0">
-                                <span class="stat-diagnostics-completed">{{ $stats['diagnostics']['completed'] ?? 0 }}</span>
-                                <span class="text-sm text-muted">/ <span class="stat-diagnostics-total">{{ $stats['diagnostics']['total'] ?? 0 }}</span></span>
+                                <span class="stat-diagnostics-total">{{ $stats['diagnostics']['total'] ?? 0 }}</span>
                             </h5>
-                        </div>
-                    </div>
-                    <div class="col-4 text-end">
-                        <div class="icon icon-shape bg-gradient-danger shadow text-center border-radius-md">
-                            <i class="fas fa-stethoscope text-lg opacity-10" aria-hidden="true"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
-        <div class="card">
-            <div class="card-body p-3">
-                <div class="row">
-                    <div class="col-8">
-                        <div class="numbers">
-                            <p class="text-sm mb-0 text-capitalize font-weight-bold">Profili Attivi</p>
-                            <h5 class="font-weight-bolder mb-0">
-                                <span class="stat-profiles-active">{{ $stats['profiles_active'] ?? 0 }}</span>
-                            </h5>
-                        </div>
-                    </div>
-                    <div class="col-4 text-end">
-                        <div class="icon icon-shape bg-gradient-dark shadow text-center border-radius-md">
-                            <i class="fas fa-cogs text-lg opacity-10" aria-hidden="true"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
-        <div class="card">
-            <div class="card-body p-3">
-                <div class="row">
-                    <div class="col-8">
-                        <div class="numbers">
-                            <p class="text-sm mb-0 text-capitalize font-weight-bold">Versioni Firmware</p>
-                            <h5 class="font-weight-bolder mb-0">
-                                <span class="stat-firmware-versions">{{ $stats['firmware_versions'] ?? 0 }}</span>
-                            </h5>
+                            <p class="mb-0">
+                                <span class="text-info text-sm font-weight-bolder">
+                                    @if(($stats['diagnostics']['total'] ?? 0) > 0)
+                                        {{ round(($stats['diagnostics']['completed'] / $stats['diagnostics']['total']) * 100) }}% successo
+                                    @else
+                                        0% successo
+                                    @endif
+                                </span>
+                            </p>
                         </div>
                     </div>
                     <div class="col-4 text-end">
                         <div class="icon icon-shape bg-gradient-info shadow text-center border-radius-md">
-                            <i class="fas fa-code-branch text-lg opacity-10" aria-hidden="true"></i>
+                            <i class="ni ni-chart-bar-32 text-lg opacity-10" aria-hidden="true"></i>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-xl-3 col-sm-6">
-        <div class="card">
-            <div class="card-body p-3">
-                <div class="row">
-                    <div class="col-8">
-                        <div class="numbers">
-                            <p class="text-sm mb-0 text-capitalize font-weight-bold">Parametri TR-181</p>
-                            <h5 class="font-weight-bolder mb-0">
-                                <span class="stat-parameters-count">{{ $stats['unique_parameters'] ?? 0 }}</span>
-                            </h5>
-                        </div>
-                    </div>
-                    <div class="col-4 text-end">
-                        <div class="icon icon-shape bg-gradient-secondary shadow text-center border-radius-md">
-                            <i class="fas fa-list-ul text-lg opacity-10" aria-hidden="true"></i>
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <div class="mini-chart-container">
+                            <canvas id="miniDiagnosticsChart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -201,127 +190,43 @@
     </div>
 </div>
 
-<!-- Protocol Statistics Row -->
+<!-- Main Content Row -->
 <div class="row mt-4">
-    <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+    <!-- Recent Devices Table (Soft UI PRO Style) -->
+    <div class="col-lg-8 mb-lg-0 mb-4">
         <div class="card">
-            <div class="card-body p-3">
+            <div class="card-header pb-0">
                 <div class="row">
-                    <div class="col-8">
-                        <div class="numbers">
-                            <p class="text-sm mb-0 text-capitalize font-weight-bold">Dispositivi TR-069</p>
-                            <h5 class="font-weight-bolder mb-0">
-                                <span class="stat-tr069-devices">{{ $stats['devices']['tr069'] ?? 0 }}</span>
-                                <span class="text-sm text-muted">CWMP</span>
-                            </h5>
-                        </div>
+                    <div class="col-lg-6 col-7">
+                        <h6>Dispositivi CPE Recenti</h6>
+                        <p class="text-sm mb-0">
+                            <i class="fa fa-check text-info" aria-hidden="true"></i>
+                            <span class="font-weight-bold ms-1">{{ count($stats['recent_devices'] ?? []) }} dispositivi</span> attivi nelle ultime ore
+                        </p>
                     </div>
-                    <div class="col-4 text-end">
-                        <div class="icon icon-shape bg-gradient-primary shadow text-center border-radius-md">
-                            <i class="fas fa-server text-lg opacity-10" aria-hidden="true"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
-        <div class="card">
-            <div class="card-body p-3">
-                <div class="row">
-                    <div class="col-8">
-                        <div class="numbers">
-                            <p class="text-sm mb-0 text-capitalize font-weight-bold">Dispositivi TR-369</p>
-                            <h5 class="font-weight-bolder mb-0">
-                                <span class="stat-tr369-devices">{{ $stats['devices']['tr369'] ?? 0 }}</span>
-                                <span class="text-sm text-success">USP</span>
-                            </h5>
-                        </div>
-                    </div>
-                    <div class="col-4 text-end">
-                        <div class="icon icon-shape bg-gradient-success shadow text-center border-radius-md">
-                            <i class="fas fa-satellite-dish text-lg opacity-10" aria-hidden="true"></i>
+                    <div class="col-lg-6 col-5 my-auto text-end">
+                        <div class="dropdown float-lg-end pe-4">
+                            <a class="cursor-pointer" id="dropdownTable" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fa fa-ellipsis-v text-secondary"></i>
+                            </a>
+                            <ul class="dropdown-menu px-2 py-3 ms-sm-n4 ms-n5" aria-labelledby="dropdownTable">
+                                <li><a class="dropdown-item border-radius-md" href="{{ route('acs.devices') }}">Vedi tutti</a></li>
+                                <li><a class="dropdown-item border-radius-md" href="#" data-bs-toggle="modal" data-bs-target="#addDeviceModal">Aggiungi nuovo</a></li>
+                            </ul>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-    
-    <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
-        <div class="card">
-            <div class="card-body p-3">
-                <div class="row">
-                    <div class="col-8">
-                        <div class="numbers">
-                            <p class="text-sm mb-0 text-capitalize font-weight-bold">USP via MQTT</p>
-                            <h5 class="font-weight-bolder mb-0">
-                                <span class="stat-tr369-mqtt">{{ $stats['devices']['tr369_mqtt'] ?? 0 }}</span>
-                                <span class="text-sm text-warning">broker</span>
-                            </h5>
-                        </div>
-                    </div>
-                    <div class="col-4 text-end">
-                        <div class="icon icon-shape bg-gradient-warning shadow text-center border-radius-md">
-                            <i class="fas fa-exchange-alt text-lg opacity-10" aria-hidden="true"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-xl-3 col-sm-6">
-        <div class="card">
-            <div class="card-body p-3">
-                <div class="row">
-                    <div class="col-8">
-                        <div class="numbers">
-                            <p class="text-sm mb-0 text-capitalize font-weight-bold">USP via HTTP</p>
-                            <h5 class="font-weight-bolder mb-0">
-                                <span class="stat-tr369-http">{{ $stats['devices']['tr369_http'] ?? 0 }}</span>
-                                <span class="text-sm text-info">diretto</span>
-                            </h5>
-                        </div>
-                    </div>
-                    <div class="col-4 text-end">
-                        <div class="icon icon-shape bg-gradient-info shadow text-center border-radius-md">
-                            <i class="fas fa-globe text-lg opacity-10" aria-hidden="true"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Recent Devices & Tasks -->
-<div class="row mt-4">
-    <!-- Recent Devices -->
-    <div class="col-lg-7 mb-lg-0 mb-4">
-        <div class="card h-100">
-            <div class="card-header pb-0 d-flex justify-content-between align-items-center">
-                <div>
-                    <h6><i class="fas fa-history me-2 text-success"></i>Ultimi Dispositivi Attivi</h6>
-                    <p class="text-sm mb-0">
-                        <i class="fa fa-check text-success" aria-hidden="true"></i>
-                        <span class="font-weight-bold ms-1">{{ count($stats['recent_devices'] ?? []) }}</span> dispositivi nelle ultime ore
-                    </p>
-                </div>
-                <button class="btn btn-sm btn-primary mb-0" data-bs-toggle="modal" data-bs-target="#addDeviceModal">
-                    <i class="fas fa-plus me-1"></i> Aggiungi
-                </button>
-            </div>
-            <div class="card-body p-3">
+            <div class="card-body px-0 pb-2">
                 <div class="table-responsive">
-                    <table class="table align-items-center mb-0 recent-devices-table">
+                    <table class="table align-items-center mb-0">
                         <thead>
                             <tr>
                                 <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Dispositivo</th>
-                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Stato</th>
-                                <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Ultimo Inform</th>
-                                <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Azioni</th>
+                                <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Protocollo</th>
+                                <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Stato</th>
+                                <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Ultimo Contatto</th>
+                                <th class="text-secondary opacity-7"></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -330,7 +235,7 @@
                                 <td>
                                     <div class="d-flex px-2 py-1">
                                         <div>
-                                            <i class="fas fa-router text-primary me-2"></i>
+                                            <i class="fas fa-{{ $device->protocol_type == 'tr369' ? 'satellite-dish' : 'router' }} text-{{ $device->protocol_type == 'tr369' ? 'success' : 'primary' }} me-2"></i>
                                         </div>
                                         <div class="d-flex flex-column justify-content-center">
                                             <h6 class="mb-0 text-sm">{{ $device->serial_number }}</h6>
@@ -339,38 +244,33 @@
                                     </div>
                                 </td>
                                 <td>
+                                    <span class="badge badge-sm bg-gradient-{{ $device->protocol_type == 'tr369' ? 'success' : 'primary' }}">
+                                        {{ $device->protocol_type == 'tr369' ? 'TR-369' : 'TR-069' }}
+                                    </span>
+                                    @if($device->mtp_type)
+                                    <span class="badge badge-sm bg-gradient-{{ $device->mtp_type == 'mqtt' ? 'warning' : 'info' }} ms-1">
+                                        {{ strtoupper($device->mtp_type) }}
+                                    </span>
+                                    @endif
+                                </td>
+                                <td class="align-middle text-center text-sm">
                                     <span class="badge badge-sm bg-gradient-{{ $device->status == 'online' ? 'success' : 'secondary' }}">
                                         {{ ucfirst($device->status) }}
                                     </span>
                                 </td>
-                                <td class="align-middle text-center text-sm">
-                                    <span class="text-xs font-weight-bold">{{ $device->last_inform ? $device->last_inform->diffForHumans() : 'Mai' }}</span>
-                                </td>
                                 <td class="align-middle text-center">
-                                    <button class="btn btn-link text-info px-2 mb-0" 
-                                            data-bs-toggle="modal" 
-                                            data-bs-target="#editDeviceModal"
-                                            data-device-id="{{ $device->id }}"
-                                            data-device-serial="{{ $device->serial_number }}"
-                                            data-device-manufacturer="{{ $device->manufacturer }}"
-                                            data-device-model="{{ $device->model_name }}"
-                                            data-device-status="{{ $device->status }}"
-                                            title="Modifica">
-                                        <i class="fas fa-edit text-sm"></i>
-                                    </button>
-                                    <button class="btn btn-link text-danger px-2 mb-0" 
-                                            data-bs-toggle="modal" 
-                                            data-bs-target="#deleteDeviceModal"
-                                            data-device-id="{{ $device->id }}"
-                                            data-device-serial="{{ $device->serial_number }}"
-                                            title="Elimina">
-                                        <i class="fas fa-trash text-sm"></i>
-                                    </button>
+                                    <span class="text-secondary text-xs font-weight-bold">{{ $device->last_inform ? $device->last_inform->diffForHumans() : 'Mai' }}</span>
+                                </td>
+                                <td class="align-middle">
+                                    <a href="/acs/devices/{{ $device->id }}" class="text-secondary font-weight-bold text-xs" data-toggle="tooltip" data-original-title="Visualizza dettagli">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
                                 </td>
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="4" class="text-center text-sm text-muted py-4">
+                                <td colspan="5" class="text-center text-sm text-secondary py-4">
+                                    <i class="fas fa-inbox fa-2x mb-2 d-block opacity-5"></i>
                                     Nessun dispositivo registrato
                                 </td>
                             </tr>
@@ -382,88 +282,197 @@
         </div>
     </div>
     
-    <!-- Recent Tasks -->
+    <!-- Activity Timeline (Soft UI PRO Style) -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header pb-0 p-3">
+                <div class="row">
+                    <div class="col-md-8 d-flex align-items-center">
+                        <h6 class="mb-0">Activity Log</h6>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <i class="fas fa-history text-secondary"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-3">
+                <div class="activity-timeline">
+                    @forelse($stats['recent_tasks'] ?? [] as $index => $task)
+                    <div class="activity-item">
+                        <div class="activity-dot bg-{{ $task->status == 'completed' ? 'success' : ($task->status == 'failed' ? 'danger' : 'warning') }}"></div>
+                        <div class="ms-3">
+                            <p class="text-sm font-weight-bold mb-0">{{ ucfirst(str_replace('_', ' ', $task->task_type)) }}</p>
+                            <p class="text-xs text-secondary mb-0">{{ $task->cpeDevice->serial_number ?? 'N/A' }}</p>
+                            <p class="text-xs text-secondary mb-0">
+                                <i class="fas fa-clock me-1"></i>{{ $task->created_at->diffForHumans() }}
+                            </p>
+                        </div>
+                    </div>
+                    @empty
+                    <div class="text-center text-sm text-secondary py-4">
+                        <i class="fas fa-clock fa-2x mb-2 d-block opacity-5"></i>
+                        Nessuna attività recente
+                    </div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards Row -->
+<div class="row mt-4">
+    <div class="col-lg-7 mb-lg-0 mb-4">
+        <div class="card">
+            <div class="card-header pb-0 p-3">
+                <div class="d-flex justify-content-between">
+                    <h6 class="mb-2">Panoramica Protocolli TR</h6>
+                </div>
+            </div>
+            <div class="card-body p-3">
+                <div class="row">
+                    <div class="col-md-6 mb-md-0 mb-4">
+                        <div class="card card-body border card-plain border-radius-lg d-flex align-items-center flex-row">
+                            <i class="ni ni-mobile-button text-lg opacity-10 text-primary" style="font-size: 2rem;"></i>
+                            <h6 class="mb-0 ms-3">TR-069 (CWMP)</h6>
+                            <h5 class="font-weight-bolder ms-auto">{{ $stats['devices']['tr069'] ?? 0 }}</h5>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card card-body border card-plain border-radius-lg d-flex align-items-center flex-row">
+                            <i class="ni ni-satisfied text-lg opacity-10 text-success" style="font-size: 2rem;"></i>
+                            <h6 class="mb-0 ms-3">TR-369 (USP)</h6>
+                            <h5 class="font-weight-bolder ms-auto">{{ $stats['devices']['tr369'] ?? 0 }}</h5>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-6 mb-md-0 mb-4">
+                        <div class="card card-body border card-plain border-radius-lg d-flex align-items-center flex-row">
+                            <i class="ni ni-send text-lg opacity-10 text-warning" style="font-size: 2rem;"></i>
+                            <h6 class="mb-0 ms-3">MQTT Transport</h6>
+                            <h5 class="font-weight-bolder ms-auto">{{ $stats['devices']['tr369_mqtt'] ?? 0 }}</h5>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card card-body border card-plain border-radius-lg d-flex align-items-center flex-row">
+                            <i class="ni ni-world-2 text-lg opacity-10 text-info" style="font-size: 2rem;"></i>
+                            <h6 class="mb-0 ms-3">HTTP Transport</h6>
+                            <h5 class="font-weight-bolder ms-auto">{{ $stats['devices']['tr369_http'] ?? 0 }}</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <div class="col-lg-5">
         <div class="card h-100">
             <div class="card-header pb-0 p-3">
-                <h6 class="mb-0"><i class="fas fa-clock me-2 text-warning"></i>Task Recenti</h6>
+                <h6 class="mb-0">Stato Dispositivi</h6>
             </div>
             <div class="card-body p-3">
-                <ul class="list-group recent-tasks-list">
-                    @forelse($stats['recent_tasks'] ?? [] as $task)
-                    <li class="list-group-item border-0 d-flex justify-content-between ps-0 mb-2 border-radius-lg">
-                        <div class="d-flex align-items-center">
-                            <div class="icon icon-shape icon-sm me-3 bg-gradient-{{ $task->status == 'completed' ? 'success' : ($task->status == 'failed' ? 'danger' : 'warning') }} shadow text-center">
-                                <i class="fas fa-{{ $task->status == 'completed' ? 'check' : ($task->status == 'failed' ? 'times' : 'clock') }} opacity-10"></i>
-                            </div>
-                            <div class="d-flex flex-column">
-                                <h6 class="mb-1 text-dark text-sm">{{ ucfirst(str_replace('_', ' ', $task->task_type)) }}</h6>
-                                <span class="text-xs">{{ $task->cpeDevice->serial_number ?? 'N/A' }}</span>
-                            </div>
-                        </div>
-                        <div class="d-flex align-items-center text-{{ $task->status == 'completed' ? 'success' : ($task->status == 'failed' ? 'danger' : 'warning') }} text-gradient text-sm font-weight-bold">
-                            {{ ucfirst($task->status) }}
-                        </div>
-                    </li>
-                    @empty
-                    <li class="list-group-item border-0 text-center text-sm text-muted py-4">
-                        Nessun task recente
-                    </li>
-                    @endforelse
-                </ul>
+                <canvas id="deviceStatusChart" height="180"></canvas>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Charts Row -->
+<!-- Charts Row (Soft UI PRO Style) -->
 <div class="row mt-4">
-    <!-- Devices Status Chart -->
-    <div class="col-lg-4 mb-lg-0 mb-4">
-        <div class="card h-100">
+    <div class="col-lg-6 mb-lg-0 mb-4">
+        <div class="card z-index-2">
             <div class="card-header pb-0">
-                <h6><i class="fas fa-chart-pie me-2 text-primary"></i>Distribuzione Dispositivi</h6>
+                <h6>Task Provisioning</h6>
+                <p class="text-sm">
+                    <i class="fa fa-arrow-up text-success"></i>
+                    <span class="font-weight-bold">{{ $stats['tasks']['completed'] ?? 0 }} completati</span> questo mese
+                </p>
             </div>
             <div class="card-body p-3">
-                <canvas id="devicesChart" height="200"></canvas>
+                <div class="chart">
+                    <canvas id="taskChart" class="chart-canvas" height="300"></canvas>
+                </div>
             </div>
         </div>
     </div>
     
-    <!-- Tasks Status Chart -->
-    <div class="col-lg-4 mb-lg-0 mb-4">
-        <div class="card h-100">
+    <div class="col-lg-6">
+        <div class="card z-index-2">
             <div class="card-header pb-0">
-                <h6><i class="fas fa-chart-bar me-2 text-warning"></i>Stati Task Provisioning</h6>
+                <h6>Firmware Deployments</h6>
+                <p class="text-sm">
+                    <i class="fa fa-check text-success"></i>
+                    <span class="font-weight-bold">{{ round((($stats['firmware']['completed'] ?? 0) / max($stats['firmware']['total_deployments'] ?? 1, 1)) * 100) }}%</span> tasso di successo
+                </p>
             </div>
             <div class="card-body p-3">
-                <canvas id="tasksChart" height="200"></canvas>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Diagnostics Type Chart -->
-    <div class="col-lg-4">
-        <div class="card h-100">
-            <div class="card-header pb-0">
-                <h6><i class="fas fa-chart-area me-2 text-danger"></i>Test Diagnostici per Tipo</h6>
-            </div>
-            <div class="card-body p-3">
-                <canvas id="diagnosticsChart" height="200"></canvas>
+                <div class="chart">
+                    <canvas id="firmwareChart" class="chart-canvas" height="300"></canvas>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Firmware Deployments Chart -->
+<!-- Diagnostics Overview -->
 <div class="row mt-4">
     <div class="col-12">
         <div class="card">
             <div class="card-header pb-0">
-                <h6><i class="fas fa-chart-line me-2 text-info"></i>Deployment Firmware - Panoramica Stati</h6>
+                <div class="row">
+                    <div class="col-lg-6">
+                        <h6>Test Diagnostici TR-143</h6>
+                        <p class="text-sm mb-0">
+                            Panoramica completa dei test eseguiti per tipo
+                        </p>
+                    </div>
+                    <div class="col-lg-6 text-end">
+                        <a href="{{ route('acs.alarms') }}" class="btn btn-sm btn-outline-primary mb-0">
+                            <i class="fas fa-bell me-1"></i> Vedi Allarmi
+                        </a>
+                    </div>
+                </div>
             </div>
             <div class="card-body p-3">
-                <canvas id="firmwareChart" height="80"></canvas>
+                <div class="row">
+                    <div class="col-lg-3 col-6">
+                        <div class="border-dashed text-center border-radius-md py-3">
+                            <h2 class="text-gradient text-primary">
+                                <i class="fas fa-network-wired"></i>
+                                <span class="text-lg ms-2">{{ $stats['diagnostics']['by_type']['ping'] ?? 0 }}</span>
+                            </h2>
+                            <h6 class="mb-0 font-weight-bolder">Ping Tests</h6>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-6">
+                        <div class="border-dashed text-center border-radius-md py-3">
+                            <h2 class="text-gradient text-info">
+                                <i class="fas fa-route"></i>
+                                <span class="text-lg ms-2">{{ $stats['diagnostics']['by_type']['traceroute'] ?? 0 }}</span>
+                            </h2>
+                            <h6 class="mb-0 font-weight-bolder">Traceroute</h6>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-6">
+                        <div class="border-dashed text-center border-radius-md py-3">
+                            <h2 class="text-gradient text-success">
+                                <i class="fas fa-download"></i>
+                                <span class="text-lg ms-2">{{ $stats['diagnostics']['by_type']['download'] ?? 0 }}</span>
+                            </h2>
+                            <h6 class="mb-0 font-weight-bolder">Download</h6>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-6">
+                        <div class="border-dashed text-center border-radius-md py-3">
+                            <h2 class="text-gradient text-warning">
+                                <i class="fas fa-upload"></i>
+                                <span class="text-lg ms-2">{{ $stats['diagnostics']['by_type']['upload'] ?? 0 }}</span>
+                            </h2>
+                            <h6 class="mb-0 font-weight-bolder">Upload</h6>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -471,113 +480,292 @@
 
 @push('scripts')
 <script>
-// Chart.js Configuration
-const chartColors = {
-    success: '#82d616',
-    danger: '#ea0606',
-    warning: '#fbcf33',
-    info: '#17c1e8',
-    primary: '#cb0c9f',
-    secondary: '#8392ab',
-    dark: '#344767'
+// Mini Sparkline Charts Configuration
+const miniChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false }
+    },
+    scales: {
+        x: { display: false },
+        y: { display: false }
+    },
+    elements: {
+        point: { radius: 0 },
+        line: { tension: 0.4, borderWidth: 2 }
+    }
 };
 
-// 1. Devices Status Doughnut Chart
-const devicesCtx = document.getElementById('devicesChart').getContext('2d');
-new Chart(devicesCtx, {
-    type: 'doughnut',
+// Mini Devices Chart (Primary Gradient)
+const miniDevicesCtx = document.getElementById('miniDevicesChart').getContext('2d');
+const miniDevicesGradient = miniDevicesCtx.createLinearGradient(0, 0, 0, 50);
+miniDevicesGradient.addColorStop(0, 'rgba(203, 12, 159, 0.3)');
+miniDevicesGradient.addColorStop(1, 'rgba(203, 12, 159, 0)');
+
+new Chart(miniDevicesCtx, {
+    type: 'line',
+    data: {
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        datasets: [{
+            data: [0, 0, 0, 0, 0, {{ $stats['devices']['online'] ?? 0 }}, {{ $stats['devices']['total'] ?? 0 }}],
+            borderColor: '#cb0c9f',
+            backgroundColor: miniDevicesGradient,
+            fill: true
+        }]
+    },
+    options: miniChartOptions
+});
+
+// Mini Tasks Chart (Warning Gradient)
+const miniTasksCtx = document.getElementById('miniTasksChart').getContext('2d');
+const miniTasksGradient = miniTasksCtx.createLinearGradient(0, 0, 0, 50);
+miniTasksGradient.addColorStop(0, 'rgba(251, 207, 51, 0.3)');
+miniTasksGradient.addColorStop(1, 'rgba(251, 207, 51, 0)');
+
+new Chart(miniTasksCtx, {
+    type: 'line',
+    data: {
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        datasets: [{
+            data: [
+                {{ $stats['tasks']['failed'] ?? 0 }}, 
+                {{ $stats['tasks']['processing'] ?? 0 }}, 
+                {{ $stats['tasks']['completed'] ?? 0 }}, 
+                {{ $stats['tasks']['pending'] ?? 0 }},
+                {{ $stats['tasks']['pending'] ?? 0 }},
+                {{ $stats['tasks']['pending'] ?? 0 }},
+                {{ $stats['tasks']['pending'] ?? 0 }}
+            ],
+            borderColor: '#fbcf33',
+            backgroundColor: miniTasksGradient,
+            fill: true
+        }]
+    },
+    options: miniChartOptions
+});
+
+// Mini Firmware Chart (Success Gradient)
+const miniFirmwareCtx = document.getElementById('miniFirmwareChart').getContext('2d');
+const miniFirmwareGradient = miniFirmwareCtx.createLinearGradient(0, 0, 0, 50);
+miniFirmwareGradient.addColorStop(0, 'rgba(130, 214, 22, 0.3)');
+miniFirmwareGradient.addColorStop(1, 'rgba(130, 214, 22, 0)');
+
+new Chart(miniFirmwareCtx, {
+    type: 'line',
+    data: {
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        datasets: [{
+            data: [
+                {{ $stats['firmware']['scheduled'] ?? 0 }},
+                {{ $stats['firmware']['downloading'] ?? 0 }},
+                {{ $stats['firmware']['installing'] ?? 0 }},
+                {{ $stats['firmware']['completed'] ?? 0 }},
+                {{ $stats['firmware']['completed'] ?? 0 }},
+                {{ $stats['firmware']['completed'] ?? 0 }},
+                {{ $stats['firmware']['completed'] ?? 0 }}
+            ],
+            borderColor: '#82d616',
+            backgroundColor: miniFirmwareGradient,
+            fill: true
+        }]
+    },
+    options: miniChartOptions
+});
+
+// Mini Diagnostics Chart (Info Gradient)
+const miniDiagnosticsCtx = document.getElementById('miniDiagnosticsChart').getContext('2d');
+const miniDiagnosticsGradient = miniDiagnosticsCtx.createLinearGradient(0, 0, 0, 50);
+miniDiagnosticsGradient.addColorStop(0, 'rgba(23, 193, 232, 0.3)');
+miniDiagnosticsGradient.addColorStop(1, 'rgba(23, 193, 232, 0)');
+
+new Chart(miniDiagnosticsCtx, {
+    type: 'line',
+    data: {
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        datasets: [{
+            data: [
+                {{ $stats['diagnostics']['by_type']['ping'] ?? 0 }},
+                {{ $stats['diagnostics']['by_type']['traceroute'] ?? 0 }},
+                {{ $stats['diagnostics']['by_type']['download'] ?? 0 }},
+                {{ $stats['diagnostics']['by_type']['upload'] ?? 0 }},
+                0, 0, 0
+            ],
+            borderColor: '#17c1e8',
+            backgroundColor: miniDiagnosticsGradient,
+            fill: true
+        }]
+    },
+    options: miniChartOptions
+});
+
+// Soft UI Dashboard PRO Chart Configuration
+const gradientChartOptionsConfiguration = {
+    maintainAspectRatio: false,
+    responsive: true,
+    plugins: {
+        legend: {
+            display: false,
+        }
+    },
+    interaction: {
+        intersect: false,
+        mode: 'index',
+    },
+    scales: {
+        y: {
+            grid: {
+                drawBorder: false,
+                display: true,
+                drawOnChartArea: true,
+                drawTicks: false,
+                borderDash: [5, 5]
+            },
+            ticks: {
+                display: true,
+                padding: 10,
+                color: '#b2b9bf',
+                font: {
+                    size: 11,
+                    family: "Open Sans",
+                    style: 'normal',
+                    lineHeight: 2
+                },
+            }
+        },
+        x: {
+            grid: {
+                drawBorder: false,
+                display: false,
+                drawOnChartArea: false,
+                drawTicks: false,
+                borderDash: [5, 5]
+            },
+            ticks: {
+                display: true,
+                color: '#b2b9bf',
+                padding: 20,
+                font: {
+                    size: 11,
+                    family: "Open Sans",
+                    style: 'normal',
+                    lineHeight: 2
+                },
+            }
+        },
+    },
+};
+
+// Device Status Chart (Doughnut with gradient)
+var ctx1 = document.getElementById("deviceStatusChart").getContext("2d");
+
+var gradientStroke1 = ctx1.createLinearGradient(0, 230, 0, 50);
+gradientStroke1.addColorStop(1, 'rgba(203, 12, 159, 0.2)');
+gradientStroke1.addColorStop(0.2, 'rgba(72, 72, 176, 0.0)');
+gradientStroke1.addColorStop(0, 'rgba(203, 12, 159, 0)');
+
+new Chart(ctx1, {
+    type: "doughnut",
     data: {
         labels: ['Online', 'Offline', 'Provisioning', 'Error'],
         datasets: [{
+            label: "Dispositivi",
+            weight: 9,
+            cutout: 60,
+            tension: 0.9,
+            pointRadius: 2,
+            borderWidth: 2,
+            backgroundColor: ['#82d616', '#8392ab', '#fbcf33', '#ea0606'],
             data: [
                 {{ $stats['devices']['online'] ?? 0 }},
                 {{ $stats['devices']['offline'] ?? 0 }},
                 {{ $stats['devices']['provisioning'] ?? 0 }},
                 {{ $stats['devices']['error'] ?? 0 }}
             ],
-            backgroundColor: [chartColors.success, chartColors.secondary, chartColors.warning, chartColors.danger],
-            borderWidth: 0
-        }]
+            fill: false
+        }],
     },
     options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-            legend: { position: 'bottom', labels: { padding: 15, font: { size: 11 } } },
-            tooltip: { 
-                callbacks: {
-                    label: function(context) {
-                        const total = {{ $stats['devices']['total'] ?? 0 }};
-                        const value = context.parsed;
-                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                        return context.label + ': ' + value + ' (' + percentage + '%)';
-                    }
-                }
+            legend: {
+                display: true,
+                position: 'bottom',
             }
-        }
-    }
+        },
+        interaction: {
+            intersect: false,
+            mode: 'index',
+        },
+    },
 });
 
-// 2. Tasks Status Bar Chart
-const tasksCtx = document.getElementById('tasksChart').getContext('2d');
-new Chart(tasksCtx, {
-    type: 'bar',
+// Task Chart (Bar with gradient)
+var ctx2 = document.getElementById("taskChart").getContext("2d");
+
+var gradientStroke2 = ctx2.createLinearGradient(0, 230, 0, 50);
+gradientStroke2.addColorStop(1, 'rgba(251, 207, 51, 0.5)');
+gradientStroke2.addColorStop(0.2, 'rgba(251, 207, 51, 0.1)');
+gradientStroke2.addColorStop(0, 'rgba(251, 207, 51, 0)');
+
+new Chart(ctx2, {
+    type: "bar",
     data: {
-        labels: ['Pending', 'Processing', 'Completed', 'Failed'],
+        labels: ["Pending", "Processing", "Completed", "Failed"],
         datasets: [{
-            label: 'Task',
+            label: "Tasks",
+            tension: 0.4,
+            borderWidth: 0,
+            borderRadius: 4,
+            borderSkipped: false,
+            backgroundColor: gradientStroke2,
             data: [
                 {{ $stats['tasks']['pending'] ?? 0 }},
                 {{ $stats['tasks']['processing'] ?? 0 }},
                 {{ $stats['tasks']['completed'] ?? 0 }},
                 {{ $stats['tasks']['failed'] ?? 0 }}
             ],
-            backgroundColor: [chartColors.warning, chartColors.info, chartColors.success, chartColors.danger],
-            borderRadius: 5
-        }]
+            maxBarThickness: 50
+        }],
     },
     options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        ...gradientChartOptionsConfiguration,
         scales: {
-            y: { beginAtZero: true, ticks: { precision: 0 } }
+            ...gradientChartOptionsConfiguration.scales,
+            y: {
+                ...gradientChartOptionsConfiguration.scales.y,
+                ticks: {
+                    ...gradientChartOptionsConfiguration.scales.y.ticks,
+                    precision: 0
+                }
+            }
         }
-    }
-});
-
-// 3. Diagnostics Type Radar Chart
-const diagnosticsCtx = document.getElementById('diagnosticsChart').getContext('2d');
-new Chart(diagnosticsCtx, {
-    type: 'polarArea',
-    data: {
-        labels: ['Ping', 'Traceroute', 'Download', 'Upload'],
-        datasets: [{
-            data: [
-                {{ $stats['diagnostics']['by_type']['ping'] ?? 0 }},
-                {{ $stats['diagnostics']['by_type']['traceroute'] ?? 0 }},
-                {{ $stats['diagnostics']['by_type']['download'] ?? 0 }},
-                {{ $stats['diagnostics']['by_type']['upload'] ?? 0 }}
-            ],
-            backgroundColor: [chartColors.primary, chartColors.info, chartColors.success, chartColors.warning]
-        }]
     },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom', labels: { padding: 10, font: { size: 10 } } } },
-        scales: { r: { ticks: { precision: 0, backdropPadding: 5 } } }
-    }
 });
 
-// 4. Firmware Deployments Line Chart
-const firmwareCtx = document.getElementById('firmwareChart').getContext('2d');
-new Chart(firmwareCtx, {
-    type: 'line',
+// Firmware Chart (Line with gradient)
+var ctx3 = document.getElementById("firmwareChart").getContext("2d");
+
+var gradientStroke3 = ctx3.createLinearGradient(0, 230, 0, 50);
+gradientStroke3.addColorStop(1, 'rgba(23, 193, 232, 0.5)');
+gradientStroke3.addColorStop(0.2, 'rgba(72, 72, 176, 0.1)');
+gradientStroke3.addColorStop(0, 'rgba(203, 12, 159, 0)');
+
+new Chart(ctx3, {
+    type: "line",
     data: {
-        labels: ['Scheduled', 'Downloading', 'Installing', 'Completed', 'Failed'],
+        labels: ["Scheduled", "Downloading", "Installing", "Completed", "Failed"],
         datasets: [{
-            label: 'Firmware Deployments',
+            label: "Firmware",
+            tension: 0.4,
+            borderWidth: 0,
+            pointRadius: 0,
+            borderColor: "#17c1e8",
+            borderWidth: 3,
+            backgroundColor: gradientStroke3,
+            fill: true,
             data: [
                 {{ $stats['firmware']['scheduled'] ?? 0 }},
                 {{ $stats['firmware']['downloading'] ?? 0 }},
@@ -585,335 +773,11 @@ new Chart(firmwareCtx, {
                 {{ $stats['firmware']['completed'] ?? 0 }},
                 {{ $stats['firmware']['failed'] ?? 0 }}
             ],
-            borderColor: chartColors.info,
-            backgroundColor: 'rgba(23, 193, 232, 0.1)',
-            tension: 0.4,
-            fill: true,
-            pointRadius: 5,
-            pointHoverRadius: 7
-        }]
+            maxBarThickness: 6
+        }],
     },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-            y: { beginAtZero: true, ticks: { precision: 0 } }
-        }
-    }
-});
-
-// Legacy auto-refresh removed - now using dashboard-realtime.js for smooth updates
-
-// Modal handlers for CRUD operations
-document.addEventListener('DOMContentLoaded', function() {
-    // Edit Device Modal - populate with data and set form action
-    const editModal = document.getElementById('editDeviceModal');
-    if (editModal) {
-        editModal.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
-            const deviceId = button.getAttribute('data-device-id');
-            const serial = button.getAttribute('data-device-serial');
-            const manufacturer = button.getAttribute('data-device-manufacturer');
-            const model = button.getAttribute('data-device-model');
-            const status = button.getAttribute('data-device-status');
-            
-            // Set form action URL dynamically
-            const form = editModal.querySelector('#editDeviceForm');
-            form.action = `/acs/devices/${deviceId}`;
-            
-            // Populate form fields
-            editModal.querySelector('#edit_device_id').value = deviceId;
-            editModal.querySelector('#edit_serial_number').value = serial;
-            editModal.querySelector('#edit_manufacturer').value = manufacturer;
-            editModal.querySelector('#edit_model_name').value = model;
-            editModal.querySelector('#edit_status').value = status;
-        });
-    }
-    
-    // Delete Device Modal - populate with data and set form action
-    const deleteModal = document.getElementById('deleteDeviceModal');
-    if (deleteModal) {
-        deleteModal.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
-            const deviceId = button.getAttribute('data-device-id');
-            const serial = button.getAttribute('data-device-serial');
-            
-            // Set form action URL dynamically
-            const form = deleteModal.querySelector('#deleteDeviceForm');
-            form.action = `/acs/devices/${deviceId}`;
-            
-            // Populate modal content
-            deleteModal.querySelector('#delete_device_id').value = deviceId;
-            deleteModal.querySelector('#delete_device_serial').textContent = serial;
-        });
-    }
-});
-
-// Device Add Form - Hierarchical Selection Logic
-const manufacturersData = @json($manufacturers);
-
-function toggleInputMode() {
-    const isManual = document.getElementById('useManualInput').checked;
-    const dropdownMode = document.getElementById('dropdownMode');
-    const manualMode = document.getElementById('manualMode');
-    const mfgSelect = document.getElementById('manufacturer_select');
-    const productSelect = document.getElementById('product_select');
-    
-    if (isManual) {
-        dropdownMode.style.display = 'none';
-        manualMode.style.display = 'block';
-        mfgSelect.removeAttribute('required');
-        productSelect.removeAttribute('required');
-    } else {
-        dropdownMode.style.display = 'block';
-        manualMode.style.display = 'none';
-        mfgSelect.setAttribute('required', 'required');
-        productSelect.setAttribute('required', 'required');
-    }
-}
-
-function loadProducts(manufacturerId) {
-    const productSelect = document.getElementById('product_select');
-    const productInfo = document.getElementById('productInfo');
-    
-    productSelect.innerHTML = '<option value="">-- Seleziona Modello --</option>';
-    productInfo.textContent = '';
-    
-    if (!manufacturerId) {
-        productSelect.disabled = true;
-        return;
-    }
-    
-    const manufacturer = manufacturersData.find(m => m.id == manufacturerId);
-    if (manufacturer && manufacturer.products && manufacturer.products.length > 0) {
-        productSelect.disabled = false;
-        manufacturer.products.forEach(product => {
-            const option = document.createElement('option');
-            option.value = product.id;
-            option.textContent = product.model_name;
-            option.dataset.oui = product.oui || '';
-            option.dataset.productClass = product.product_class || '';
-            option.dataset.manufacturer = manufacturer.name;
-            option.dataset.modelName = product.model_name;
-            productSelect.appendChild(option);
-        });
-        productInfo.textContent = `${manufacturer.products.length} modelli disponibili`;
-    } else {
-        productSelect.disabled = true;
-        productInfo.innerHTML = '<span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Nessun modello disponibile per questo produttore</span>';
-    }
-}
-
-function fillDeviceInfo() {
-    const productSelect = document.getElementById('product_select');
-    const selectedOption = productSelect.options[productSelect.selectedIndex];
-    
-    if (!selectedOption || !selectedOption.value) return;
-    
-    document.getElementById('manufacturer_hidden').value = selectedOption.dataset.manufacturer || '';
-    document.getElementById('model_name_hidden').value = selectedOption.dataset.modelName || '';
-    document.getElementById('oui_hidden').value = selectedOption.dataset.oui || '';
-    document.getElementById('product_class_hidden').value = selectedOption.dataset.productClass || '';
-    
-    const productInfo = document.getElementById('productInfo');
-    productInfo.innerHTML = `<i class="fas fa-check-circle text-success me-1"></i>OUI: <strong>${selectedOption.dataset.oui || 'N/A'}</strong> | Product Class: <strong>${selectedOption.dataset.productClass || 'N/A'}</strong>`;
-}
-
-document.getElementById('addDeviceModal').addEventListener('hidden.bs.modal', function () {
-    document.getElementById('addDeviceForm').reset();
-    document.getElementById('useManualInput').checked = false;
-    toggleInputMode();
-    document.getElementById('product_select').disabled = true;
-    document.getElementById('productInfo').textContent = '';
+    options: gradientChartOptionsConfiguration,
 });
 </script>
-
-<!-- Real-time Dashboard Updates -->
-<script src="/assets/js/dashboard-realtime.js"></script>
 @endpush
-
-<!-- CRUD Modals -->
-<!-- Add Device Modal -->
-<div class="modal fade" id="addDeviceModal" tabindex="-1" aria-labelledby="addDeviceModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-gradient-primary">
-                <h5 class="modal-title text-white" id="addDeviceModalLabel">
-                    <i class="fas fa-plus-circle me-2"></i>Aggiungi Nuovo Dispositivo
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form action="/acs/devices" method="POST" id="addDeviceForm">
-                @csrf
-                <div class="modal-body">
-                    <!-- Input Mode Toggle -->
-                    <div class="mb-4">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="useManualInput" onchange="toggleInputMode()">
-                            <label class="form-check-label" for="useManualInput">
-                                Inserimento manuale (per dispositivi non in lista)
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Dropdown Selection Mode (default) -->
-                    <div id="dropdownMode">
-                        <div class="mb-3">
-                            <label for="manufacturer_select" class="form-label">
-                                Produttore <span class="text-danger">*</span>
-                                <i class="fas fa-info-circle ms-1" data-bs-toggle="tooltip" title="Seleziona il produttore del dispositivo dalla lista"></i>
-                            </label>
-                            <select class="form-select" id="manufacturer_select" onchange="loadProducts(this.value)" required>
-                                <option value="">-- Seleziona Produttore --</option>
-                                @foreach($manufacturers as $mfr)
-                                    <option value="{{ $mfr->id }}" data-name="{{ $mfr->name }}">{{ $mfr->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="product_select" class="form-label">
-                                Modello <span class="text-danger">*</span>
-                                <i class="fas fa-info-circle ms-1" data-bs-toggle="tooltip" title="Seleziona il modello del router"></i>
-                            </label>
-                            <select class="form-select" id="product_select" onchange="fillDeviceInfo()" disabled required>
-                                <option value="">-- Prima seleziona un produttore --</option>
-                            </select>
-                            <small class="text-muted" id="productInfo"></small>
-                        </div>
-                    </div>
-
-                    <!-- Manual Input Mode (hidden by default) -->
-                    <div id="manualMode" style="display: none;">
-                        <div class="alert alert-info alert-sm">
-                            <i class="fas fa-lightbulb me-2"></i>
-                            Usa questa modalità solo se il tuo dispositivo non è presente nella lista dei produttori.
-                        </div>
-                        <div class="mb-3">
-                            <label for="manufacturer_manual" class="form-label">Produttore</label>
-                            <input type="text" class="form-control" id="manufacturer_manual" name="manufacturer" placeholder="es. TP-Link">
-                        </div>
-                        <div class="mb-3">
-                            <label for="model_name_manual" class="form-label">Modello</label>
-                            <input type="text" class="form-control" id="model_name_manual" name="model_name" placeholder="es. Archer C6">
-                        </div>
-                        <div class="mb-3">
-                            <label for="oui_manual" class="form-label">
-                                OUI <i class="fas fa-info-circle ms-1" data-bs-toggle="tooltip" title="Codice esadecimale a 6 cifre del produttore (es. 48D38B per MikroTik)"></i>
-                            </label>
-                            <input type="text" class="form-control" id="oui_manual" name="oui" placeholder="es. 48D38B" maxlength="6" pattern="[0-9A-Fa-f]{6}">
-                        </div>
-                        <div class="mb-3">
-                            <label for="product_class_manual" class="form-label">Product Class</label>
-                            <input type="text" class="form-control" id="product_class_manual" name="product_class">
-                        </div>
-                    </div>
-
-                    <!-- Hidden fields for dropdown mode -->
-                    <input type="hidden" id="manufacturer_hidden" name="manufacturer">
-                    <input type="hidden" id="model_name_hidden" name="model_name">
-                    <input type="hidden" id="oui_hidden" name="oui">
-                    <input type="hidden" id="product_class_hidden" name="product_class">
-
-                    <!-- Serial Number (always visible) -->
-                    <div class="mb-3">
-                        <label for="serial_number" class="form-label">
-                            Serial Number <span class="text-danger">*</span>
-                            <i class="fas fa-info-circle ms-1" data-bs-toggle="tooltip" title="Numero di serie univoco del dispositivo"></i>
-                        </label>
-                        <input type="text" class="form-control" id="serial_number" name="serial_number" required placeholder="es. ABC123456789">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-1"></i>Salva Dispositivo
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Edit Device Modal -->
-<div class="modal fade" id="editDeviceModal" tabindex="-1" aria-labelledby="editDeviceModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-gradient-info">
-                <h5 class="modal-title text-white" id="editDeviceModalLabel">
-                    <i class="fas fa-edit me-2"></i>Modifica Dispositivo
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="editDeviceForm" method="POST">
-                @csrf
-                @method('PUT')
-                <input type="hidden" id="edit_device_id" name="device_id">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="edit_serial_number" class="form-label">Serial Number <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="edit_serial_number" name="serial_number" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="edit_manufacturer" class="form-label">Produttore</label>
-                        <input type="text" class="form-control" id="edit_manufacturer" name="manufacturer">
-                    </div>
-                    <div class="mb-3">
-                        <label for="edit_model_name" class="form-label">Modello</label>
-                        <input type="text" class="form-control" id="edit_model_name" name="model_name">
-                    </div>
-                    <div class="mb-3">
-                        <label for="edit_status" class="form-label">Stato</label>
-                        <select class="form-select" id="edit_status" name="status">
-                            <option value="online">Online</option>
-                            <option value="offline">Offline</option>
-                            <option value="provisioning">Provisioning</option>
-                            <option value="error">Error</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
-                    <button type="submit" class="btn btn-info">
-                        <i class="fas fa-save me-1"></i>Aggiorna
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Delete Device Modal -->
-<div class="modal fade" id="deleteDeviceModal" tabindex="-1" aria-labelledby="deleteDeviceModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-gradient-danger">
-                <h5 class="modal-title text-white" id="deleteDeviceModalLabel">
-                    <i class="fas fa-exclamation-triangle me-2"></i>Conferma Eliminazione
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="deleteDeviceForm" method="POST">
-                @csrf
-                @method('DELETE')
-                <input type="hidden" id="delete_device_id" name="device_id">
-                <div class="modal-body">
-                    <p class="text-center">
-                        <i class="fas fa-trash fa-3x text-danger mb-3"></i>
-                    </p>
-                    <p class="text-center">Sei sicuro di voler eliminare il dispositivo <strong id="delete_device_serial"></strong>?</p>
-                    <p class="text-center text-muted text-sm">Questa azione non può essere annullata.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fas fa-trash me-1"></i>Elimina
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 @endsection
