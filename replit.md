@@ -17,6 +17,7 @@ The web interface utilizes the Soft UI Dashboard Laravel template, offering a mo
 - **Network Topology Map**: Real-time interactive visualization dashboard using vis.js library with device selection dropdown, connection type filters (LAN, 2.4GHz, 5GHz, 6GHz WiFi), color-coded nodes, auto-refresh capability, manual network scan trigger, and detailed node information panel with signal strength display.
 - **Advanced Provisioning Dashboard**: Enterprise-level provisioning interface with bulk operations (multi-device selection and filtering), scheduled provisioning calendar, templates library with 8 categories, conditional provisioning rules, configuration history with rollback, pre-flight validation checks, staged rollout strategy, and real-time analytics with Chart.js visualization.
 - **Performance Monitoring Dashboard**: Real-time system performance dashboard with database query metrics (queries/sec, slow queries analysis), Redis cache statistics (hit rate, memory usage, connected clients), Laravel Horizon queue monitoring (jobs/min, pending/failed counts), average response time tracking, database indexes analysis with usage statistics, and auto-refresh capability (30-second intervals).
+- **Advanced Monitoring & Alerting System**: Enterprise-grade monitoring dashboard with intelligent alert notification system, custom alert rules engine, real-time system metrics tracking, multi-channel notifications (email, Slack, webhook), Chart.js visualizations for metrics trends and alert distribution by severity, comprehensive alert management with pending/failed alerts tracking, and automated alert rule evaluation engine.
 
 ## Technical Implementations
 - **Protocol Support**: Comprehensive implementation of TR-069 (CWMP) via SOAP and TR-369 (USP) using Protocol Buffers over MQTT/WebSocket/HTTP/XMPP, alongside other TR protocols.
@@ -64,6 +65,13 @@ The web interface utilizes the Soft UI Dashboard Laravel template, offering a mo
 - **Auto-Mapping Data Model**: Intelligent automatic data model assignment.
 - **NAT Traversal & Pending Commands Queue**: Production-grade solution for executing TR-069 commands on devices behind NAT/firewalls.
 - **Real-time Alarms & Monitoring**: Carrier-grade alarm management with SSE real-time notifications, a dashboard, and event-driven processing.
+- **Advanced Monitoring & Alerting System**: Comprehensive monitoring infrastructure with intelligent alert notification system featuring:
+  - **Alert Notifications**: Multi-channel notification delivery (email, Slack, webhook) with retry logic, delivery status tracking, and error handling
+  - **Alert Rules Engine**: Configurable alert rules with metric-based conditions (threshold, rate of change, anomaly detection), severity levels (critical, warning, info), duration windows, and recipient management
+  - **System Metrics Tracking**: Real-time collection and storage of system performance metrics (database queries, cache hit rates, queue throughput, response times) with historical trend analysis
+  - **Alert Management Dashboard**: Interactive UI with real-time statistics cards (Total Alerts, Active Rules, Pending Alerts, Failed Alerts), Chart.js visualizations for metrics trends and alert distribution, and "+ NEW ALERT RULE" creation workflow
+  - **AlertMonitoringService**: Centralized service for alert rule evaluation, metric collection, notification job dispatching, and alert lifecycle management
+  - **SendAlertNotificationJob**: Queue-based notification delivery with channel-specific handlers and automatic retry on failure
 
 # External Dependencies
 - **PostgreSQL 16+**: Primary relational database.
