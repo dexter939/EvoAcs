@@ -52,3 +52,25 @@ The web interface uses the Soft UI Dashboard Laravel template, providing a moder
 - **Nginx**: Production web server and reverse proxy.
 - **Supervisor/Systemd**: Process management.
 - **OpenAI**: Integrated for AI-powered configuration management and diagnostic analysis.
+
+## Recent UI Enhancements (October 19, 2025)
+
+### Devices Page Redesign - Profile-Teams Template Pattern
+Production-ready card-based layout following Soft UI Dashboard PRO `profile-teams` demo template:
+- **Header Section**: Dynamic device count display with gradient primary "Info Auto-Registration" button
+- **Compact Filters Toolbar**: Horizontal row with search box, protocol/MTP/status dropdowns, filter/reset buttons
+- **Card Grid Layout**: Responsive `col-xl-4 col-md-6` grid (3 columns desktop, 2 tablet, 1 mobile)
+- **Device Cards**: Gradient background (primary for TR-069, success for TR-369), large router/satellite-dish icons (fa-4x opacity-10), status badge overlay, serial number title, manufacturer-model subtitle, protocol badges, info rows (IP, last contact, service, data model), "Dettagli" button + 4 quick action icons
+- **AJAX Modal Details**: JSON endpoint `/acs/devices/{id}` with `wantsJson()` conditional branching, modal with tabs (Info table, Parameters placeholder, History placeholder)
+- **Backward Compatibility**: Direct Blade view navigation preserved for non-AJAX requests
+- **Architect Review**: PASS - "Working JSON-backed device detail flow with profile-teams UI intact, Security: none observed"
+
+### Dashboard Redesign - Soft UI Dashboard PRO Pattern
+Production-ready redesign following official Soft UI PRO `dashboard-default` demo template:
+- **Stat Cards with Mini Sparklines**: 4 primary cards with Nucleo Icons gradient, trend indicators, and inline 50px Chart.js sparkline charts (primary/warning/success/info gradients)
+- **Modern Table Layout**: col-lg-8 Recent Devices table with dropdown actions menu, protocol-based icons (router/satellite-dish), status badges
+- **Activity Timeline Widget**: col-lg-4 sidebar with CSS gradient vertical line, colored activity dots, real-time task events
+- **Protocol Overview**: 2x2 grid bordered cards for TR-069 CWMP, TR-369 USP, MQTT Transport, HTTP Transport with Nucleo icons
+- **Gradient Charts**: Doughnut (device status), Bar (tasks), Line (firmware) with full Soft UI PRO gradient configuration
+- **Diagnostics Dashboard**: Border-dashed cards with text-gradient icons for Ping/Traceroute/Download/Upload statistics
+- **Architect Review**: PASS - "Delivers PRO layout with functional sparkline charts, Security: none observed"
