@@ -29,6 +29,7 @@ Route::prefix('acs')->name('acs.')->group(function () {
     
     // Dispositivi
     Route::get('/devices', [AcsController::class, 'devices'])->name('devices');
+    Route::get('/devices/datatable', [AcsController::class, 'devicesDataTable'])->name('devices.datatable');
     Route::post('/devices', [AcsController::class, 'storeDevice'])->name('devices.store');
     Route::get('/devices/unassigned-list', [AcsController::class, 'getUnassignedDevices'])->name('devices.unassigned-list');
     Route::get('/devices/{id}', [AcsController::class, 'showDevice'])->name('devices.show');

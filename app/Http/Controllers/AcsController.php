@@ -183,6 +183,95 @@ class AcsController extends Controller
     }
     
     /**
+     * DataTables server-side endpoint for 100K+ devices
+     * Endpoint DataTables server-side per 100K+ dispositivi
+     */
+    public function devicesDataTable(Request $request)
+    {
+        $query = CpeDevice::with(['configurationProfile', 'service.customer', 'dataModel']);
+        
+        // Apply filters from URL parameters
+        if ($request->has('protocol') && $request->protocol !== 'all') {
+            if ($request->protocol === 'tr069') {
+                $query->tr069();
+            } elseif ($request->protocol === 'tr369') {
+                $query->tr369();
+            }
+        }
+        
+        if ($request->has('mtp_type') && $request->mtp_type !== 'all') {
+            $query->where('mtp_type', $request->mtp_type);
+        }
+        
+        if ($request->has('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+        
+        // Get total count before search
+        $recordsTotal = CpeDevice::count();
+        
+        // Apply search filter
+        $search = $request->input('search.value');
+        if (!empty($search)) {
+            $query->where(function($q) use ($search) {
+                $q->where('serial_number', 'ILIKE', "%{$search}%")
+                  ->orWhere('manufacturer', 'ILIKE', "%{$search}%")
+                  ->orWhere('model_name', 'ILIKE', "%{$search}%")
+                  ->orWhere('ip_address', 'ILIKE', "%{$search}%")
+                  ->orWhere('oui', 'ILIKE', "%{$search}%")
+                  ->orWhere('product_class', 'ILIKE', "%{$search}%");
+            });
+        }
+        
+        // Get filtered count
+        $recordsFiltered = $query->count();
+        
+        // Apply sorting
+        $orderColumnIndex = $request->input('order.0.column', 0);
+        $orderDirection = $request->input('order.0.dir', 'desc');
+        
+        $columns = ['serial_number', 'protocol_type', 'status', 'service_id', 'data_model_id', 'ip_address', 'last_contact'];
+        $orderColumn = $columns[$orderColumnIndex] ?? 'last_contact';
+        
+        $query->orderBy($orderColumn, $orderDirection);
+        
+        // Apply pagination
+        $start = (int) $request->input('start', 0);
+        $length = (int) $request->input('length', 25);
+        
+        $devices = $query->skip($start)->take($length)->get();
+        
+        // Format data for DataTables
+        $data = $devices->map(function($device) {
+            return [
+                'id' => $device->id,
+                'serial_number' => $device->serial_number,
+                'manufacturer' => $device->manufacturer,
+                'model_name' => $device->model_name,
+                'protocol_type' => $device->protocol_type,
+                'mtp_type' => $device->mtp_type,
+                'status' => $device->status,
+                'service_name' => $device->service ? $device->service->name : null,
+                'service_id' => $device->service_id,
+                'customer_name' => $device->service && $device->service->customer ? $device->service->customer->name : null,
+                'data_model_protocol' => $device->dataModel ? $device->dataModel->protocol_version : null,
+                'data_model_vendor' => $device->dataModel ? $device->dataModel->vendor : null,
+                'data_model_name' => $device->dataModel ? $device->dataModel->model_name : null,
+                'ip_address' => $device->ip_address,
+                'last_contact' => $device->last_contact ? $device->last_contact->format('d/m/Y H:i') : ($device->last_inform ? $device->last_inform->format('d/m/Y H:i') : 'Mai'),
+                'connection_request_url' => $device->connection_request_url ? true : false,
+            ];
+        });
+        
+        return response()->json([
+            'draw' => (int) $request->input('draw', 1),
+            'recordsTotal' => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
+            'data' => $data
+        ]);
+    }
+    
+    /**
      * Store new CPE device (for testing/manual registration)
      * Salva nuovo dispositivo CPE (per test/registrazione manuale)
      */
