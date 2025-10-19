@@ -17,6 +17,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <!-- CSS Files -->
     <link id="pagestyle" href="/assets/css/soft-ui-dashboard.css?v=1.0.4" rel="stylesheet" />
+    <!-- jQuery DataTables CSS -->
+    <link href="/assets/css/vendor/jquery.dataTables.min.css" rel="stylesheet" />
     
     @stack('styles')
 </head>
@@ -61,12 +63,15 @@
     </main>
     
     <!-- Core JS Files -->
+    <!-- jQuery (required for DataTables) -->
+    <script src="/assets/js/vendor/jquery-3.7.1.min.js"></script>
     <script src="/assets/js/core/popper.min.js"></script>
     <script src="/assets/js/core/bootstrap.min.js"></script>
     <script src="/assets/js/plugins/perfect-scrollbar.min.js"></script>
     <script src="/assets/js/plugins/smooth-scrollbar.min.js"></script>
     <script src="/assets/js/plugins/chartjs.min.js"></script>
-    <script src="/assets/js/plugins/datatables.js"></script>
+    <!-- jQuery DataTables -->
+    <script src="/assets/js/vendor/jquery.dataTables.min.js"></script>
     
     <script>
         var win = navigator.platform.indexOf('Win') > -1;
