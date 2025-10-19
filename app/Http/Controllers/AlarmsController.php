@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Events\AlarmCreated;
 use App\Models\Alarm;
 use App\Services\AlarmService;
+use App\Models\SecurityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -50,9 +51,23 @@ class AlarmsController extends Controller
             ], 404);
         }
 
+        SecurityLog::logEvent('alarm_acknowledged', [
+            'severity' => 'info',
+            'ip_address' => $request->ip(),
+            'action' => 'alarm_acknowledged',
+            'description' => 'Alarm acknowledged by ' . auth()->user()->name,
+            'user_id' => auth()->id(),
+            'risk_level' => 'low',
+            'metadata' => [
+                'alarm_id' => $alarm->id,
+                'alarm_title' => $alarm->title,
+                'alarm_severity' => $alarm->severity,
+            ],
+        ]);
+
         return response()->json([
             'success' => true,
-            'message' => 'Alarm acknowledged successfully',
+            'message' => 'Allarme preso in carico con successo',
             'data' => $alarm
         ]);
     }
@@ -72,9 +87,23 @@ class AlarmsController extends Controller
             ], 404);
         }
 
+        SecurityLog::logEvent('alarm_cleared', [
+            'severity' => 'info',
+            'ip_address' => $request->ip(),
+            'action' => 'alarm_cleared',
+            'description' => 'Alarm cleared by ' . auth()->user()->name,
+            'user_id' => auth()->id(),
+            'risk_level' => 'low',
+            'metadata' => [
+                'alarm_id' => $alarm->id,
+                'alarm_title' => $alarm->title,
+                'resolution' => $request->resolution,
+            ],
+        ]);
+
         return response()->json([
             'success' => true,
-            'message' => 'Alarm cleared successfully',
+            'message' => 'Allarme risolto con successo',
             'data' => $alarm
         ]);
     }
@@ -86,6 +115,76 @@ class AlarmsController extends Controller
         return response()->json([
             'success' => true,
             'data' => $stats
+        ]);
+    }
+
+    public function bulkAcknowledge(Request $request)
+    {
+        $request->validate([
+            'alarm_ids' => 'required|array',
+            'alarm_ids.*' => 'exists:alarms,id',
+        ]);
+
+        $count = 0;
+        foreach ($request->alarm_ids as $alarmId) {
+            $alarm = $this->alarmService->acknowledgeAlarm($alarmId);
+            if ($alarm) {
+                $count++;
+            }
+        }
+
+        SecurityLog::logEvent('bulk_alarms_acknowledged', [
+            'severity' => 'info',
+            'ip_address' => $request->ip(),
+            'action' => 'bulk_alarms_acknowledged',
+            'description' => 'Bulk alarms acknowledged by ' . auth()->user()->name,
+            'user_id' => auth()->id(),
+            'risk_level' => 'low',
+            'metadata' => [
+                'count' => $count,
+                'alarm_ids' => $request->alarm_ids,
+            ],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$count} allarmi presi in carico con successo",
+        ]);
+    }
+
+    public function bulkClear(Request $request)
+    {
+        $request->validate([
+            'alarm_ids' => 'required|array',
+            'alarm_ids.*' => 'exists:alarms,id',
+            'resolution' => 'nullable|string|max:500',
+        ]);
+
+        $count = 0;
+        foreach ($request->alarm_ids as $alarmId) {
+            $alarm = $this->alarmService->clearAlarm($alarmId, $request->resolution);
+            if ($alarm) {
+                $count++;
+            }
+        }
+
+        SecurityLog::logEvent('bulk_alarms_cleared', [
+            'severity' => 'info',
+            'ip_address' => $request->ip(),
+            'action' => 'bulk_alarms_cleared',
+            'description' => 'Bulk alarms cleared by ' . auth()->user()->name,
+            'user_id' => auth()->id(),
+            'risk_level' => 'low',
+            'metadata' => [
+                'count' => $count,
+                'alarm_ids' => $request->alarm_ids,
+                'resolution' => $request->resolution,
+            ],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$count} allarmi risolti con successo",
         ]);
     }
 
