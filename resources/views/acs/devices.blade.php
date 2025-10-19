@@ -677,12 +677,14 @@ document.getElementById('assignServiceForm').addEventListener('submit', function
     });
 });
 
-// Initialize DataTables PRO for advanced device management
+// Initialize DataTables PRO for advanced device management (DOM-based simple-datatables v3.0.2)
+// Note: simple-datatables is DOM-based, operates on rendered rows only
+// For true 100K+ server-side processing, consider upgrading to jQuery DataTables
 document.addEventListener('DOMContentLoaded', function() {
     const devicesTable = document.getElementById('devicesTable');
     
     if (devicesTable && typeof simpleDatatables !== 'undefined') {
-        new simpleDatatables.DataTable(devicesTable, {
+        const dataTable = new simpleDatatables.DataTable(devicesTable, {
             searchable: true,
             fixedHeight: false,
             perPage: 25,
@@ -691,10 +693,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 placeholder: "Cerca dispositivi...",
                 perPage: "dispositivi per pagina",
                 noRows: "Nessun dispositivo trovato",
-                info: "Mostrando {start} a {end} di {rows} dispositivi"
+                info: "Mostrando {start} a {end} di {rows} dispositivi (pagina corrente)"
             }
         });
         console.log('✅ DataTables PRO initialized for device management');
+        console.log('ℹ️  Note: Operating on Laravel-paginated subset. For 100K+ scale, API endpoint /acs/devices/datatable is available for jQuery DataTables integration');
     }
 });
 </script>

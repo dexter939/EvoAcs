@@ -226,18 +226,27 @@ class AcsController extends Controller
         // Get filtered count
         $recordsFiltered = $query->count();
         
-        // Apply sorting
+        // Apply sorting (sanitized to prevent SQL injection)
         $orderColumnIndex = $request->input('order.0.column', 0);
-        $orderDirection = $request->input('order.0.dir', 'desc');
+        $orderDirection = strtolower($request->input('order.0.dir', 'desc'));
         
+        // Whitelist sortable columns and direction
         $columns = ['serial_number', 'protocol_type', 'status', 'service_id', 'data_model_id', 'ip_address', 'last_contact'];
         $orderColumn = $columns[$orderColumnIndex] ?? 'last_contact';
+        $orderDirection = in_array($orderDirection, ['asc', 'desc']) ? $orderDirection : 'desc';
         
         $query->orderBy($orderColumn, $orderDirection);
         
-        // Apply pagination
-        $start = (int) $request->input('start', 0);
+        // Apply pagination (handle DataTables -1 for "show all")
+        $start = max(0, (int) $request->input('start', 0));
         $length = (int) $request->input('length', 25);
+        
+        // Clamp length to sensible range: max 1000 records per page, -1 treated as max
+        if ($length === -1) {
+            $length = 1000; // Max limit for "show all" to prevent memory issues
+        } else {
+            $length = max(1, min($length, 1000)); // Between 1 and 1000
+        }
         
         $devices = $query->skip($start)->take($length)->get();
         

@@ -8,6 +8,16 @@ I prefer clear and concise explanations. When making changes, prioritize core fu
 
 **Current Status**: ~68% (143/181 tests passing, verified October 19, 2025)
 
+### Recent Enhancements
+
+**DataTables Server-Side API Endpoint** (October 19, 2025): Production-ready API for scalable device management
+- **Endpoint**: GET `/acs/devices/datatable` with DataTables-compatible JSON response
+- **Security**: SQL injection protection via whitelisted orderDirection (`asc`/`desc`) and sortable columns
+- **Performance**: Optimized query with eager loading (configurationProfile, service.customer, dataModel), ILIKE multi-field search (serial_number, manufacturer, model_name, ip_address, oui, product_class)
+- **Pagination**: Handles DataTables `-1` (show all) safely, clamped 1-1000 records per page max
+- **Current UI**: simple-datatables v3.0.2 (DOM-based) operates on Laravel-paginated subset (~25 rows)
+- **Future Upgrade Path**: jQuery DataTables integration ready for true 100K+ server-side processing
+
 ### Phase 3 - API Standardization (100% Complete) ✅ (October 2025)
 - **TR-369 USP Operations** (13/13 tests): Complete ✅ - getParameters, setParameters, addObject, deleteObject, operate, reboot, createSubscription, listSubscriptions, deleteSubscription, device validation, online validation, notification_type validation, mtp_transports (mqtt/websocket/http)
   - Mock Pattern: UspMqttService.publish($topic, $record) for MQTT transport
