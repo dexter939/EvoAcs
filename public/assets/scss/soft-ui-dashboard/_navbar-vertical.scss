@@ -30,6 +30,9 @@
           margin-left: $dropdown-item-padding-x / 2;
         }
       }
+      .icon {
+        padding: 10px;
+      }
     }
 
     .nav-sm {
@@ -181,7 +184,7 @@
 //
 
 .sidenav {
-  z-index: 990;
+  z-index: 999;
 
   .navbar-brand,
   .navbar-heading {
@@ -459,18 +462,6 @@
   }
 }
 @include media-breakpoint-up(xl) {
-  .navbar-vertical {
-    .navbar-nav {
-      .nav-item {
-        .nav-link {
-          .icon {
-            padding: 10px;
-          }
-        }
-      }
-    }
-  }
-
   .g-sidenav-hidden {
     &.rtl .main-content {
       margin-right: $navbar-vertical-hidden-width !important;

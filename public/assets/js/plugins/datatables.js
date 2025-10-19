@@ -813,7 +813,7 @@
           footer: !1,
           labels: {
             placeholder: "Search...",
-            perPage: "{select} entries per page",
+            perPage: "Show {select} entries",
             noRows: "No entries found",
             info: "Showing {start} to {end} of {rows} entries"
           },

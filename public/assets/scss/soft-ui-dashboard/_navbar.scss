@@ -165,6 +165,14 @@
 
     }
   }
+
+  .navbar {
+    &.navbar-transparent {
+      .navbar-collapse {
+        box-shadow: $box-shadow-lg;
+      }
+    }
+  }
 }
 
 @include media-breakpoint-down(md) {
