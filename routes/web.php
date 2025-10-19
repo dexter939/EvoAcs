@@ -9,6 +9,7 @@ use App\Http\Controllers\DataModelController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\AlarmsController;
 
 require __DIR__.'/auth.php';
 
@@ -142,6 +143,20 @@ Route::prefix('acs')->name('acs.')->middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile');
     Route::put('/profile/info', [ProfileController::class, 'updateInfo'])->name('profile.update-info');
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.update-password');
+    
+    // Alarms & Monitoring (RBAC Protected)
+    Route::middleware(['permission:alarms.view'])->group(function () {
+        Route::get('/alarms', [AlarmsController::class, 'index'])->name('alarms');
+        Route::get('/alarms/stats', [AlarmsController::class, 'getStats'])->name('alarms.stats');
+        Route::get('/alarms/stream', [AlarmsController::class, 'stream'])->name('alarms.stream');
+    });
+    
+    Route::middleware(['permission:alarms.manage'])->group(function () {
+        Route::post('/alarms/{id}/acknowledge', [AlarmsController::class, 'acknowledge'])->name('alarms.acknowledge');
+        Route::post('/alarms/{id}/clear', [AlarmsController::class, 'clear'])->name('alarms.clear');
+        Route::post('/alarms/bulk-acknowledge', [AlarmsController::class, 'bulkAcknowledge'])->name('alarms.bulk-acknowledge');
+        Route::post('/alarms/bulk-clear', [AlarmsController::class, 'bulkClear'])->name('alarms.bulk-clear');
+    });
     
     // Router Manufacturers & Products Database
     Route::get('/manufacturers', [AcsController::class, 'manufacturers'])->name('manufacturers');
