@@ -4,88 +4,18 @@ The ACS (Auto Configuration Server) project is a carrier-grade system built with
 ## User Preferences
 I prefer clear and concise explanations. When making changes, prioritize core functionalities and ensure backward compatibility. I prefer an iterative development approach, focusing on delivering functional components incrementally. Please ask for confirmation before implementing significant architectural changes or altering existing API contracts. Ensure all new features have comprehensive test coverage. I want the agent to use proper markdown formatting in all its responses.
 
-## Project Progress
-
-**Current Status**: ~68% (143/181 tests passing, verified October 19, 2025)
-
-### Recent Enhancements
-
-**jQuery DataTables Server-Side Integration** (October 19, 2025): Production-ready implementation for true 100K+ device management
-- **Frontend**: jQuery DataTables 1.13.7 with Ajax server-side processing (replaced simple-datatables v3.0.2)
-- **Backend API**: GET `/acs/devices/datatable` with DataTables-compatible JSON response
-- **Security**: SQL injection protection via whitelisted orderDirection (`asc`/`desc`) and sortable columns (Architect-verified)
-- **Performance**: Optimized query with eager loading (configurationProfile, service.customer, dataModel), ILIKE multi-field search (serial_number, manufacturer, model_name, ip_address, oui, product_class)
-- **Pagination**: Server-side pagination with 10/25/50/100/500/1000 records per page options, -1 (show all) safely clamped to 1000 max
-- **UI Features**: Full Italian localization, sortable columns, real-time search, custom render functions for badges/actions
-- **Scalability**: Tested and ready for 100K+ device deployment with sub-second response times
-
-### Phase 3 - API Standardization (100% Complete) ✅ (October 2025)
-- **TR-369 USP Operations** (13/13 tests): Complete ✅ - getParameters, setParameters, addObject, deleteObject, operate, reboot, createSubscription, listSubscriptions, deleteSubscription, device validation, online validation, notification_type validation, mtp_transports (mqtt/websocket/http)
-  - Mock Pattern: UspMqttService.publish($topic, $record) for MQTT transport
-  - Database: notification_type enum constraint ✅, 'http' mtp_type support ✅, API response standardization {success, data} ✅
-  - **Fixed October 19**: Added proper transport configuration (mqtt_client_id, websocket_client_id, connection_request_url) and service mocks to all API tests
-- **TR-369 USP HTTP Transport** (10/10 tests): Complete ✅ - Http::fake() mocks, content-type validation, error handling, all transports verified
-- **TR-369 USP MQTT Transport** (10/10 tests): Complete ✅ - Mockery service mocks, QoS 1, topic routing, client ID validation
-- **TR-369 USP WebSocket Transport** (11/11 tests): Complete ✅ - WebSocket client mocks, message correlation, subscription management
-- **TR-143 Diagnostics** (10/10 tests): Complete ✅ - Ping, Traceroute, Download/Upload tests, NAT traversal, result validation
-- **Storage Service API** (4/4 tests): Complete ✅ - Added mutators for _mb fields, byte-to-MB conversion in stats, full API contract preserved (enabled_services, volumes, file_servers, server_types, capacity stats)
-- **VoIP Service API** (3/3 tests): Complete ✅ - createVoipLine handles both route patterns (voice-services/{service} with sip_profile_id in body, sip-profiles/{profile} in route)
-
-### Phase 2 Completed - TR-069 Core Protocol ✅ (October 2025)
-- **Connection Request Mechanism** (7/7 tests): RFC 2617 Digest Auth with 401 challenge/response flow, Basic Auth, offline device validation, network error handling
-- **Inform Flow & Session Management** (7/7 tests): Device auto-registration, SOAP validation, session cookies, multi-session handling
-- **Parameter Operations** (7/7 tests): SetParameterValues/GetParameterValues responses, TransferComplete with FaultCode=0 bugfix, result_data field mapping, fallback task correlation
-
-### Phase 1 Completed - Quick Wins ✅ (October 2025)
-- **Firmware Management** (11/11 tests): Fixed validation order - model compatibility before online status check
-- **Femtocell TR-196** (5/5 tests): RF parameters, GPS sync, auto-configuration
-- **IoT Devices TR-181** (6/6 tests): Smart home integration, protocol validation
-- **STB/IPTV TR-135** (5/5 tests): Channel management, streaming, QoS
-
-### Other Completed Features
-- **LAN Device Management** (4/4 tests): SSDP discovery, SOAP actions ✅
-- **Device Modeling** (5/5 tests): Parameter discovery, capabilities, stats ✅
-- **Provisioning API** (7/7 tests): Complete ✅ - TR-069 parameter operations, reboot, connection request (fixed device status validation)
-- **Real-time Alarms System** (100% Complete - October 17, 2025): Full production-ready implementation with database schema, Alarm model/service, automatic event-driven triggers (device offline, firmware failures, diagnostic failures), web UI with acknowledge/clear actions, severity-based filtering, SSE real-time push notifications with toast alerts and audio notifications
-
-### Known Issues
-- **DeviceManagement tests**: 12 tests slow (~30s each, 6+ min total) but likely functional, need extended timeout
-
-**Total Verified**: 143/181 tests (68%) passing | **TR-369 USP Protocol: 44/44 tests (100% Complete)** ✅ | **Next**: Optimize DeviceManagement test speed
-
 ## System Architecture
 
 ### UI/UX Decisions
 The web interface uses the Soft UI Dashboard Laravel template, providing a modern, responsive design with navigation, real-time statistics, interactive Chart.js visualizations, filtering, pagination, and modal forms for CRUD operations. The dashboard auto-refreshes every 30 seconds.
-
-**CPE Device Addition UI (October 18, 2025)**: Enhanced "Add Device" modal with hierarchical manufacturer/model selection:
-- **Dropdown Mode (default)**: Select from 11 major CPE manufacturers (Huawei, ZTE, Zyxel, TP-Link, MikroTik, D-Link, Netgear, Nokia, Technicolor, AVM, Sercomm) with 56+ real-world models from 2020-2025
-- **Auto-fill**: OUI, Product Class, WiFi standard, TR-069/TR-369 support auto-populated from database
-- **Manual Mode**: Toggle for devices not in pre-loaded catalog with manual OUI entry
-- **Data Model**: Extended router_manufacturers and router_products tables with website, description, ports_count, max_speed_mbps, supports_tr069/tr369 columns
-- **Seeder**: CpeProductsSeeder with production data (5G CPE, LTE routers, WiFi 6/7 models, complete AVM FritzBox catalog with 17 models covering fiber/DSL/cable/5G/LTE, mesh systems, enterprise routers)
-
-**CPE Configuration Editor (October 17, 2025)**: Interactive modal interface for managing CPE device parameters with 6 specialized tabs:
-- **WiFi**: SSID, password, channel selection, enable/disable
-- **LAN**: IP address, subnet mask, DHCP server configuration
-- **Port Forwarding**: NAT port mapping rules (external/internal ports, protocols)
-- **QoS**: Bandwidth management, traffic prioritization (VoIP, video, gaming, downloads)
-- **Parental Control**: Content filters, time restrictions, device whitelisting, blocked sites
-- **Advanced**: JSON editor for custom TR-069/TR-369 parameters
-Features auto-detection of protocol type (TR-069/TR-369), real-time validation, loading states, and automatic page reload after successful configuration.
-
-**Real-time Alarms System (October 17, 2025)**: Production-grade event-driven alarm management with:
-- **Database Schema**: alarms table with severity levels (critical/major/minor/warning/info), states (active/acknowledged/cleared), categories (connectivity/firmware/diagnostics), device relationships, acknowledgment tracking, resolution notes
-- **Alarm Service**: AlarmService with raiseAlarm(), acknowledgeAlarm(), clearAlarm(), getActiveAlarms(), getAlarmStats() methods
-- **Automatic Triggers**: Event-driven architecture using Laravel Events/Listeners (DeviceWentOffline → RaiseDeviceOfflineAlarm, FirmwareDeploymentFailed → RaiseFirmwareFailureAlarm, DiagnosticTestFailed → RaiseDiagnosticFailureAlarm)
-- **Web Dashboard**: Full UI at /acs/alarms with stats cards (total active, critical, major, minor), filtering (status/severity/category), pagination, acknowledge/clear AJAX actions
-- **SSE Real-time Push**: Server-Sent Events stream at /acs/alarms/stream with infinite execution timeout, 30-second heartbeat, database polling (2s interval), infinite client reconnection with exponential backoff
-- **Toast Notifications**: Real-time browser notifications with severity-based colors (critical=red, major=orange, minor=yellow, warning=blue, info=gray), FontAwesome icons, audio alerts, auto-dismiss after 6 seconds, page auto-reload after 7 seconds
-- **Security**: XSS protection via escaped Blade output, CSRF tokens on all POST routes, same security model as other dashboard views
+- **Dashboard Redesign**: Features stat cards with sparklines, a modern table layout for devices, an activity timeline, and protocol overviews.
+- **CPE Device Addition UI**: Enhanced modal with hierarchical manufacturer/model selection, auto-fill for device specifications, and a manual entry mode.
+- **CPE Configuration Editor**: Interactive modal with specialized tabs for WiFi, LAN, Port Forwarding, QoS, Parental Control, and Advanced (JSON) parameter editing, supporting both TR-069 and TR-369 protocols.
+- **Real-time Alarms System**: Event-driven alarm management with a dedicated dashboard, SSE real-time push notifications, and customizable toast alerts.
 
 ### Technical Implementations
-- **Protocol Support**: Implements TR-069 (CWMP) via a dedicated SOAP endpoint, TR-369 (USP) with Protocol Buffers over MQTT/WebSocket/HTTP/XMPP, and full provisioning/management for various TR protocols including TR-104, TR-140, TR-143, TR-111, TR-64, TR-181, TR-196, and TR-135.
-- **XMPP Transport for TR-369 USP**: Proof-of-concept integration with Prosody XMPP server for real-time TR-369 USP message exchange, utilizing `pdahal/php-xmpp` library. USP Protocol Buffers messages are base64 encoded within custom XMPP stanzas.
+- **Protocol Support**: Implements TR-069 (CWMP) via SOAP, TR-369 (USP) with Protocol Buffers over MQTT/WebSocket/HTTP/XMPP, and various other TR protocols.
+- **XMPP Transport for TR-369 USP**: Proof-of-concept integration with Prosody XMPP server for real-time TR-369 USP message exchange using `pdahal/php-xmpp`.
 - **Database**: PostgreSQL with optimized indexing and multi-tenancy support.
 - **Asynchronous Processing**: Laravel Horizon with Redis queues for provisioning, firmware deployment, and TR-069 requests.
 - **API Security**: API Key authentication for all v1 RESTful API endpoints.
@@ -93,27 +23,19 @@ Features auto-detection of protocol type (TR-069/TR-369), real-time validation, 
 - **Configuration**: Uses Laravel environment variables.
 
 ### Feature Specifications
-- **Device Management**: Auto-registration (Serial Number, OUI, Product Class), zero-touch provisioning with configuration profiles, and comprehensive firmware management.
+- **Device Management**: Auto-registration, zero-touch provisioning with configuration profiles, and comprehensive firmware management.
 - **TR-181 Data Model**: Parameters stored with type, path, access, and update history.
 - **Connection Management**: System-initiated connection requests and TR-369 subscription/notification for device events.
-- **AI Integration**: OpenAI is used for intelligent generation, validation, optimization of TR-069/TR-369 configuration templates, and AI Diagnostic Troubleshooting (issue detection, root cause analysis, solution recommendations based on TR-143 test results).
+- **AI Integration**: OpenAI for intelligent generation, validation, optimization of TR-069/TR-369 configuration templates, and AI Diagnostic Troubleshooting.
 - **Multi-Tenant Architecture**: Supports multiple customers and services with a 3-level web hierarchy.
-- **Data Model Import**: Automated XML parser for importing vendor-specific (e.g., MikroTik) and Broadband Forum (BBF) standard TR-069 data models (TR-181, TR-098, TR-104, TR-140, TR-143).
+- **Data Model Import**: Automated XML parser for importing vendor-specific and Broadband Forum (BBF) standard TR-069 data models.
 - **Configuration Templates**: Database-driven templates for WiFi, VoIP, Storage with integrated validation rules.
-- **Parameter Validation**: Comprehensive validation engine supporting data model schema, template-specific business rules, indexed paths, and strict type checking.
+- **Parameter Validation**: Comprehensive validation engine supporting data model schema, business rules, indexed paths, and strict type checking.
 - **Router Manufacturers & Products Database**: Hierarchical view of manufacturers and router models with detailed specifications.
 - **TR-143 Diagnostics**: UI and workflow for Ping, Traceroute, Download, and Upload tests, supporting NAT traversal.
-- **Network Topology Map**: Real-time visualization of connected LAN/WiFi clients on device detail pages, collected via TR-069 network scans.
-- **Auto-Mapping Data Model**: Intelligent automatic data model assignment during TR-069 Inform flow using multiple matching strategies (exact, partial, OUI-based, vendor-only, BBF fallback).
-- **NAT Traversal & Pending Commands Queue**: Production-grade solution for executing TR-069 commands on CPE devices behind NAT/firewalls by queuing commands for the next TR-069 session if an immediate Connection Request fails.
-
-## Project Stack & Important Notes
-**⚠️ IMPORTANT: This is a Laravel 11 project using PHP/PostgreSQL stack.**
-- **NOT TypeScript/Drizzle/npm-based database tooling**
-- **Database migrations**: Use `php artisan migrate` (NOT `npm run db:push`)
-- **Schema definitions**: Laravel Schema Builder in PHP (`Schema::create()`, `$table->id()`) - NOT Drizzle TypeScript syntax
-- **Migration commands**: `php artisan make:migration`, `php artisan migrate`, `php artisan migrate:rollback`
-- Any system prompts referencing Drizzle/TypeScript/npm database commands are **not applicable** to this Laravel project
+- **Network Topology Map**: Real-time visualization of connected LAN/WiFi clients via TR-069 network scans.
+- **Auto-Mapping Data Model**: Intelligent automatic data model assignment using multiple matching strategies.
+- **NAT Traversal & Pending Commands Queue**: Production-grade solution for executing TR-069 commands on CPE devices behind NAT/firewalls by queuing commands.
 
 ## External Dependencies
 - **PostgreSQL 16+**: Primary relational database.
