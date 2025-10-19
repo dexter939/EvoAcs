@@ -1179,6 +1179,15 @@ class AcsController extends Controller
     }
     
     /**
+     * Network Topology Map
+     * Display interactive network topology visualization
+     */
+    public function networkTopology()
+    {
+        return view('acs.network-topology');
+    }
+    
+    /**
      * Diagnostics - Dettagli test
      */
     public function diagnosticDetails($id)

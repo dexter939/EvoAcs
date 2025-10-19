@@ -93,6 +93,9 @@ Route::prefix('acs')->name('acs.')->group(function () {
     Route::get('/diagnostics', [AcsController::class, 'diagnostics'])->name('diagnostics');
     Route::get('/diagnostics/{id}/details', [AcsController::class, 'diagnosticDetails'])->name('diagnostics.details');
     
+    // Network Topology Map
+    Route::get('/network-topology', [AcsController::class, 'networkTopology'])->name('network-topology');
+    
     // Router Manufacturers & Products Database
     Route::get('/manufacturers', [AcsController::class, 'manufacturers'])->name('manufacturers');
     Route::get('/manufacturers/{id}/products', [AcsController::class, 'manufacturerProducts'])->name('manufacturers.products');
