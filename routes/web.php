@@ -130,11 +130,13 @@ Route::prefix('acs')->name('acs.')->middleware('auth')->group(function () {
     Route::post('/users/{id}/assign-role', [UserController::class, 'assignRole'])->name('users.assign-role');
     
     // Roles Management (RBAC)
-    Route::get('/roles', [RoleController::class, 'index'])->name('roles');
-    Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
-    Route::put('/roles/{id}', [RoleController::class, 'update'])->name('roles.update');
-    Route::delete('/roles/{id}', [RoleController::class, 'destroy'])->name('roles.destroy');
-    Route::post('/roles/{id}/assign-permissions', [RoleController::class, 'assignPermissions'])->name('roles.assign-permissions');
+    Route::middleware(['permission:roles.manage'])->group(function () {
+        Route::get('/roles', [RoleController::class, 'index'])->name('roles');
+        Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
+        Route::put('/roles/{id}', [RoleController::class, 'update'])->name('roles.update');
+        Route::delete('/roles/{id}', [RoleController::class, 'destroy'])->name('roles.destroy');
+        Route::post('/roles/{id}/assign-permissions', [RoleController::class, 'assignPermissions'])->name('roles.assign-permissions');
+    });
     
     // User Profile
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile');

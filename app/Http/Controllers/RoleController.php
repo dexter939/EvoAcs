@@ -159,11 +159,11 @@ class RoleController extends Controller
         $role = Role::findOrFail($id);
 
         $request->validate([
-            'permissions' => ['required', 'array'],
+            'permissions' => ['nullable', 'array'],
             'permissions.*' => ['exists:permissions,id'],
         ]);
 
-        $role->permissions()->sync($request->permissions);
+        $role->permissions()->sync($request->permissions ?? []);
 
         SecurityLog::logEvent('permissions_updated', [
             'severity' => 'warning',
