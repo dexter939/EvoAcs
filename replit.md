@@ -110,3 +110,35 @@ Production-ready tabbed modal with hierarchical parameters and event history:
 - **AJAX-Powered**: JSON endpoints with `wantsJson()` conditional branching, backward-compatible Blade fallback
 - **CSRF Protection**: X-CSRF-TOKEN header on all fetch requests
 - **Architect Review**: PASS - "Satisfies hierarchical parameters/history requirements and eliminates stored-XSS exposure via centralized HTML escaping. Security: no serious issues observed."
+
+### Real-time Alarms & Monitoring System - Production-Ready (October 19, 2025)
+Carrier-grade alarm management system with SSE real-time notifications following Soft UI Dashboard PRO patterns:
+
+**Dashboard UI - Soft UI PRO Pattern:**
+- **Stat Cards with Sparklines**: 4 responsive cards (col-xl-3 col-sm-6) with gradient Nucleo icons (bell/exclamation/triangle/lightbulb), inline 50px Chart.js sparkline charts displaying real 24h trend data
+- **Real-time Badge**: Pulsating green "SSE CONNECTED" badge with animation indicating live connection status
+- **Activity Timeline**: col-lg-4 sidebar widget with vertical gradient line, colored activity dots (red/orange/yellow/blue), showing recent 10 alarms with formatted timestamps
+- **Filters & Actions**: Status dropdown (active/acknowledged/cleared), severity dropdown, bulk "Acknowledge All" button with Promise.all processing
+- **Alarms Table**: col-lg-8 responsive table with severity badges, device links, timestamps, "Acknowledge" action buttons
+
+**Backend Implementation:**
+- **AlarmService::getAlarmTrends24h()**: Hourly aggregation of alarms for last 24h, returns labels array + total/critical/major/minor counts for sparkline charts
+- **Scalable SSE Endpoint**: Bounded runtime (5min max, 150 iterations), batch limit (10 alarms/query), eager loading (`->with(['device:id,hostname,serial_number'])`), disconnect detection, proper logging with Log facade
+- **Default Filter**: Server-side enforcement of "active" status filter, pagination with preserved query params
+- **Event-Driven**: AlarmCreated event broadcast via SSE stream, DeviceOfflineAlarm/FirmwareFailureAlarm/DiagnosticFailureAlarm automatic listeners
+
+**Database:**
+- **Migration**: `2025_10_17_214053_create_alarms_table` with indexed columns (device_id, severity, status, raised_at)
+- **Model**: `Alarm` with scopes (active, acknowledged, cleared, bySeverity), relationships (belongsTo CpeDevice), helpers (badgeColor, severityIcon)
+- **DeviceEvent Integration**: Alarm events logged to device_events timeline for audit trail
+
+**Security & Performance:**
+- **CSRF Protection**: X-CSRF-TOKEN header on AJAX requests
+- **Input Validation**: Sanitized filter parameters (status, severity)
+- **Indexed Queries**: `raised_at` index for 24h trend aggregation (96 queries acceptable short-term, future optimization: single grouped query or materialized view)
+- **Connection Management**: `ignore_user_abort(false)`, `set_time_limit(300)`, heartbeat every 30s, force reconnect after max duration
+
+**Future Scalability Notes:**
+- For 100K+ concurrent operators: consider Redis pub/sub or WebSocket upgrade
+- SQL optimization: batch hourly trend queries into single grouped query for reduced latency
+- Architect Review: PASS - "Meets carrier-grade readiness objectives with real data-driven sparklines, bounded SSE streaming, and default-active filtering functioning as intended. Security: none observed."
