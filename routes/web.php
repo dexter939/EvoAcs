@@ -7,6 +7,8 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AcsController;
 use App\Http\Controllers\DataModelController;
 
+require __DIR__.'/auth.php';
+
 // Home - Redirect to Dashboard
 Route::get('/', function () {
     return redirect()->route('acs.dashboard');
@@ -22,8 +24,8 @@ Route::post('/tr069/empty', [TR069Controller::class, 'handleEmpty'])->name('tr06
 // TR-369 USP Endpoints (Public)
 Route::match(['get', 'post'], '/usp', [UspController::class, 'handleUspMessage'])->name('usp.message');
 
-// ACS Web Dashboard
-Route::prefix('acs')->name('acs.')->group(function () {
+// ACS Web Dashboard (Protected Routes)
+Route::prefix('acs')->name('acs.')->middleware('auth')->group(function () {
     Route::get('/dashboard', [AcsController::class, 'dashboard'])->name('dashboard');
     Route::get('/dashboard/stats-api', [AcsController::class, 'dashboardStatsApi'])->name('dashboard.stats');
     
