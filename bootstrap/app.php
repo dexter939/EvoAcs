@@ -17,6 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'tr069',    // TR-069 endpoint (SOAP)
             'tr069/*'
         ]);
+        
+        $middleware->alias([
+            'permission' => \App\Http\Middleware\CheckPermission::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

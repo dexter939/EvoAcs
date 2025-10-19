@@ -77,13 +77,6 @@ Route::prefix('acs')->name('acs.')->middleware('auth')->group(function () {
     // Task Queue
     Route::get('/tasks', [AcsController::class, 'tasks'])->name('tasks');
     
-    // Real-time Alarms
-    Route::get('/alarms', [\App\Http\Controllers\AlarmsController::class, 'index'])->name('alarms');
-    Route::post('/alarms/{id}/acknowledge', [\App\Http\Controllers\AlarmsController::class, 'acknowledge'])->name('alarms.acknowledge');
-    Route::post('/alarms/{id}/clear', [\App\Http\Controllers\AlarmsController::class, 'clear'])->name('alarms.clear');
-    Route::get('/alarms/stats', [\App\Http\Controllers\AlarmsController::class, 'getStats'])->name('alarms.stats');
-    Route::get('/alarms/stream', [\App\Http\Controllers\AlarmsController::class, 'stream'])->name('alarms.stream');
-    
     // Profili Configurazione CRUD
     Route::get('/profiles', [AcsController::class, 'profiles'])->name('profiles');
     Route::post('/profiles', [AcsController::class, 'storeProfile'])->name('profiles.store');
