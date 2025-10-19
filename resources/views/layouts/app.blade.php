@@ -16,7 +16,7 @@
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <!-- CSS Files -->
-    <link id="pagestyle" href="/assets/css/soft-ui-dashboard.css?v=1.0.3" rel="stylesheet" />
+    <link id="pagestyle" href="/assets/css/soft-ui-dashboard.css?v=1.0.4" rel="stylesheet" />
     
     @stack('styles')
 </head>
@@ -77,8 +77,8 @@
         }
     </script>
     
-    <!-- Soft UI Dashboard -->
-    <script src="/assets/js/soft-ui-dashboard.min.js?v=1.0.3"></script>
+    <!-- Soft UI Dashboard PRO -->
+    <script src="/assets/js/soft-ui-dashboard.min.js?v=1.0.4"></script>
     
     @stack('scripts')
 </body>
