@@ -31,7 +31,7 @@ The web interface utilizes the Soft UI Dashboard Laravel template, offering a mo
 - **Multi-Tenant Architecture**: Supports multiple customers with a 3-level web hierarchy.
 - **Data Model Import**: Automated XML parser for vendor-specific and BBF standard TR-069 data models.
 - **Configuration Templates**: Database-driven templates with validation rules.
-- **BBF-Compliant Parameter Validation**: Comprehensive validation engine supporting data model schema, business rules, indexed paths, strict type checking, enumeration values, units-aware validation, version-specific constraints, and enhanced error reporting.
+- **BBF-Compliant Parameter Validation**: Production-ready validation engine supporting 12+ BBF data types (boolean, int, unsignedInt, long, unsignedLong, string, dateTime, base64, hexBinary, IPAddress, MACAddress, list), enumeration validation with allowed values, units-aware validation with positive/negative sign support (dBm, dB, kbps, Mbps, Gbps, KB, MB, GB, ms, seconds, minutes, hours), version-specific constraints, strict type checking with pure PHP string-based numeric comparison (no BCMath dependency, 32-bit PHP compatible), indexed path support, and enhanced error reporting with suggestions.
 - **Router Manufacturers & Products Database**: Hierarchical view of manufacturers and models.
 - **TR-143 Diagnostics**: UI and workflow for Ping, Traceroute, Download, and Upload tests.
 - **Network Topology Map**: Real-time visualization of connected clients via TR-069 scans.
