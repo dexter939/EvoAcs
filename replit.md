@@ -14,6 +14,7 @@ The web interface utilizes the Soft UI Dashboard Laravel template, offering a mo
 - Production-ready card-based layout for device listings with dynamic device counts, compact filters, and quick action icons.
 - Fully implemented tabbed device details modal featuring hierarchical parameter display, event history, and device metadata.
 - **AI-Powered Configuration Assistant Dashboard**: Interactive interface with 5 AI-powered tools (Template Generation, Configuration Validation, Optimization, Diagnostic Analysis, Historical Pattern Detection) featuring modal-based workflows, real-time results display, and OpenAI GPT-4o-mini integration.
+- **Network Topology Map**: Real-time interactive visualization dashboard using vis.js library with device selection dropdown, connection type filters (LAN, 2.4GHz, 5GHz, 6GHz WiFi), color-coded nodes, auto-refresh capability, manual network scan trigger, and detailed node information panel with signal strength display.
 
 ## Technical Implementations
 - **Protocol Support**: Comprehensive implementation of TR-069 (CWMP) via SOAP and TR-369 (USP) using Protocol Buffers over MQTT/WebSocket/HTTP/XMPP, alongside other TR protocols.
@@ -41,7 +42,7 @@ The web interface utilizes the Soft UI Dashboard Laravel template, offering a mo
 - **BBF-Compliant Parameter Validation**: Production-ready validation engine supporting 12+ BBF data types (boolean, int, unsignedInt, long, unsignedLong, string, dateTime, base64, hexBinary, IPAddress, MACAddress, list), enumeration validation with allowed values, units-aware validation with positive/negative sign support (dBm, dB, kbps, Mbps, Gbps, KB, MB, GB, ms, seconds, minutes, hours), version-specific constraints, strict type checking with pure PHP string-based numeric comparison (no BCMath dependency, 32-bit PHP compatible), indexed path support, and enhanced error reporting with suggestions.
 - **Router Manufacturers & Products Database**: Hierarchical view of manufacturers and models.
 - **TR-143 Diagnostics**: UI and workflow for Ping, Traceroute, Download, and Upload tests.
-- **Network Topology Map**: Real-time visualization of connected clients via TR-069 scans.
+- **Network Topology Map**: Real-time interactive visualization of connected LAN/WiFi clients using vis.js library. Features include: device selection dropdown, connection type filters (ALL/LAN/WiFi 2.4/5/6 GHz) with live counters, color-coded nodes (Gateway: purple gradient, LAN: cyan, WiFi 2.4GHz: green, WiFi 5GHz: orange, WiFi 6GHz: red), physics-based graph layout with force-directed positioning, signal strength visualization (node size and dBm display), interactive node selection with detailed information panel (IP, MAC, hostname, connection type, interface, signal quality, last seen timestamp), manual network scan trigger via TR-069 GetParameterValues, 30-second auto-refresh toggle, and smooth graph animations with zoom/pan controls.
 - **Auto-Mapping Data Model**: Intelligent automatic data model assignment.
 - **NAT Traversal & Pending Commands Queue**: Production-grade solution for executing TR-069 commands on devices behind NAT/firewalls.
 - **Real-time Alarms & Monitoring**: Carrier-grade alarm management with SSE real-time notifications, a dashboard, and event-driven processing.
