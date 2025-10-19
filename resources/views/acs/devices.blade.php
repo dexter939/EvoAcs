@@ -510,15 +510,26 @@ function viewDeviceDetails(deviceId) {
     const modal = new bootstrap.Modal(document.getElementById('deviceDetailsModal'));
     modal.show();
     
-    fetch(`/acs/devices/${deviceId}`)
-        .then(response => response.json())
+    fetch(`/acs/devices/${deviceId}`, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        }
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
         .then(data => {
             renderDeviceDetails(data);
         })
         .catch(error => {
             document.getElementById('deviceDetailsContent').innerHTML = `
                 <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-triangle me-2"></i>Errore nel caricamento dei dettagli del dispositivo.
+                    <i class="fas fa-exclamation-triangle me-2"></i>Errore nel caricamento dei dettagli del dispositivo: ${error.message}
                 </div>
             `;
         });

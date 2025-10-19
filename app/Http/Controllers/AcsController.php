@@ -866,14 +866,55 @@ class AcsController extends Controller
         ]);
     }
     
-    public function showDevice($id)
+    public function showDevice(Request $request, $id)
     {
         $device = CpeDevice::with([
             'configurationProfile', 
+            'service.customer',
+            'dataModel',
             'parameters', 
             'firmwareDeployments.firmwareVersion'
         ])->findOrFail($id);
         
+        // If JSON requested (from AJAX), return device data as JSON
+        if ($request->wantsJson() || $request->expectsJson()) {
+            return response()->json([
+                'id' => $device->id,
+                'serial_number' => $device->serial_number,
+                'manufacturer' => $device->manufacturer,
+                'model_name' => $device->model_name,
+                'oui' => $device->oui,
+                'product_class' => $device->product_class,
+                'ip_address' => $device->ip_address,
+                'protocol_type' => $device->protocol_type,
+                'mtp_type' => $device->mtp_type,
+                'firmware_version' => $device->firmware_version,
+                'hardware_version' => $device->hardware_version,
+                'status' => $device->status,
+                'last_contact' => $device->last_contact,
+                'last_inform' => $device->last_inform,
+                'last_contact_formatted' => ($device->last_contact ?? $device->last_inform) 
+                    ? ($device->last_contact ?? $device->last_inform)->format('d/m/Y H:i') 
+                    : 'Mai',
+                'service' => $device->service ? [
+                    'id' => $device->service->id,
+                    'name' => $device->service->name,
+                    'customer' => [
+                        'id' => $device->service->customer->id,
+                        'name' => $device->service->customer->name,
+                    ]
+                ] : null,
+                'data_model' => $device->dataModel ? [
+                    'id' => $device->dataModel->id,
+                    'protocol_version' => $device->dataModel->protocol_version,
+                    'vendor' => $device->dataModel->vendor,
+                    'model_name' => $device->dataModel->model_name,
+                ] : null,
+                'parameters_count' => $device->parameters->count(),
+            ]);
+        }
+        
+        // Otherwise return Blade view (for direct browser access)
         $recentTasks = $device->provisioningTasks()
             ->latest()
             ->take(10)
