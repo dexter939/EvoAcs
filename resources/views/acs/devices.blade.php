@@ -60,7 +60,7 @@
             </div>
             <div class="card-body px-0 pt-0 pb-2">
                 <div class="table-responsive p-0">
-                    <table class="table align-items-center mb-0">
+                    <table id="devicesTable" class="table align-items-center mb-0">
                         <thead>
                             <tr>
                                 <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Dispositivo</th>
@@ -675,6 +675,27 @@ document.getElementById('assignServiceForm').addEventListener('submit', function
     .catch(error => {
         alert('Errore di rete: ' + error.message);
     });
+});
+
+// Initialize DataTables PRO for advanced device management
+document.addEventListener('DOMContentLoaded', function() {
+    const devicesTable = document.getElementById('devicesTable');
+    
+    if (devicesTable && typeof simpleDatatables !== 'undefined') {
+        new simpleDatatables.DataTable(devicesTable, {
+            searchable: true,
+            fixedHeight: false,
+            perPage: 25,
+            perPageSelect: [10, 25, 50, 100],
+            labels: {
+                placeholder: "Cerca dispositivi...",
+                perPage: "dispositivi per pagina",
+                noRows: "Nessun dispositivo trovato",
+                info: "Mostrando {start} a {end} di {rows} dispositivi"
+            }
+        });
+        console.log('✅ DataTables PRO initialized for device management');
+    }
 });
 </script>
 @endpush

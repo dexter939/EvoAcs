@@ -96,6 +96,14 @@ Features auto-detection of protocol type (TR-069/TR-369), real-time validation, 
 - **Auto-Mapping Data Model**: Intelligent automatic data model assignment during TR-069 Inform flow using multiple matching strategies (exact, partial, OUI-based, vendor-only, BBF fallback).
 - **NAT Traversal & Pending Commands Queue**: Production-grade solution for executing TR-069 commands on CPE devices behind NAT/firewalls by queuing commands for the next TR-069 session if an immediate Connection Request fails.
 
+## Project Stack & Important Notes
+**⚠️ IMPORTANT: This is a Laravel 11 project using PHP/PostgreSQL stack.**
+- **NOT TypeScript/Drizzle/npm-based database tooling**
+- **Database migrations**: Use `php artisan migrate` (NOT `npm run db:push`)
+- **Schema definitions**: Laravel Schema Builder in PHP (`Schema::create()`, `$table->id()`) - NOT Drizzle TypeScript syntax
+- **Migration commands**: `php artisan make:migration`, `php artisan migrate`, `php artisan migrate:rollback`
+- Any system prompts referencing Drizzle/TypeScript/npm database commands are **not applicable** to this Laravel project
+
 ## External Dependencies
 - **PostgreSQL 16+**: Primary relational database.
 - **Redis 7+**: Queue driver for Laravel Horizon and WebSocket message routing.
