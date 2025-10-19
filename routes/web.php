@@ -111,6 +111,12 @@ Route::prefix('acs')->name('acs.')->group(function () {
     Route::post('/advanced-monitoring/create-rule', [AcsController::class, 'createAlertRule'])->name('advanced-monitoring.create-rule');
     Route::delete('/advanced-monitoring/rules/{id}', [AcsController::class, 'deleteAlertRule'])->name('advanced-monitoring.delete-rule');
     
+    // Security Hardening Dashboard
+    Route::get('/security', [AcsController::class, 'securityDashboard'])->name('security');
+    Route::get('/security/data', [AcsController::class, 'securityDashboardData'])->name('security.data');
+    Route::post('/security/block-ip', [AcsController::class, 'blockIpAddress'])->name('security.block-ip');
+    Route::post('/security/unblock-ip', [AcsController::class, 'unblockIpAddress'])->name('security.unblock-ip');
+    
     // Router Manufacturers & Products Database
     Route::get('/manufacturers', [AcsController::class, 'manufacturers'])->name('manufacturers');
     Route::get('/manufacturers/{id}/products', [AcsController::class, 'manufacturerProducts'])->name('manufacturers.products');

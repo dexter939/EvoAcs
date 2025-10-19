@@ -110,6 +110,15 @@
             </li>
             
             <li class="nav-item">
+                <a class="nav-link {{ Request::is('acs/security*') ? 'active' : '' }}" href="{{ route('acs.security') }}">
+                    <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
+                        <i class="fas fa-shield-alt text-danger text-sm opacity-10"></i>
+                    </div>
+                    <span class="nav-link-text ms-1">Security Dashboard</span>
+                </a>
+            </li>
+            
+            <li class="nav-item">
                 <a class="nav-link {{ Request::is('acs/data-models*') ? 'active' : '' }}" href="{{ route('acs.data-models') }}">
                     <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
                         <i class="fas fa-database text-primary text-sm opacity-10"></i>

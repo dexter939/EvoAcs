@@ -1503,6 +1503,73 @@ class AcsController extends Controller
     }
     
     /**
+     * Security Dashboard
+     */
+    public function securityDashboard()
+    {
+        $securityService = app(\App\Services\SecurityService::class);
+        
+        $stats = $securityService->getSecurityDashboardStats();
+        $health = $securityService->analyzeSecurityHealth();
+        
+        return view('acs.security-dashboard', compact('stats', 'health'));
+    }
+    
+    /**
+     * Security Dashboard Data API
+     */
+    public function securityDashboardData()
+    {
+        $securityService = app(\App\Services\SecurityService::class);
+        
+        return response()->json([
+            'stats' => $securityService->getSecurityDashboardStats(),
+            'health' => $securityService->analyzeSecurityHealth(),
+            'trends' => $securityService->getSecurityEventsTrend(7),
+            'top_threats' => $securityService->getTopThreats(10),
+            'recent_events' => $securityService->getRecentSecurityEvents(20),
+            'event_distribution' => $securityService->getEventsByType(),
+            'risk_distribution' => $securityService->getRiskLevelDistribution(),
+        ]);
+    }
+    
+    /**
+     * Block IP Address
+     */
+    public function blockIpAddress(\Illuminate\Http\Request $request)
+    {
+        $validated = $request->validate([
+            'ip_address' => 'required|ip',
+            'reason' => 'required|string|max:255',
+            'duration_minutes' => 'nullable|integer|min:1',
+        ]);
+        
+        $securityService = app(\App\Services\SecurityService::class);
+        $result = $securityService->blockIpAddress(
+            $validated['ip_address'],
+            $validated['reason'],
+            $validated['duration_minutes'] ?? null
+        );
+        
+        return response()->json(['success' => $result]);
+    }
+    
+    /**
+     * Unblock IP Address
+     */
+    public function unblockIpAddress(\Illuminate\Http\Request $request)
+    {
+        $validated = $request->validate([
+            'ip_address' => 'required|ip',
+        ]);
+        
+        $securityService = app(\App\Services\SecurityService::class);
+        $result = $securityService->unblockIpAddress($validated['ip_address']);
+        
+        return response()->json(['success' => $result]);
+    }
+    
+    /**
      * Delete Alert Rule
      */
     public function deleteAlertRule($id)
