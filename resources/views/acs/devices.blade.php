@@ -677,28 +677,153 @@ document.getElementById('assignServiceForm').addEventListener('submit', function
     });
 });
 
-// Initialize DataTables PRO for advanced device management (DOM-based simple-datatables v3.0.2)
-// Note: simple-datatables is DOM-based, operates on rendered rows only
-// For true 100K+ server-side processing, consider upgrading to jQuery DataTables
-document.addEventListener('DOMContentLoaded', function() {
-    const devicesTable = document.getElementById('devicesTable');
+// Initialize jQuery DataTables with server-side processing for 100K+ devices
+$(document).ready(function() {
+    // Get current filter values from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const protocol = urlParams.get('protocol') || 'all';
+    const mtpType = urlParams.get('mtp_type') || 'all';
+    const status = urlParams.get('status') || 'all';
     
-    if (devicesTable && typeof simpleDatatables !== 'undefined') {
-        const dataTable = new simpleDatatables.DataTable(devicesTable, {
-            searchable: true,
-            fixedHeight: false,
-            perPage: 25,
-            perPageSelect: [10, 25, 50, 100],
-            labels: {
-                placeholder: "Cerca dispositivi...",
-                perPage: "dispositivi per pagina",
-                noRows: "Nessun dispositivo trovato",
-                info: "Mostrando {start} a {end} di {rows} dispositivi (pagina corrente)"
+    $('#devicesTable').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: '{{ route("acs.devices.datatable") }}',
+            data: function(d) {
+                // Add filter parameters
+                d.protocol = protocol;
+                d.mtp_type = mtpType;
+                d.status = status;
             }
-        });
-        console.log('✅ DataTables PRO initialized for device management');
-        console.log('ℹ️  Note: Operating on Laravel-paginated subset. For 100K+ scale, API endpoint /acs/devices/datatable is available for jQuery DataTables integration');
-    }
+        },
+        columns: [
+            {
+                data: null,
+                orderable: true,
+                render: function(data, type, row) {
+                    const icon = row.protocol_type === 'tr369' ? 'satellite-dish' : 'router';
+                    const color = row.protocol_type === 'tr369' ? 'success' : 'primary';
+                    return `
+                        <div class="d-flex px-2 py-1">
+                            <div><i class="fas fa-${icon} text-${color} me-3"></i></div>
+                            <div class="d-flex flex-column justify-content-center">
+                                <h6 class="mb-0 text-sm">${row.serial_number}</h6>
+                                <p class="text-xs text-secondary mb-0">${row.manufacturer || ''} - ${row.model_name || ''}</p>
+                            </div>
+                        </div>`;
+                }
+            },
+            {
+                data: 'protocol_type',
+                orderable: true,
+                render: function(data, type, row) {
+                    let badges = '';
+                    if (row.protocol_type === 'tr369') {
+                        badges += '<span class="badge badge-sm bg-gradient-success">TR-369</span>';
+                        if (row.mtp_type) {
+                            const mtpColor = row.mtp_type === 'mqtt' ? 'warning' : 'info';
+                            badges += ` <span class="badge badge-sm bg-gradient-${mtpColor}">${row.mtp_type.toUpperCase()}</span>`;
+                        }
+                    } else {
+                        badges += '<span class="badge badge-sm bg-gradient-primary">TR-069</span>';
+                    }
+                    return badges;
+                }
+            },
+            {
+                data: 'status',
+                orderable: true,
+                render: function(data, type, row) {
+                    const statusColors = {online: 'success', offline: 'secondary', provisioning: 'warning', error: 'danger'};
+                    const color = statusColors[row.status] || 'secondary';
+                    return `<span class="badge badge-sm bg-gradient-${color}">${row.status.charAt(0).toUpperCase() + row.status.slice(1)}</span>`;
+                }
+            },
+            {
+                data: 'service_name',
+                orderable: true,
+                render: function(data, type, row) {
+                    if (row.service_name) {
+                        return `
+                            <a href="/acs/services/${row.service_id}" class="text-xs text-primary font-weight-bold">${row.service_name}</a>
+                            <p class="text-xxs text-secondary mb-0">${row.customer_name || ''}</p>
+                            <button class="btn btn-link text-success px-1 mb-0" onclick="assignService(${row.id}, '${row.serial_number}')" title="Assegna a Servizio"><i class="fas fa-link text-xs"></i></button>`;
+                    } else {
+                        return `<span class="text-xs text-secondary">Non assegnato</span>
+                            <button class="btn btn-link text-success px-1 mb-0" onclick="assignService(${row.id}, '${row.serial_number}')" title="Assegna a Servizio"><i class="fas fa-link text-xs"></i></button>`;
+                    }
+                }
+            },
+            {
+                data: 'data_model_protocol',
+                orderable: true,
+                render: function(data, type, row) {
+                    if (row.data_model_protocol) {
+                        const colors = {'TR-181': 'info', 'TR-181 Issue 2': 'info', 'TR-098': 'primary', 'TR-104': 'success', 'TR-143': 'secondary'};
+                        const color = colors[row.data_model_protocol] || 'warning';
+                        const vendor = row.data_model_vendor === 'Broadband Forum' ? 'BBF' : row.data_model_vendor;
+                        return `
+                            <div class="d-flex align-items-center">
+                                <span class="badge badge-sm bg-gradient-${color}">${row.data_model_protocol}</span>
+                                <span class="text-xxs text-secondary ms-2">${vendor || ''}</span>
+                            </div>
+                            <p class="text-xxs text-secondary mb-0">${row.data_model_name || ''}</p>`;
+                    } else {
+                        return '<span class="text-xs text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Auto-map</span>';
+                    }
+                }
+            },
+            {
+                data: 'ip_address',
+                orderable: true,
+                render: function(data, type, row) {
+                    return `<span class="text-secondary text-xs font-weight-bold">${row.ip_address || 'N/A'}</span>`;
+                }
+            },
+            {
+                data: 'last_contact',
+                orderable: true,
+                render: function(data, type, row) {
+                    return `<span class="text-secondary text-xs font-weight-bold">${row.last_contact}</span>`;
+                }
+            },
+            {
+                data: null,
+                orderable: false,
+                render: function(data, type, row) {
+                    const hasUrl = row.connection_request_url;
+                    return `
+                        <button class="btn btn-link text-info px-2 mb-0" onclick="viewDevice(${row.id})"><i class="fas fa-eye text-xs"></i></button>
+                        <button class="btn btn-link text-success px-2 mb-0" onclick="provisionDevice(${row.id}, '${row.serial_number}')"><i class="fas fa-cog text-xs"></i></button>
+                        <button class="btn btn-link text-primary px-2 mb-0" onclick="connectionRequest(${row.id}, '${row.serial_number}', ${hasUrl})" title="Connection Request"><i class="fas fa-bell text-xs"></i></button>
+                        <button class="btn btn-link text-warning px-2 mb-0" onclick="rebootDevice(${row.id}, '${row.serial_number}')"><i class="fas fa-sync text-xs"></i></button>
+                        <button class="btn btn-link text-danger px-2 mb-0" onclick="diagnosticDevice(${row.id}, '${row.serial_number}')" title="Diagnostica TR-143"><i class="fas fa-stethoscope text-xs"></i></button>`;
+                }
+            }
+        ],
+        pageLength: 25,
+        lengthMenu: [[10, 25, 50, 100, 500, 1000], [10, 25, 50, 100, 500, 1000]],
+        order: [[6, 'desc']], // Default sort by last_contact descending
+        language: {
+            search: "Cerca:",
+            lengthMenu: "Mostra _MENU_ dispositivi per pagina",
+            info: "Mostrando da _START_ a _END_ di _TOTAL_ dispositivi",
+            infoEmpty: "Nessun dispositivo disponibile",
+            infoFiltered: "(filtrati da _MAX_ dispositivi totali)",
+            paginate: {
+                first: "Prima",
+                last: "Ultima",
+                next: "Successiva",
+                previous: "Precedente"
+            },
+            processing: "Caricamento...",
+            zeroRecords: "Nessun dispositivo trovato"
+        }
+    });
+    
+    console.log('🚀 jQuery DataTables initialized with server-side processing for 100K+ devices');
+    console.log('✅ Endpoint: {{ route("acs.devices.datatable") }}');
 });
 </script>
 @endpush
