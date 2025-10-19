@@ -6,12 +6,16 @@ I prefer clear and concise explanations. When making changes, prioritize core fu
 
 ## Project Progress
 
-**Current Status**: ~62% (112+/181 tests passing, verified October 16, 2025)
+**Current Status**: ~68% (143/181 tests passing, verified October 19, 2025)
 
-### Phase 3 - API Standardization (95% Complete) ✅ (October 2025)
+### Phase 3 - API Standardization (100% Complete) ✅ (October 2025)
 - **TR-369 USP Operations** (13/13 tests): Complete ✅ - getParameters, setParameters, addObject, deleteObject, operate, reboot, createSubscription, listSubscriptions, deleteSubscription, device validation, online validation, notification_type validation, mtp_transports (mqtt/websocket/http)
   - Mock Pattern: UspMqttService.publish($topic, $record) for MQTT transport
   - Database: notification_type enum constraint ✅, 'http' mtp_type support ✅, API response standardization {success, data} ✅
+  - **Fixed October 19**: Added proper transport configuration (mqtt_client_id, websocket_client_id, connection_request_url) and service mocks to all API tests
+- **TR-369 USP HTTP Transport** (10/10 tests): Complete ✅ - Http::fake() mocks, content-type validation, error handling, all transports verified
+- **TR-369 USP MQTT Transport** (10/10 tests): Complete ✅ - Mockery service mocks, QoS 1, topic routing, client ID validation
+- **TR-369 USP WebSocket Transport** (11/11 tests): Complete ✅ - WebSocket client mocks, message correlation, subscription management
 - **TR-143 Diagnostics** (10/10 tests): Complete ✅ - Ping, Traceroute, Download/Upload tests, NAT traversal, result validation
 - **Storage Service API** (4/4 tests): Complete ✅ - Added mutators for _mb fields, byte-to-MB conversion in stats, full API contract preserved (enabled_services, volumes, file_servers, server_types, capacity stats)
 - **VoIP Service API** (3/3 tests): Complete ✅ - createVoipLine handles both route patterns (voice-services/{service} with sip_profile_id in body, sip-profiles/{profile} in route)
@@ -31,16 +35,12 @@ I prefer clear and concise explanations. When making changes, prioritize core fu
 - **LAN Device Management** (4/4 tests): SSDP discovery, SOAP actions ✅
 - **Device Modeling** (5/5 tests): Parameter discovery, capabilities, stats ✅
 - **Provisioning API** (7/7 tests): Complete ✅ - TR-069 parameter operations, reboot, connection request (fixed device status validation)
-- **USP WebSocket Transport** (11/11 tests): Complete ✅ - Mockery mocks, transport field, websocket_client_id validation, UUID msgId format
-- **USP HTTP Transport** (1/10 tests): Partial - connection_request_url validation added, remaining tests need Http::fake() setup
 - **Real-time Alarms System** (100% Complete - October 17, 2025): Full production-ready implementation with database schema, Alarm model/service, automatic event-driven triggers (device offline, firmware failures, diagnostic failures), web UI with acknowledge/clear actions, severity-based filtering, SSE real-time push notifications with toast alerts and audio notifications
 
 ### Known Issues
 - **DeviceManagement tests**: 12 tests slow (~30s each, 6+ min total) but likely functional, need extended timeout
-- **UspHttpTransport**: 9/10 tests need Http::fake() mock setup (validation fixed)
-- **UspMqttTransport**: timeout issues, requires investigation
 
-**Total Verified**: 112+/181 tests (62%) passing | **Next**: Fix remaining HTTP/MQTT transport mocks, optimize DeviceManagement test speed
+**Total Verified**: 143/181 tests (68%) passing | **TR-369 USP Protocol: 44/44 tests (100% Complete)** ✅ | **Next**: Optimize DeviceManagement test speed
 
 ## System Architecture
 
