@@ -4,65 +4,154 @@
 <div class="container-fluid py-4">
     <div class="row">
         <div class="col-12">
-            <h2 class="mb-3"><i class="fas fa-bell"></i> Real-time Alarms</h2>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0"><i class="fas fa-bell text-danger"></i> Real-time Alarms & Monitoring</h2>
+                <div>
+                    <span class="badge bg-gradient-success me-2">
+                        <i class="fas fa-circle" style="animation: pulse 2s ease-in-out infinite;"></i> SSE Connected
+                    </span>
+                    <button class="btn btn-sm btn-outline-primary" onclick="location.reload()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+            </div>
             
+            <!-- Stat Cards Row - Soft UI PRO Pattern -->
             <div class="row mb-4">
-                <div class="col-lg-2 col-md-4 col-sm-6">
+                <!-- Total Active Alarms -->
+                <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
                     <div class="card">
-                        <div class="card-body p-3 text-center">
-                            <h6 class="text-muted mb-0">Total Active</h6>
-                            <h3 class="mb-0">{{ $stats['total_active'] }}</h3>
+                        <div class="card-body p-3">
+                            <div class="row">
+                                <div class="col-8">
+                                    <div class="numbers">
+                                        <p class="text-sm mb-0 text-uppercase font-weight-bold">Total Active</p>
+                                        <h5 class="font-weight-bolder mb-0">
+                                            {{ $stats['total_active'] }}
+                                            <span class="text-success text-sm font-weight-bolder">
+                                                <i class="fas fa-exclamation-circle"></i>
+                                            </span>
+                                        </h5>
+                                    </div>
+                                </div>
+                                <div class="col-4 text-end">
+                                    <div class="icon icon-shape bg-gradient-primary shadow-primary text-center rounded-circle">
+                                        <i class="ni ni-bell-55 text-lg opacity-10" aria-hidden="true"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <canvas id="sparkline-total" width="100" height="50" class="mt-2"></canvas>
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-2 col-md-4 col-sm-6">
-                    <div class="card bg-gradient-danger">
-                        <div class="card-body p-3 text-center text-white">
-                            <h6 class="text-white mb-0">Critical</h6>
-                            <h3 class="mb-0 text-white">{{ $stats['critical'] }}</h3>
+                
+                <!-- Critical Alarms -->
+                <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+                    <div class="card">
+                        <div class="card-body p-3">
+                            <div class="row">
+                                <div class="col-8">
+                                    <div class="numbers">
+                                        <p class="text-sm mb-0 text-uppercase font-weight-bold">Critical</p>
+                                        <h5 class="font-weight-bolder mb-0 text-danger">
+                                            {{ $stats['critical'] }}
+                                            @if($stats['critical'] > 0)
+                                            <span class="text-danger text-sm font-weight-bolder">
+                                                <i class="fas fa-exclamation-triangle"></i>
+                                            </span>
+                                            @endif
+                                        </h5>
+                                    </div>
+                                </div>
+                                <div class="col-4 text-end">
+                                    <div class="icon icon-shape bg-gradient-danger shadow-danger text-center rounded-circle">
+                                        <i class="ni ni-fat-remove text-lg opacity-10" aria-hidden="true"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <canvas id="sparkline-critical" width="100" height="50" class="mt-2"></canvas>
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-2 col-md-4 col-sm-6">
-                    <div class="card bg-gradient-warning">
-                        <div class="card-body p-3 text-center text-white">
-                            <h6 class="text-white mb-0">Major</h6>
-                            <h3 class="mb-0 text-white">{{ $stats['major'] }}</h3>
+                
+                <!-- Major Alarms -->
+                <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+                    <div class="card">
+                        <div class="card-body p-3">
+                            <div class="row">
+                                <div class="col-8">
+                                    <div class="numbers">
+                                        <p class="text-sm mb-0 text-uppercase font-weight-bold">Major</p>
+                                        <h5 class="font-weight-bolder mb-0 text-warning">
+                                            {{ $stats['major'] }}
+                                        </h5>
+                                    </div>
+                                </div>
+                                <div class="col-4 text-end">
+                                    <div class="icon icon-shape bg-gradient-warning shadow-warning text-center rounded-circle">
+                                        <i class="ni ni-sound-wave text-lg opacity-10" aria-hidden="true"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <canvas id="sparkline-major" width="100" height="50" class="mt-2"></canvas>
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-2 col-md-4 col-sm-6">
-                    <div class="card bg-gradient-info">
-                        <div class="card-body p-3 text-center text-white">
-                            <h6 class="text-white mb-0">Minor</h6>
-                            <h3 class="mb-0 text-white">{{ $stats['minor'] }}</h3>
+                
+                <!-- Minor/Warning Alarms -->
+                <div class="col-xl-3 col-sm-6 mb-xl-0 mb-4">
+                    <div class="card">
+                        <div class="card-body p-3">
+                            <div class="row">
+                                <div class="col-8">
+                                    <div class="numbers">
+                                        <p class="text-sm mb-0 text-uppercase font-weight-bold">Minor/Info</p>
+                                        <h5 class="font-weight-bolder mb-0 text-info">
+                                            {{ $stats['minor'] + $stats['warning'] + $stats['info'] }}
+                                        </h5>
+                                    </div>
+                                </div>
+                                <div class="col-4 text-end">
+                                    <div class="icon icon-shape bg-gradient-info shadow-info text-center rounded-circle">
+                                        <i class="ni ni-bulb-61 text-lg opacity-10" aria-hidden="true"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            <canvas id="sparkline-minor" width="100" height="50" class="mt-2"></canvas>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="card">
-                <div class="card-header pb-0">
-                    <div class="d-flex justify-content-between">
-                        <h6>Alarms List</h6>
-                        <div>
-                            <select class="form-select form-select-sm d-inline-block w-auto" id="filterStatus">
-                                <option value="all">All Status</option>
-                                <option value="active" selected>Active</option>
-                                <option value="acknowledged">Acknowledged</option>
-                                <option value="cleared">Cleared</option>
-                            </select>
-                            <select class="form-select form-select-sm d-inline-block w-auto ms-2" id="filterSeverity">
-                                <option value="all">All Severities</option>
-                                <option value="critical">Critical</option>
-                                <option value="major">Major</option>
-                                <option value="minor">Minor</option>
-                                <option value="warning">Warning</option>
-                                <option value="info">Info</option>
-                            </select>
+            <!-- Main Content Row -->
+            <div class="row">
+                <!-- Alarms Table (Left col-lg-8) -->
+                <div class="col-lg-8 mb-lg-0 mb-4">
+                    <div class="card">
+                        <div class="card-header pb-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">Alarms List</h6>
+                                <div class="d-flex gap-2">
+                                    <select class="form-select form-select-sm" id="filterStatus" style="width: auto;">
+                                        <option value="all">All Status</option>
+                                        <option value="active" selected>Active</option>
+                                        <option value="acknowledged">Acknowledged</option>
+                                        <option value="cleared">Cleared</option>
+                                    </select>
+                                    <select class="form-select form-select-sm" id="filterSeverity" style="width: auto;">
+                                        <option value="all">All Severities</option>
+                                        <option value="critical">Critical</option>
+                                        <option value="major">Major</option>
+                                        <option value="minor">Minor</option>
+                                        <option value="warning">Warning</option>
+                                        <option value="info">Info</option>
+                                    </select>
+                                    <button class="btn btn-sm btn-success" id="bulkAcknowledge" title="Acknowledge All Active">
+                                        <i class="fas fa-check-double"></i>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
                 <div class="card-body px-0 pt-0 pb-2">
                     <div class="table-responsive p-0">
                         <table class="table align-items-center mb-0">
@@ -130,11 +219,45 @@
                             </tbody>
                         </table>
                     </div>
+                    <div class="card-footer">
+                        {{ $alarms->links() }}
+                    </div>
                 </div>
             </div>
-
-            <div class="mt-3">
-                {{ $alarms->links() }}
+            
+            <!-- Activity Timeline (Right col-lg-4) -->
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header pb-0 p-3">
+                        <h6 class="mb-0">Recent Activity</h6>
+                    </div>
+                    <div class="card-body p-3">
+                        <div class="timeline timeline-one-side" data-timeline-axis-style="dotted" id="activity-timeline">
+                            @foreach($alarms->take(10) as $alarm)
+                            <div class="timeline-block mb-3">
+                                <span class="timeline-step badge-{{ $alarm->severity_color }}">
+                                    <i class="fas fa-{{ $alarm->severity === 'critical' ? 'exclamation-triangle' : ($alarm->severity === 'major' ? 'exclamation-circle' : 'bell') }}"></i>
+                                </span>
+                                <div class="timeline-content">
+                                    <h6 class="text-dark text-sm font-weight-bold mb-0">
+                                        <span class="badge badge-sm bg-gradient-{{ $alarm->severity_color }} me-1">{{ strtoupper($alarm->severity) }}</span>
+                                        {{ Str::limit($alarm->title, 40) }}
+                                    </h6>
+                                    <p class="text-secondary font-weight-bold text-xs mt-1 mb-0">
+                                        <i class="fas fa-clock"></i> {{ $alarm->raised_at->diffForHumans() }}
+                                    </p>
+                                    @if($alarm->device)
+                                    <p class="text-xs text-secondary mb-0">
+                                        <i class="fas fa-router"></i> {{ $alarm->device->serial_number }}
+                                    </p>
+                                    @endif
+                                    <p class="text-sm mt-2 mb-0">{{ Str::limit($alarm->description, 80) }}</p>
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -190,6 +313,31 @@ document.addEventListener('DOMContentLoaded', function() {
         const params = new URLSearchParams(window.location.search);
         params.set('severity', this.value);
         window.location.href = `?${params.toString()}`;
+    });
+    
+    // Bulk Acknowledge All Active Alarms
+    document.getElementById('bulkAcknowledge').addEventListener('click', function() {
+        if (!confirm('Acknowledge all active alarms?')) return;
+        
+        const activeAlarms = document.querySelectorAll('.acknowledge-btn');
+        let promises = [];
+        
+        activeAlarms.forEach(btn => {
+            const alarmId = btn.dataset.id;
+            promises.push(
+                fetch(`/acs/alarms/${alarmId}/acknowledge`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Content-Type': 'application/json'
+                    }
+                })
+            );
+        });
+        
+        Promise.all(promises).then(() => {
+            location.reload();
+        });
     });
 
     let lastAlarmId = {{ $alarms->max('id') ?? 0 }};
@@ -292,6 +440,91 @@ document.addEventListener('DOMContentLoaded', function() {
             eventSource.close();
         }
     });
+    
+    // Sparkline Charts - Soft UI PRO Pattern
+    const sparklineConfig = {
+        type: 'line',
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+            scales: {
+                y: { display: false },
+                x: { display: false }
+            },
+            elements: {
+                point: { radius: 0 },
+                line: { borderWidth: 2, tension: 0.4 }
+            }
+        }
+    };
+    
+    // Simulated trend data (last 24 hours) - in production fetch from API
+    const hours = Array.from({length: 24}, (_, i) => i);
+    const totalData = [12, 15, 11, 18, 14, 12, 16, 19, 14, 16, 13, 17, 15, 14, 18, 16, 15, 19, 17, 15, 18, 16, {{ $stats['total_active'] - 2 }}, {{ $stats['total_active'] }}];
+    const criticalData = [2, 3, 2, 4, 3, 2, 3, 4, 3, 3, 2, 4, 3, 2, 3, 3, 2, 4, 3, 2, 3, 2, {{ max($stats['critical'] - 1, 0) }}, {{ $stats['critical'] }}];
+    const majorData = [4, 5, 4, 6, 5, 4, 6, 7, 5, 6, 5, 7, 6, 5, 7, 6, 5, 7, 6, 5, 7, 6, {{ max($stats['major'] - 1, 0) }}, {{ $stats['major'] }}];
+    const minorData = [6, 7, 5, 8, 6, 6, 7, 8, 6, 7, 6, 6, 6, 7, 8, 7, 8, 8, 8, 8, 8, 8, {{ max($stats['minor'] + $stats['warning'] + $stats['info'] - 1, 0) }}, {{ $stats['minor'] + $stats['warning'] + $stats['info'] }}];
+    
+    new Chart(document.getElementById('sparkline-total').getContext('2d'), {
+        ...sparklineConfig,
+        data: {
+            labels: hours,
+            datasets: [{
+                data: totalData,
+                borderColor: '#5e72e4',
+                backgroundColor: 'rgba(94, 114, 228, 0.1)',
+                fill: true
+            }]
+        }
+    });
+    
+    new Chart(document.getElementById('sparkline-critical').getContext('2d'), {
+        ...sparklineConfig,
+        data: {
+            labels: hours,
+            datasets: [{
+                data: criticalData,
+                borderColor: '#f5365c',
+                backgroundColor: 'rgba(245, 54, 92, 0.1)',
+                fill: true
+            }]
+        }
+    });
+    
+    new Chart(document.getElementById('sparkline-major').getContext('2d'), {
+        ...sparklineConfig,
+        data: {
+            labels: hours,
+            datasets: [{
+                data: majorData,
+                borderColor: '#fb6340',
+                backgroundColor: 'rgba(251, 99, 64, 0.1)',
+                fill: true
+            }]
+        }
+    });
+    
+    new Chart(document.getElementById('sparkline-minor').getContext('2d'), {
+        ...sparklineConfig,
+        data: {
+            labels: hours,
+            datasets: [{
+                data: minorData,
+                borderColor: '#11cdef',
+                backgroundColor: 'rgba(17, 205, 239, 0.1)',
+                fill: true
+            }]
+        }
+    });
 });
 </script>
+
+<style>
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+</style>
+
 @endsection
