@@ -212,6 +212,17 @@ class CpeDevice extends Model
     }
 
     /**
+     * Relazione con cronologia eventi dispositivo
+     * Relationship with device event history
+     * 
+     * @return HasMany
+     */
+    public function events(): HasMany
+    {
+        return $this->hasMany(DeviceEvent::class);
+    }
+
+    /**
      * Scope per filtrare dispositivi TR-069
      * Scope to filter TR-069 devices
      */

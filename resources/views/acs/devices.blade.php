@@ -613,6 +613,344 @@ function renderDeviceDetails(device) {
     `;
     
     document.getElementById('deviceDetailsContent').innerHTML = html;
+    
+    // Add event listener for Parameters tab
+    document.getElementById('params-tab').addEventListener('click', function() {
+        loadDeviceParameters(device.id);
+    });
+    
+    // Add event listener for History tab
+    document.getElementById('history-tab').addEventListener('click', function() {
+        loadDeviceHistory(device.id);
+    });
+}
+
+// HTML Escaping to prevent XSS from device-supplied data
+function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return String(text).replace(/[&<>"']/g, m => map[m]);
+}
+
+// Load Device Parameters (Tab)
+let parametersCache = {}; // Cache keyed by device ID
+function loadDeviceParameters(deviceId) {
+    if (parametersCache[deviceId]) {
+        renderDeviceParameters(parametersCache[deviceId]);
+        return; // Already loaded for this device
+    }
+    
+    const container = document.getElementById('params');
+    container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin me-2"></i>Caricamento parametri...</div>';
+    
+    fetch(`/acs/devices/${deviceId}/parameters`, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        }
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Network response was not ok');
+        return response.json();
+    })
+    .then(data => {
+        parametersCache[deviceId] = data;
+        renderDeviceParameters(data);
+    })
+    .catch(error => {
+        container.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>Errore nel caricamento parametri: ${error.message}
+            </div>
+        `;
+    });
+}
+
+function renderDeviceParameters(data) {
+    const container = document.getElementById('params');
+    
+    if (!data.parameters || data.parameters.length === 0) {
+        container.innerHTML = `
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>Nessun parametro disponibile per questo dispositivo.
+                <br><small class="text-muted">Eseguire una Connection Request per sincronizzare i parametri TR-181.</small>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = `
+        <!-- Search Box -->
+        <div class="mb-3">
+            <input type="text" class="form-control form-control-sm" id="param-search" placeholder="Cerca parametro... (es. WiFi, IP, SSID)">
+        </div>
+        
+        <!-- View Toggle -->
+        <div class="btn-group btn-group-sm mb-3" role="group">
+            <button type="button" class="btn btn-primary active" id="tree-view-btn">
+                <i class="fas fa-sitemap me-1"></i>Tree
+            </button>
+            <button type="button" class="btn btn-outline-primary" id="table-view-btn">
+                <i class="fas fa-table me-1"></i>Table
+            </button>
+        </div>
+        <span class="text-sm text-secondary ms-2">
+            <i class="fas fa-database me-1"></i><strong>${data.parameters_count}</strong> parametri
+        </span>
+        
+        <!-- Tree View (hierarchical) -->
+        <div id="tree-view" style="max-height: 400px; overflow-y: auto;">
+            <div class="param-tree">
+                ${renderParametersTree(data.hierarchy)}
+            </div>
+        </div>
+        
+        <!-- Table View (flat, hidden by default) -->
+        <div id="table-view" style="max-height: 400px; overflow-y: auto; display: none;">
+            <table class="table table-sm table-hover" id="params-table">
+                <thead class="thead-light sticky-top">
+                    <tr>
+                        <th width="40%">Percorso</th>
+                        <th width="35%">Valore</th>
+                        <th width="15%">Tipo</th>
+                        <th width="10%">RW</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    data.parameters.forEach(param => {
+        const writable = param.writable ? '<span class="badge badge-sm bg-success">W</span>' : '<span class="badge badge-sm bg-secondary">R</span>';
+        const typeColors = {
+            'string': 'primary',
+            'int': 'info',
+            'boolean': 'warning',
+            'dateTime': 'secondary',
+            'base64': 'dark'
+        };
+        
+        html += `
+            <tr class="param-row" data-path="${escapeHtml(param.path.toLowerCase())}">
+                <td class="text-xs"><code>${escapeHtml(param.path)}</code></td>
+                <td class="text-xs">${param.value ? escapeHtml(param.value) : '<span class="text-muted">null</span>'}</td>
+                <td><span class="badge badge-sm bg-${typeColors[param.type] || 'secondary'}">${escapeHtml(param.type)}</span></td>
+                <td>${writable}</td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+    
+    // View toggle functionality
+    document.getElementById('tree-view-btn').addEventListener('click', function() {
+        document.getElementById('tree-view').style.display = '';
+        document.getElementById('table-view').style.display = 'none';
+        this.classList.add('active');
+        document.getElementById('table-view-btn').classList.remove('active');
+        document.getElementById('table-view-btn').classList.add('btn-outline-primary');
+        this.classList.remove('btn-outline-primary');
+    });
+    
+    document.getElementById('table-view-btn').addEventListener('click', function() {
+        document.getElementById('tree-view').style.display = 'none';
+        document.getElementById('table-view').style.display = '';
+        this.classList.add('active');
+        document.getElementById('tree-view-btn').classList.remove('active');
+        document.getElementById('tree-view-btn').classList.add('btn-outline-primary');
+        this.classList.remove('btn-outline-primary');
+    });
+    
+    // Search functionality
+    document.getElementById('param-search').addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        // Search in table view
+        document.querySelectorAll('.param-row').forEach(row => {
+            const path = row.getAttribute('data-path');
+            row.style.display = path.includes(searchTerm) ? '' : 'none';
+        });
+        // Search in tree view
+        document.querySelectorAll('.tree-node').forEach(node => {
+            const text = node.textContent.toLowerCase();
+            const shouldShow = searchTerm === '' || text.includes(searchTerm);
+            node.style.display = shouldShow ? '' : 'none';
+        });
+    });
+    
+    // Tree expand/collapse
+    document.querySelectorAll('.tree-toggle').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const parent = this.closest('.tree-node');
+            const children = parent.querySelector('.tree-children');
+            if (children) {
+                const isExpanded = children.style.display !== 'none';
+                children.style.display = isExpanded ? 'none' : '';
+                this.querySelector('i').className = isExpanded ? 'fas fa-chevron-right' : 'fas fa-chevron-down';
+            }
+        });
+    });
+}
+
+function renderParametersTree(hierarchy, level = 0) {
+    if (!hierarchy || Object.keys(hierarchy).length === 0) return '';
+    
+    let html = '';
+    const indent = level * 20;
+    
+    for (const [key, value] of Object.entries(hierarchy)) {
+        if (key === '_parameters') {
+            // Render leaf parameters
+            value.forEach(param => {
+                const typeColors = {
+                    'string': 'primary',
+                    'int': 'info',
+                    'boolean': 'warning',
+                    'dateTime': 'secondary',
+                    'base64': 'dark'
+                };
+                const writable = param.writable ? '<span class="badge badge-xs bg-success">W</span>' : '<span class="badge badge-xs bg-secondary">R</span>';
+                
+                html += `
+                    <div class="tree-node tree-leaf" style="margin-left: ${indent}px;">
+                        <span class="tree-icon"><i class="fas fa-file text-info"></i></span>
+                        <code class="text-xs">${escapeHtml(param.name)}</code>
+                        <span class="text-xs text-secondary ms-2">${param.value ? escapeHtml(param.value) : '<em>null</em>'}</span>
+                        <span class="badge badge-xs bg-${typeColors[param.type] || 'secondary'} ms-1">${escapeHtml(param.type)}</span>
+                        ${writable}
+                    </div>
+                `;
+            });
+        } else {
+            // Render folder/object node
+            const hasChildren = Object.keys(value).length > 0;
+            html += `
+                <div class="tree-node tree-folder" style="margin-left: ${indent}px;">
+                    ${hasChildren ? '<a href="#" class="tree-toggle"><i class="fas fa-chevron-down"></i></a>' : '<span class="tree-spacer"></span>'}
+                    <span class="tree-icon"><i class="fas fa-folder text-warning"></i></span>
+                    <strong class="text-sm">${escapeHtml(key)}</strong>
+                    <div class="tree-children">
+                        ${renderParametersTree(value, level + 1)}
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    return html;
+}
+
+// Load Device History (Tab)
+let historyCache = {}; // Cache keyed by device ID
+function loadDeviceHistory(deviceId) {
+    if (historyCache[deviceId]) {
+        renderDeviceHistory(historyCache[deviceId]);
+        return; // Already loaded for this device
+    }
+    
+    const container = document.getElementById('history');
+    container.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin me-2"></i>Caricamento cronologia...</div>';
+    
+    fetch(`/acs/devices/${deviceId}/history`, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        }
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Network response was not ok');
+        return response.json();
+    })
+    .then(data => {
+        historyCache[deviceId] = data;
+        renderDeviceHistory(data);
+    })
+    .catch(error => {
+        container.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>Errore nel caricamento cronologia: ${error.message}
+            </div>
+        `;
+    });
+}
+
+function renderDeviceHistory(data) {
+    const container = document.getElementById('history');
+    
+    if (!data.events || data.events.length === 0) {
+        container.innerHTML = `
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>Nessun evento registrato per questo dispositivo.
+            </div>
+        `;
+        return;
+    }
+    
+    const eventIcons = {
+        'provisioning': 'cogs',
+        'reboot': 'power-off',
+        'firmware_update': 'download',
+        'diagnostic': 'stethoscope',
+        'connection_request': 'plug',
+        'parameter_change': 'edit'
+    };
+    
+    const eventColors = {
+        'pending': 'warning',
+        'processing': 'info',
+        'completed': 'success',
+        'failed': 'danger'
+    };
+    
+    let html = `
+        <p class="text-sm text-secondary mb-3">
+            <i class="fas fa-history me-2"></i><strong>${data.events_count}</strong> eventi recenti
+        </p>
+        <div style="max-height: 400px; overflow-y: auto;">
+            <div class="timeline timeline-one-side" data-timeline-axis-style="dotted">
+    `;
+    
+    data.events.forEach(event => {
+        const icon = eventIcons[event.type] || 'info-circle';
+        const color = eventColors[event.status] || 'secondary';
+        
+        html += `
+            <div class="timeline-block mb-3">
+                <span class="timeline-step badge-${color}">
+                    <i class="fas fa-${icon}"></i>
+                </span>
+                <div class="timeline-content">
+                    <h6 class="text-dark text-sm font-weight-bold mb-0">${escapeHtml(event.title)}</h6>
+                    <p class="text-secondary text-xs mt-1 mb-0">
+                        <i class="fas fa-clock me-1"></i>${escapeHtml(event.created_at)}
+                        ${event.triggered_by ? `&nbsp;•&nbsp;<i class="fas fa-user me-1"></i>${escapeHtml(event.triggered_by)}` : ''}
+                    </p>
+                    ${event.description ? `<p class="text-sm mt-2 mb-0">${escapeHtml(event.description)}</p>` : ''}
+                    <span class="badge badge-sm bg-${color} mt-2">${escapeHtml(event.status)}</span>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += `
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
 }
 
 // Provisioning

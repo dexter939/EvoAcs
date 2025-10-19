@@ -933,6 +933,100 @@ class AcsController extends Controller
     }
     
     /**
+     * Get device parameters in hierarchical JSON format for AJAX modal
+     * Ottieni parametri dispositivo in formato JSON gerarchico per modal AJAX
+     */
+    public function getDeviceParameters($id)
+    {
+        $device = CpeDevice::findOrFail($id);
+        
+        // Ottieni tutti i parametri del device ordinati per path
+        $parameters = $device->parameters()
+            ->orderBy('parameter_path')
+            ->get();
+        
+        // Organizza parametri in struttura gerarchica
+        $hierarchy = [];
+        foreach ($parameters as $param) {
+            $parts = explode('.', $param->parameter_path);
+            $current = &$hierarchy;
+            
+            foreach ($parts as $index => $part) {
+                if ($index === count($parts) - 1) {
+                    // Ultimo elemento = parametro foglia
+                    $current['_parameters'][] = [
+                        'name' => $part,
+                        'path' => $param->parameter_path,
+                        'value' => $param->parameter_value,
+                        'type' => $param->parameter_type,
+                        'writable' => $param->is_writable,
+                        'last_updated' => $param->last_updated ? $param->last_updated->format('d/m/Y H:i') : null,
+                    ];
+                } else {
+                    // Nodo intermedio
+                    if (!isset($current[$part])) {
+                        $current[$part] = [];
+                    }
+                    $current = &$current[$part];
+                }
+            }
+        }
+        
+        return response()->json([
+            'device_id' => $device->id,
+            'serial_number' => $device->serial_number,
+            'parameters_count' => $parameters->count(),
+            'hierarchy' => $hierarchy,
+            'parameters' => $parameters->map(function($param) {
+                return [
+                    'id' => $param->id,
+                    'path' => $param->parameter_path,
+                    'value' => $param->parameter_value,
+                    'type' => $param->parameter_type,
+                    'writable' => $param->is_writable,
+                    'last_updated' => $param->last_updated ? $param->last_updated->format('d/m/Y H:i') : null,
+                ];
+            }),
+        ]);
+    }
+    
+    /**
+     * Get device history/events in JSON format for AJAX modal
+     * Ottieni cronologia eventi dispositivo in formato JSON per modal AJAX
+     */
+    public function getDeviceHistory($id)
+    {
+        $device = CpeDevice::findOrFail($id);
+        
+        // Ottieni ultimi 50 eventi del device ordinati per data
+        $events = $device->events()
+            ->orderBy('created_at', 'desc')
+            ->limit(50)
+            ->get();
+        
+        return response()->json([
+            'device_id' => $device->id,
+            'serial_number' => $device->serial_number,
+            'events_count' => $events->count(),
+            'events' => $events->map(function($event) {
+                return [
+                    'id' => $event->id,
+                    'type' => $event->event_type,
+                    'status' => $event->event_status,
+                    'title' => $event->event_title,
+                    'description' => $event->event_description,
+                    'triggered_by' => $event->triggered_by,
+                    'user_email' => $event->user_email,
+                    'started_at' => $event->started_at ? $event->started_at->format('d/m/Y H:i') : null,
+                    'completed_at' => $event->completed_at ? $event->completed_at->format('d/m/Y H:i') : null,
+                    'created_at' => $event->created_at->format('d/m/Y H:i'),
+                    'data' => $event->event_data,
+                ];
+            }),
+        ]);
+    }
+    
+    /**
      * Mostra sottoscrizioni eventi per dispositivo USP
      * Show event subscriptions for USP device
      */

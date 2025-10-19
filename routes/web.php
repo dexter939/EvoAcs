@@ -33,6 +33,8 @@ Route::prefix('acs')->name('acs.')->group(function () {
     Route::post('/devices', [AcsController::class, 'storeDevice'])->name('devices.store');
     Route::get('/devices/unassigned-list', [AcsController::class, 'getUnassignedDevices'])->name('devices.unassigned-list');
     Route::get('/devices/{id}', [AcsController::class, 'showDevice'])->name('devices.show');
+    Route::get('/devices/{id}/parameters', [AcsController::class, 'getDeviceParameters'])->name('devices.parameters');
+    Route::get('/devices/{id}/history', [AcsController::class, 'getDeviceHistory'])->name('devices.history');
     Route::put('/devices/{id}', [AcsController::class, 'updateDevice'])->name('devices.update');
     Route::delete('/devices/{id}', [AcsController::class, 'destroyDevice'])->name('devices.destroy');
     Route::post('/devices/{id}/provision', [AcsController::class, 'provisionDevice'])->name('devices.provision');
