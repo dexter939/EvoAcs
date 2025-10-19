@@ -458,6 +458,15 @@ class AcsController extends Controller
     }
     
     /**
+     * AI Assistant Dashboard
+     * Display the AI-powered configuration assistant interface
+     */
+    public function aiAssistant()
+    {
+        return view('acs.ai-assistant');
+    }
+    
+    /**
      * AI: Genera profilo configurazione automaticamente
      * AI: Generate configuration profile automatically
      */

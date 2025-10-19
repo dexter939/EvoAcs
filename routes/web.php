@@ -79,7 +79,8 @@ Route::prefix('acs')->name('acs.')->group(function () {
     Route::put('/profiles/{id}', [AcsController::class, 'updateProfile'])->name('profiles.update');
     Route::delete('/profiles/{id}', [AcsController::class, 'destroyProfile'])->name('profiles.destroy');
     
-    // AI Configuration Assistant
+    // AI Configuration Assistant Dashboard
+    Route::get('/ai-assistant', [AcsController::class, 'aiAssistant'])->name('ai-assistant');
     Route::post('/profiles/ai-generate', [AcsController::class, 'aiGenerateProfile'])->name('profiles.ai-generate');
     Route::post('/profiles/{id}/ai-validate', [AcsController::class, 'aiValidateProfile'])->name('profiles.ai-validate');
     Route::post('/profiles/{id}/ai-optimize', [AcsController::class, 'aiOptimizeProfile'])->name('profiles.ai-optimize');
