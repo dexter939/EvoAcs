@@ -105,6 +105,12 @@ Route::prefix('acs')->name('acs.')->group(function () {
     Route::get('/performance-monitoring', [AcsController::class, 'performanceMonitoring'])->name('performance-monitoring');
     Route::get('/performance/metrics', [AcsController::class, 'performanceMetrics'])->name('performance.metrics');
     
+    // Advanced Monitoring & Alerting
+    Route::get('/advanced-monitoring', [AcsController::class, 'advancedMonitoring'])->name('advanced-monitoring');
+    Route::get('/advanced-monitoring/data', [AcsController::class, 'advancedMonitoringData'])->name('advanced-monitoring.data');
+    Route::post('/advanced-monitoring/create-rule', [AcsController::class, 'createAlertRule'])->name('advanced-monitoring.create-rule');
+    Route::delete('/advanced-monitoring/rules/{id}', [AcsController::class, 'deleteAlertRule'])->name('advanced-monitoring.delete-rule');
+    
     // Router Manufacturers & Products Database
     Route::get('/manufacturers', [AcsController::class, 'manufacturers'])->name('manufacturers');
     Route::get('/manufacturers/{id}/products', [AcsController::class, 'manufacturerProducts'])->name('manufacturers.products');

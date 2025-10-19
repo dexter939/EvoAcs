@@ -1441,6 +1441,79 @@ class AcsController extends Controller
     }
     
     /**
+     * Advanced Monitoring Dashboard
+     */
+    public function advancedMonitoring()
+    {
+        return view('acs.advanced-monitoring');
+    }
+    
+    /**
+     * Advanced Monitoring Data API
+     */
+    public function advancedMonitoringData()
+    {
+        $alertService = app(\App\Services\AlertMonitoringService::class);
+        
+        return response()->json([
+            'statistics' => $alertService->getAlertStatistics(),
+            'rules' => \App\Models\AlertRule::orderBy('created_at', 'desc')->get(),
+            'notifications' => \App\Models\AlertNotification::with('device')
+                ->orderBy('created_at', 'desc')
+                ->limit(20)
+                ->get(),
+            'metrics' => $alertService->getSystemMetrics(24),
+        ]);
+    }
+    
+    /**
+     * Create Alert Rule
+     */
+    public function createAlertRule(\Illuminate\Http\Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'metric' => 'required|string',
+            'condition' => 'required|string',
+            'threshold_value' => 'required|numeric',
+            'severity' => 'required|in:low,medium,high,critical',
+            'duration_minutes' => 'required|integer|min:1',
+            'channels' => 'required|array',
+            'recipients' => 'nullable|string',
+        ]);
+        
+        $recipients = array_filter(array_map('trim', explode(',', $request->input('recipients', ''))));
+        
+        $rule = \App\Models\AlertRule::create([
+            'name' => $validated['name'],
+            'description' => $validated['description'],
+            'rule_type' => 'threshold',
+            'metric' => $validated['metric'],
+            'condition' => $validated['condition'],
+            'threshold_value' => $validated['threshold_value'],
+            'duration_minutes' => $validated['duration_minutes'],
+            'severity' => $validated['severity'],
+            'notification_channels' => $validated['channels'],
+            'recipients' => $recipients,
+            'is_active' => true,
+        ]);
+        
+        return response()->json(['success' => true, 'rule' => $rule]);
+    }
+    
+    /**
+     * Delete Alert Rule
+     */
+    public function deleteAlertRule($id)
+    {
+        $rule = \App\Models\AlertRule::findOrFail($id);
+        $rule->delete();
+        
+        return response()->json(['success' => true]);
+    }
+    
+    /**
      * Diagnostics - Dettagli test
      */
     public function diagnosticDetails($id)

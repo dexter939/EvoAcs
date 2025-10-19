@@ -25,8 +25,8 @@ return new class extends Migration
         DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_cpe_profile ON cpe_devices(configuration_profile_id)');
         DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_cpe_protocol_status ON cpe_devices(protocol_type, status)');
         
-        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_params_device_name ON device_parameters(device_id, parameter_name)');
-        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_params_name_updated ON device_parameters(parameter_name, updated_at)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_params_device_name ON device_parameters(cpe_device_id, parameter_path)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_params_path_updated ON device_parameters(parameter_path, updated_at)');
         DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_params_updated ON device_parameters(updated_at)');
         
         DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tasks_status_scheduled ON provisioning_tasks(status, scheduled_at)');
@@ -34,11 +34,11 @@ return new class extends Migration
         DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tasks_type_status ON provisioning_tasks(task_type, status)');
         DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_tasks_created ON provisioning_tasks(created_at)');
         
-        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_sessions_device_status ON tr069_sessions(device_id, session_status)');
-        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_sessions_status_created ON tr069_sessions(session_status, created_at)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_sessions_device_status ON tr069_sessions(cpe_device_id, status)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_sessions_status_created ON tr069_sessions(status, created_at)');
         DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_sessions_last_activity ON tr069_sessions(last_activity)');
         
-        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_uspsubs_device_active ON usp_subscriptions(device_id, is_active)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_uspsubs_device_enabled ON usp_subscriptions(cpe_device_id, enabled)');
         DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_uspsubs_subscription_id ON usp_subscriptions(subscription_id)');
         
         DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_diag_device_type_created ON diagnostic_tests(cpe_device_id, test_type, created_at)');
@@ -62,7 +62,7 @@ return new class extends Migration
         DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_netclients_type_active ON network_clients(connection_type, active)');
         DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_netclients_last_seen ON network_clients(last_seen)');
         
-        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_pendcmd_device_status ON pending_commands(device_id, status)');
+        DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_pendcmd_device_status ON pending_commands(cpe_device_id, status)');
         DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_pendcmd_status_created ON pending_commands(status, created_at)');
         DB::statement('CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_pendcmd_expires ON pending_commands(expires_at)');
         

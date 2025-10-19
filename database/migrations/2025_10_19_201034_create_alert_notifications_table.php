@@ -13,14 +13,14 @@ return new class extends Migration
     {
         Schema::create('alert_notifications', function (Blueprint $table) {
             $table->id();
-            $table->string('alert_type'); // system, device, performance, security
-            $table->string('severity'); // critical, high, medium, low
+            $table->string('alert_type');
+            $table->string('severity');
             $table->string('title');
             $table->text('message');
             $table->json('metadata')->nullable();
             $table->foreignId('related_device_id')->nullable()->constrained('cpe_devices')->onDelete('set null');
-            $table->string('notification_channel'); // email, webhook, slack, sms
-            $table->string('status')->default('pending'); // pending, sent, failed
+            $table->string('notification_channel');
+            $table->string('status')->default('pending');
             $table->timestamp('sent_at')->nullable();
             $table->text('error_message')->nullable();
             $table->integer('retry_count')->default(0);
@@ -35,14 +35,14 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->text('description')->nullable();
-            $table->string('rule_type'); // threshold, pattern, anomaly
-            $table->string('metric'); // cpu, memory, query_time, device_offline, etc.
-            $table->string('condition'); // >, <, =, contains, etc.
+            $table->string('rule_type');
+            $table->string('metric');
+            $table->string('condition');
             $table->string('threshold_value');
             $table->integer('duration_minutes')->default(5);
             $table->string('severity');
-            $table->json('notification_channels'); // ['email', 'slack']
-            $table->json('recipients'); // email addresses, webhook URLs
+            $table->json('notification_channels');
+            $table->json('recipients');
             $table->boolean('is_active')->default(true);
             $table->timestamp('last_triggered_at')->nullable();
             $table->integer('trigger_count')->default(0);
@@ -55,7 +55,7 @@ return new class extends Migration
         Schema::create('system_metrics', function (Blueprint $table) {
             $table->id();
             $table->string('metric_name');
-            $table->string('metric_type'); // gauge, counter, histogram
+            $table->string('metric_type');
             $table->decimal('value', 15, 2);
             $table->json('tags')->nullable();
             $table->timestamp('recorded_at');
