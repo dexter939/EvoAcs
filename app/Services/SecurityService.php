@@ -44,8 +44,8 @@ class SecurityService
         $events = SecurityLog::select(
                 DB::raw('DATE(created_at) as date'),
                 DB::raw('COUNT(*) as total'),
-                DB::raw('SUM(CASE WHEN severity = "critical" THEN 1 ELSE 0 END) as critical'),
-                DB::raw('SUM(CASE WHEN severity = "warning" THEN 1 ELSE 0 END) as warning'),
+                DB::raw("SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END) as critical"),
+                DB::raw("SUM(CASE WHEN severity = 'warning' THEN 1 ELSE 0 END) as warning"),
                 DB::raw('SUM(CASE WHEN blocked = true THEN 1 ELSE 0 END) as blocked')
             )
             ->where('created_at', '>=', $startDate)
