@@ -22,6 +22,7 @@ class UspOperationsTest extends TestCase
 
         $device = CpeDevice::factory()->tr369()->online()->create([
             'mtp_type' => 'mqtt',
+            'mqtt_client_id' => 'mqtt-test-12345',
             'usp_endpoint_id' => 'proto::device-12345'
         ]);
 
@@ -146,7 +147,14 @@ class UspOperationsTest extends TestCase
 
     public function test_operate_command_on_usp_device(): void
     {
-        $device = CpeDevice::factory()->tr369()->online()->create();
+        $mqttMock = Mockery::mock(UspMqttService::class);
+        $mqttMock->shouldReceive('sendOperateRequest')->once()->andReturn(true);
+        $this->app->instance(UspMqttService::class, $mqttMock);
+
+        $device = CpeDevice::factory()->tr369()->online()->create([
+            'mtp_type' => 'mqtt',
+            'mqtt_client_id' => 'mqtt-operate-test'
+        ]);
 
         $response = $this->apiPost("/api/v1/usp/devices/{$device->id}/operate", [
             'command' => 'Device.Reboot()',
@@ -166,7 +174,14 @@ class UspOperationsTest extends TestCase
 
     public function test_reboot_usp_device(): void
     {
-        $device = CpeDevice::factory()->tr369()->online()->create();
+        $wsMock = Mockery::mock(UspWebSocketService::class);
+        $wsMock->shouldReceive('sendOperateRequest')->once()->andReturn(true);
+        $this->app->instance(UspWebSocketService::class, $wsMock);
+
+        $device = CpeDevice::factory()->tr369()->online()->create([
+            'mtp_type' => 'websocket',
+            'websocket_client_id' => 'ws-reboot-test'
+        ]);
 
         $response = $this->apiPost("/api/v1/usp/devices/{$device->id}/reboot");
 
@@ -316,8 +331,13 @@ class UspOperationsTest extends TestCase
 
         $httpDevice = CpeDevice::factory()->tr369()->create([
             'mtp_type' => 'http',
-            'connection_request_url' => 'http://device.test:7547',
+            'connection_request_url' => 'http://device.test:7547/usp',
             'status' => 'online'
+        ]);
+
+        // Mock HTTP transport
+        \Illuminate\Support\Facades\Http::fake([
+            'device.test:7547/usp' => \Illuminate\Support\Facades\Http::response('', 200)
         ]);
 
         // Test MQTT transport
