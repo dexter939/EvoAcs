@@ -11,6 +11,7 @@ The web interface uses the Soft UI Dashboard Laravel template, providing a moder
 
 ## Technical Implementations
 - **Protocol Support**: Comprehensive implementation of TR-069 (CWMP) via SOAP and TR-369 (USP) using Protocol Buffers over MQTT/WebSocket/HTTP/XMPP, alongside other TR protocols.
+  - **TR-181 (Device:2 Data Model)**: Production-ready implementation (432-line service, 283-line controller, 12 API routes) supporting 8 namespaces (DeviceInfo, ManagementServer, Time, WiFi, LAN, DHCPv4, IP, Hosts). Features device-scoped caching, cache coherency on writes, single bulk query per device for 100K+ scale. Architect-approved carrier-grade implementation.
 - **Database**: PostgreSQL with optimized indexing and multi-tenancy.
 - **Performance Optimizations**: Strategic database indexes, multi-tier Redis caching, and a centralized CacheService for high-traffic operations and frequent queries.
 - **Asynchronous Processing**: Laravel Horizon with Redis queues for provisioning, firmware, and TR-069 requests.
