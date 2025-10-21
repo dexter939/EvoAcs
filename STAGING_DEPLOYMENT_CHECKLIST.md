@@ -12,19 +12,24 @@
 
 ### ✅ Deployment Configuration
 - [x] **Target**: VM (always-running for queue workers + XMPP)
-- [x] **Build Phase**: 
+- [x] **Build Script**: `./scripts/replit/build.sh`
   ```bash
+  #!/bin/bash
+  set -e
   php artisan config:cache
   php artisan route:cache
   php artisan view:cache
   ```
-- [x] **Run Command**: 
+- [x] **Run Script**: `./scripts/replit/run.sh`
   ```bash
-  php artisan serve --host=0.0.0.0 --port=5000 & 
-  php artisan queue:work --sleep=3 --tries=3 --timeout=120 & 
-  prosody --config prosody.cfg.lua & 
+  #!/bin/bash
+  set -e
+  php artisan serve --host=0.0.0.0 --port=5000 &
+  php artisan queue:work --sleep=3 --tries=3 --timeout=120 &
+  prosody --config prosody.cfg.lua &
   wait
   ```
+- [x] **Configuration**: `.replit` file configured with script references
 
 ### ✅ Features Production-Ready
 - [x] **10 TR Protocols**: TR-069, TR-104, TR-106, TR-111, TR-135, TR-140, TR-157, TR-181, TR-262, TR-369

@@ -34,7 +34,7 @@ The web interface uses the Soft UI Dashboard Laravel template, providing a moder
 - **Security Hardening**: Enterprise-grade security with rate limiting, DDoS protection, RBAC (Role-Based Access Control), input validation/sanitization, security audit logging, and IP blacklist management.
 - **Scalability**: Achieved through database optimizations, Redis caching, and a high-throughput queue system.
 - **Configuration**: Laravel environment variables.
-- **Deployment**: VM-based deployment configuration for always-running services (Laravel + Queue Workers + XMPP). Build phase includes config/route/view caching for production performance. Multi-service orchestration via bash background jobs.
+- **Deployment**: VM-based deployment configuration for always-running services (Laravel + Queue Workers + XMPP). Build phase includes config/route/view caching for production performance via `scripts/replit/build.sh`. Multi-service orchestration via `scripts/replit/run.sh` with parallel process execution and wait.
 
 ## Feature Specifications
 - **Device Management**: Auto-registration, zero-touch provisioning with configuration profiles, and firmware management.
