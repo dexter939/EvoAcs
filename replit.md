@@ -5,7 +5,8 @@ The ACS (Auto Configuration Server) project is a carrier-grade Laravel system de
 I prefer clear and concise explanations. When making changes, prioritize core functionalities and ensure backward compatibility. I prefer an iterative development approach, focusing on delivering functional components incrementally. Please ask for confirmation before implementing significant architectural changes or altering existing API contracts. Ensure all new features have comprehensive test coverage. I want the agent to use proper markdown formatting in all its responses.
 
 # Recent Changes
-- **October 21, 2025**: ✅ **COMPLETATA ROADMAP TR + TEST SUITE** - (1) Implementati e approvati dall'architect tutti i 7 protocolli TR rimanenti (TR-104, TR-106, TR-111, TR-135, TR-140, TR-157, TR-262) con 2,745+ righe di codice production-ready BBF-compliant. TR-157 completato con database persistente (DeploymentUnit/ExecutionUnit models + migrations). (2) Creata test suite completa: 7 test Unit per servizi TR + 3 test Integration/E2E per TR-157 con CWMP/USP flows. (3) Migrations TR-157 deployed: deployment_units (14 colonne, 5 indexes) + execution_units (16 colonne, 4 indexes) con FK constraints e UUID uniqueness. **Roadmap TR completa al 100% - Production Ready**.
+- **October 21, 2025 - Staging Deployment Configuration**: ✅ **CONFIGURATO DEPLOYMENT VM PER STAGING ROLLOUT** - Configurato deployment production-ready con: (1) VM deployment target per servizi always-running (queue workers, XMPP server). (2) Build optimization: config/route/view cache. (3) Multi-service orchestration: Laravel server + Queue Worker + Prosody XMPP in parallelo. (4) Migration idempotency fixes applicati. **Sistema pronto per pubblicazione staging**.
+- **October 21, 2025**: ✅ **COMPLETATA ROADMAP TR + TEST SUITE** - (1) Implementati e approvati dall'architect tutti i 7 protocolli TR rimanenti (TR-104, TR-106, TR-111, TR-135, TR-140, TR-157, TR-262) con 2,745+ righe di codice production-ready BBF-compliant. TR-157 completato con database persistente (DeploymentUnit/ExecutionUnit models + migrations). (2) Creata test suite completa: 7 test Unit per servizi TR + 3 test Integration/E2E per TR-157 con CWMP/USP flows. (3) Migrations TR-157 deployed: deployment_units (14 colonne, 5 indexes) + execution_units (16 colonne, 4 indexes) con FK constraints e UUID uniqueness. (4) Migration fixes: idempotency guards per smart_home_devices, iot_services, file_servers. **Roadmap TR completa al 100% - Production Ready**.
 
 # System Architecture
 
@@ -31,6 +32,7 @@ The web interface uses the Soft UI Dashboard Laravel template, providing a moder
 - **Security Hardening**: Enterprise-grade security with rate limiting, DDoS protection, RBAC (Role-Based Access Control), input validation/sanitization, security audit logging, and IP blacklist management.
 - **Scalability**: Achieved through database optimizations, Redis caching, and a high-throughput queue system.
 - **Configuration**: Laravel environment variables.
+- **Deployment**: VM-based deployment configuration for always-running services (Laravel + Queue Workers + XMPP). Build phase includes config/route/view caching for production performance. Multi-service orchestration via bash background jobs.
 
 ## Feature Specifications
 - **Device Management**: Auto-registration, zero-touch provisioning with configuration profiles, and firmware management.
