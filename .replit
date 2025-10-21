@@ -53,13 +53,13 @@ waitForPort = 6000
 name = "ACS Server"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "export DB_HOST=$PGHOST DB_PORT=$PGPORT DB_DATABASE=$PGDATABASE DB_USERNAME=$PGUSER DB_PASSWORD=$PGPASSWORD && php artisan config:clear && php artisan serve --host=0.0.0.0 --port=5000"
-waitForPort = 5000
-
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "php artisan config:clear && php artisan serve --host=0.0.0.0 --port=5000"
+waitForPort = 5000
 
 [[ports]]
 localPort = 5000
