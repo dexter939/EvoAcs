@@ -16,7 +16,7 @@ class ConfigurationTemplatesSeeder extends Seeder
                 'model' => 'FRITZ!Box',
                 'protocol_version' => 'TR-098',
                 'description' => 'Configurazione WiFi sicura con WPA3, SSID personalizzato e canali ottimizzati',
-                'data_model_id' => 1,
+                'data_model_id' => null,
                 'parameters' => json_encode([
                     'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.Enable' => true,
                     'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.SSID' => 'MySecureWiFi',
@@ -39,7 +39,7 @@ class ConfigurationTemplatesSeeder extends Seeder
                 'model' => 'FRITZ!Box',
                 'protocol_version' => 'TR-104',
                 'description' => 'Configurazione VoIP con capacità FaxT38, RTCP e supporto sessioni multiple',
-                'data_model_id' => 2,
+                'data_model_id' => null,
                 'parameters' => json_encode([
                     'VoiceService.1.Capabilities.FaxT38' => true,
                     'VoiceService.1.Capabilities.RTCP' => true,
@@ -60,7 +60,7 @@ class ConfigurationTemplatesSeeder extends Seeder
                 'model' => 'FRITZ!Box',
                 'protocol_version' => 'TR-140',
                 'description' => 'Configurazione storage NAS con server FTP/HTTP e supporto protocolli rete',
-                'data_model_id' => 3,
+                'data_model_id' => null,
                 'parameters' => json_encode([
                     'StorageService.1.Enable' => true,
                     'StorageService.1.FTPServer.Enable' => true,
@@ -81,7 +81,7 @@ class ConfigurationTemplatesSeeder extends Seeder
                 'model' => 'FRITZ!Box',
                 'protocol_version' => 'TR-098',
                 'description' => 'Rete WiFi guest isolata con autenticazione WPA2 e limitazioni accesso',
-                'data_model_id' => 1,
+                'data_model_id' => null,
                 'parameters' => json_encode([
                     'InternetGatewayDevice.LANDevice.1.WLANConfiguration.2.Enable' => true,
                     'InternetGatewayDevice.LANDevice.1.WLANConfiguration.2.SSID' => 'GuestWiFi',
