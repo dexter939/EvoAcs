@@ -9,7 +9,7 @@ use App\Services\GitHub\UpdateApplicationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
-class GitHubUpdateDashboardController extends Controller
+class SystemUpdatesDashboardController extends Controller
 {
     public function __construct(
         private GitHubReleaseService $githubService,
@@ -36,7 +36,7 @@ class GitHubUpdateDashboardController extends Controller
 
         $stats = $this->getStats();
 
-        return view('acs.github-updates.index', compact('updates', 'stats', 'status'));
+        return view('acs.updates.index', compact('updates', 'stats', 'status'));
     }
 
     public function show(int $id)
@@ -55,7 +55,7 @@ class GitHubUpdateDashboardController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return view('acs.github-updates.show', compact('update', 'validationResults', 'deploymentHistory'));
+        return view('acs.updates.show', compact('update', 'validationResults', 'deploymentHistory'));
     }
 
     public function checkForUpdates(Request $request)
