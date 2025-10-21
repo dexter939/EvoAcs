@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\CpeDevice;
+use App\Models\DeploymentUnit;
+use App\Models\ExecutionUnit;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -150,90 +152,110 @@ class TR157Service
     }
 
     /**
-     * Get deployment units for device (stable, device-scoped)
-     * In production, this would query deployment_units table
-     * For now, returns stable demo data based on device ID
+     * Get deployment units for device from database
+     * Queries deployment_units table for device-specific modules
      */
     private function getDeploymentUnitsForDevice(CpeDevice $device): array
     {
-        $deviceSeed = crc32($device->serial_number ?? $device->id);
+        $deploymentUnits = DeploymentUnit::where('cpe_device_id', $device->id)->get();
         
-        return [
-            [
-                'uuid' => $this->generateStableUuid($device->id, 'du', 1),
-                'duid' => "DU_{$device->id}_1",
-                'name' => 'SystemCore',
-                'status' => 'Installed',
-                'resolved' => true,
-                'url' => 'http://repository.example.com/systemcore-1.0.0.pkg',
-                'vendor' => 'BBF',
-                'version' => '1.0.0',
-            ],
-            [
-                'uuid' => $this->generateStableUuid($device->id, 'du', 2),
-                'duid' => "DU_{$device->id}_2",
-                'name' => 'NetworkStack',
-                'status' => 'Installed',
-                'resolved' => true,
-                'url' => 'http://repository.example.com/netstack-2.1.3.pkg',
-                'vendor' => 'BBF',
-                'version' => '2.1.3',
-            ],
-        ];
+        if ($deploymentUnits->isEmpty()) {
+            $this->seedDefaultDeploymentUnits($device);
+            $deploymentUnits = DeploymentUnit::where('cpe_device_id', $device->id)->get();
+        }
+        
+        return $deploymentUnits->map(function($du) {
+            return [
+                'uuid' => $du->uuid,
+                'duid' => $du->duid,
+                'name' => $du->name,
+                'status' => $du->status,
+                'resolved' => $du->resolved,
+                'url' => $du->url,
+                'vendor' => $du->vendor,
+                'version' => $du->version,
+            ];
+        })->toArray();
     }
 
     /**
-     * Get execution units for device (stable, device-scoped)
-     * In production, this would query execution_units table
-     * For now, returns stable demo data based on device ID
+     * Get execution units for device from database
+     * Queries execution_units table for device-specific processes
      */
     private function getExecutionUnitsForDevice(CpeDevice $device): array
     {
-        return [
-            [
-                'euid' => "EU_{$device->id}_1",
-                'name' => 'CoreService',
-                'status' => 'Running',
-                'requested_state' => 'Active',
-                'fault_code' => 'NoFault',
-                'fault_message' => '',
-                'vendor' => 'BBF',
-                'version' => '1.0.0',
-                'run_level' => '3',
-                'auto_start' => true,
-            ],
-            [
-                'euid' => "EU_{$device->id}_2",
-                'name' => 'NetworkDaemon',
-                'status' => 'Running',
-                'requested_state' => 'Active',
-                'fault_code' => 'NoFault',
-                'fault_message' => '',
-                'vendor' => 'BBF',
-                'version' => '2.1.3',
-                'run_level' => '3',
-                'auto_start' => true,
-            ],
-        ];
+        $executionUnits = ExecutionUnit::where('cpe_device_id', $device->id)->get();
+        
+        if ($executionUnits->isEmpty()) {
+            $this->seedDefaultExecutionUnits($device);
+            $executionUnits = ExecutionUnit::where('cpe_device_id', $device->id)->get();
+        }
+        
+        return $executionUnits->map(function($eu) {
+            return [
+                'euid' => $eu->euid,
+                'name' => $eu->name,
+                'status' => $eu->status,
+                'requested_state' => $eu->requested_state,
+                'fault_code' => $eu->execution_fault_code,
+                'fault_message' => $eu->execution_fault_message,
+                'vendor' => $eu->vendor,
+                'version' => $eu->version,
+                'run_level' => (string)$eu->run_level,
+                'auto_start' => $eu->auto_start,
+            ];
+        })->toArray();
     }
 
     /**
-     * Generate stable UUID from device ID and component
+     * Seed default deployment units for new device
      */
-    private function generateStableUuid(int $deviceId, string $component, int $index): string
+    private function seedDefaultDeploymentUnits(CpeDevice $device): void
     {
-        $namespace = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
-        $name = "device_{$deviceId}_{$component}_{$index}";
+        DeploymentUnit::create([
+            'cpe_device_id' => $device->id,
+            'name' => 'SystemCore',
+            'status' => 'Installed',
+            'resolved' => true,
+            'url' => 'http://repository.example.com/systemcore-1.0.0.pkg',
+            'vendor' => 'BBF',
+            'version' => '1.0.0',
+            'description' => 'Core system components',
+        ]);
+
+        DeploymentUnit::create([
+            'cpe_device_id' => $device->id,
+            'name' => 'NetworkStack',
+            'status' => 'Installed',
+            'resolved' => true,
+            'url' => 'http://repository.example.com/netstack-2.1.3.pkg',
+            'vendor' => 'BBF',
+            'version' => '2.1.3',
+            'description' => 'Network protocol stack',
+        ]);
+    }
+
+    /**
+     * Seed default execution units for new device
+     */
+    private function seedDefaultExecutionUnits(CpeDevice $device): void
+    {
+        $deploymentUnits = DeploymentUnit::where('cpe_device_id', $device->id)->get();
         
-        $hash = md5($namespace . $name);
-        
-        return sprintf('%08s-%04s-%04s-%04s-%012s',
-            substr($hash, 0, 8),
-            substr($hash, 8, 4),
-            '5' . substr($hash, 13, 3),
-            dechex(hexdec(substr($hash, 16, 4)) & 0x3fff | 0x8000),
-            substr($hash, 20, 12)
-        );
+        foreach ($deploymentUnits as $du) {
+            ExecutionUnit::create([
+                'cpe_device_id' => $device->id,
+                'deployment_unit_id' => $du->id,
+                'name' => $du->name === 'SystemCore' ? 'CoreService' : 'NetworkDaemon',
+                'status' => 'Running',
+                'requested_state' => 'Active',
+                'execution_fault_code' => 'NoFault',
+                'vendor' => $du->vendor,
+                'version' => $du->version,
+                'run_level' => 3,
+                'auto_start' => true,
+            ]);
+        }
     }
 
     /**
@@ -461,9 +483,22 @@ class TR157Service
      */
     public function listDeploymentUnits(CpeDevice $device): array
     {
+        $deploymentUnits = DeploymentUnit::where('cpe_device_id', $device->id)->get();
+        
         return [
-            'total' => 0,
-            'deployment_units' => [],
+            'total' => $deploymentUnits->count(),
+            'deployment_units' => $deploymentUnits->map(function($du) {
+                return [
+                    'id' => $du->id,
+                    'uuid' => $du->uuid,
+                    'duid' => $du->duid,
+                    'name' => $du->name,
+                    'version' => $du->version,
+                    'vendor' => $du->vendor,
+                    'status' => $du->status,
+                    'resolved' => $du->resolved,
+                ];
+            })->toArray(),
         ];
     }
 
@@ -472,9 +507,20 @@ class TR157Service
      */
     public function listExecutionUnits(CpeDevice $device): array
     {
+        $executionUnits = ExecutionUnit::where('cpe_device_id', $device->id)->get();
+        
         return [
-            'total' => 0,
-            'execution_units' => [],
+            'total' => $executionUnits->count(),
+            'execution_units' => $executionUnits->map(function($eu) {
+                return [
+                    'id' => $eu->id,
+                    'euid' => $eu->euid,
+                    'name' => $eu->name,
+                    'version' => $eu->version,
+                    'status' => $eu->status,
+                    'run_level' => $eu->run_level,
+                ];
+            })->toArray(),
         ];
     }
 

@@ -223,6 +223,28 @@ class CpeDevice extends Model
     }
 
     /**
+     * Relazione con deployment units (TR-157)
+     * Relationship with deployment units
+     * 
+     * @return HasMany
+     */
+    public function deploymentUnits(): HasMany
+    {
+        return $this->hasMany(\App\Models\DeploymentUnit::class);
+    }
+
+    /**
+     * Relazione con execution units (TR-157)
+     * Relationship with execution units
+     * 
+     * @return HasMany
+     */
+    public function executionUnits(): HasMany
+    {
+        return $this->hasMany(\App\Models\ExecutionUnit::class);
+    }
+
+    /**
      * Scope per filtrare dispositivi TR-069
      * Scope to filter TR-069 devices
      */
