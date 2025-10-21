@@ -25,6 +25,13 @@ Route::prefix('v1')->middleware(\App\Http\Middleware\ApiKeyAuth::class)->group(f
     Route::get('telemetry/summary', [TelemetryController::class, 'summary']);
     Route::get('telemetry/health', [TelemetryController::class, 'health']);
     
+    // System Update APIs
+    Route::get('system/status', [\App\Http\Controllers\SystemUpdateController::class, 'status']);
+    Route::get('system/version', [\App\Http\Controllers\SystemUpdateController::class, 'versionInfo']);
+    Route::get('system/health', [\App\Http\Controllers\SystemUpdateController::class, 'healthCheck']);
+    Route::get('system/history', [\App\Http\Controllers\SystemUpdateController::class, 'history']);
+    Route::post('system/update', [\App\Http\Controllers\SystemUpdateController::class, 'runUpdate']);
+    
     Route::apiResource('devices', DeviceController::class);
     Route::post('devices/{device}/provision', [ProvisioningController::class, 'provisionDevice']);
     Route::post('devices/{device}/parameters/get', [ProvisioningController::class, 'getParameters']);

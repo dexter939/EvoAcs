@@ -182,6 +182,10 @@ Route::prefix('acs')->name('acs.')->middleware('auth')->group(function () {
     // STB/IPTV Services (TR-135)
     Route::get('/stb', [AcsController::class, 'stb'])->name('stb');
     Route::get('/stb/{deviceId}', [AcsController::class, 'stbDevice'])->name('stb.device');
+    
+    // System Updates & Auto-Deploy
+    Route::get('/system-updates', [\App\Http\Controllers\SystemUpdateController::class, 'dashboard'])->name('system-updates');
+    Route::post('/system-updates/run', [\App\Http\Controllers\SystemUpdateController::class, 'runUpdate'])->name('system-updates.run');
     Route::post('/stb/{deviceId}/configure', [AcsController::class, 'stbConfigure'])->name('stb.configure');
     
     // Parameter Discovery (TR-111)
