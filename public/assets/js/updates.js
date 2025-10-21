@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
             btnIcon.className = 'fas fa-spinner fa-spin me-1';
             this.disabled = true;
 
-            makeRequest('/acs/github-updates/check', 'POST', { auto_stage: true })
+            makeRequest('/acs/updates/check', 'POST', { auto_stage: true })
                 .then(response => {
                     showNotification(response.message, 'success');
                     setTimeout(() => window.location.reload(), 1500);
@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 btnIcon.className = 'fas fa-spinner fa-spin';
                 this.disabled = true;
 
-                makeRequest(`/acs/github-updates/${updateId}/approve`, 'POST')
+                makeRequest(`/acs/updates/${updateId}/approve`, 'POST')
                     .then(response => {
                         showNotification(response.message, 'success');
                         setTimeout(() => window.location.reload(), 1500);
@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         btnIcon.className = 'fas fa-spinner fa-spin';
                         this.disabled = true;
 
-                        makeRequest(`/acs/github-updates/${updateId}/reject`, 'POST', { reason: result.value })
+                        makeRequest(`/acs/updates/${updateId}/reject`, 'POST', { reason: result.value })
                             .then(response => {
                                 showNotification(response.message, 'success');
                                 setTimeout(() => window.location.reload(), 1500);
@@ -157,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 const reason = prompt('Motivo del rigetto (opzionale):');
                 if (reason !== null) {
-                    makeRequest(`/acs/github-updates/${updateId}/reject`, 'POST', { reason })
+                    makeRequest(`/acs/updates/${updateId}/reject`, 'POST', { reason })
                         .then(response => {
                             showNotification(response.message, 'success');
                             setTimeout(() => window.location.reload(), 1500);
@@ -178,7 +178,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const updateId = window.updateId;
             const scheduledAt = document.getElementById('scheduled_at').value;
             
-            makeRequest(`/acs/github-updates/${updateId}/schedule`, 'POST', { scheduled_at: scheduledAt })
+            makeRequest(`/acs/updates/${updateId}/schedule`, 'POST', { scheduled_at: scheduledAt })
                 .then(response => {
                     const modal = bootstrap.Modal.getInstance(document.getElementById('scheduleModal'));
                     modal.hide();
@@ -233,7 +233,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         progressMessage.textContent = 'Health checks e validazione...';
                     }, 4000);
                     
-                    makeRequest(`/acs/github-updates/${updateId}/apply`, 'POST')
+                    makeRequest(`/acs/updates/${updateId}/apply`, 'POST')
                         .then(response => {
                             progressBar.style.width = '100%';
                             progressBar.textContent = '100%';
@@ -272,7 +272,7 @@ document.addEventListener('DOMContentLoaded', function() {
             btnIcon.className = 'fas fa-spinner fa-spin me-2';
             this.disabled = true;
 
-            makeRequest(`/acs/github-updates/${updateId}/validate`, 'GET')
+            makeRequest(`/acs/updates/${updateId}/validate`, 'GET')
                 .then(response => {
                     if (response.success) {
                         showNotification(response.message, 'success');

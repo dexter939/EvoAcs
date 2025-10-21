@@ -6,7 +6,7 @@
     <div class="container-fluid py-4">
         <div class="row mb-4">
             <div class="col-12">
-                <a href="{{ route('acs.github-updates.index') }}" class="btn btn-sm btn-outline-secondary mb-0">
+                <a href="{{ route('acs.updates.index') }}" class="btn btn-sm btn-outline-secondary mb-0">
                     <i class="fas fa-arrow-left me-1"></i> Torna alla Lista
                 </a>
             </div>
@@ -19,7 +19,7 @@
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <h5 class="mb-0">
-                                    <i class="fab fa-github me-2"></i>
+                                    <i class="fas fa-sync-alt text-info me-2"></i>
                                     {{ $update->version }}
                                 </h5>
                                 <p class="text-sm text-muted mb-0">
@@ -249,5 +249,5 @@
     <script>
         window.updateId = {{ $update->id }};
     </script>
-    <script src="{{ asset('assets/js/github-updates.js') }}"></script>
+    <script src="{{ asset('assets/js/updates.js') }}"></script>
 @endpush

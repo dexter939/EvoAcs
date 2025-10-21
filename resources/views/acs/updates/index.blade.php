@@ -1,7 +1,7 @@
 @extends('layouts.app', ['class' => 'g-sidenav-show bg-gray-100'])
 
 @section('content')
-    @include('layouts.navbars.navbar', ['titlePage' => __('GitHub Updates')])
+    @include('layouts.navbars.navbar', ['titlePage' => __('System Updates')])
 
     <div class="container-fluid py-4">
         <div class="row mb-4">
@@ -11,8 +11,8 @@
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <h5 class="mb-0">
-                                    <i class="fab fa-github text-dark me-2"></i>
-                                    GitHub Auto-Update System
+                                    <i class="fas fa-sync-alt text-info me-2"></i>
+                                    System Auto-Update
                                 </h5>
                                 <p class="text-sm text-muted mb-0">Gestione aggiornamenti software con approval workflow carrier-grade</p>
                             </div>
@@ -43,7 +43,7 @@
                             </div>
                             <div class="col-4 text-end">
                                 <div class="icon icon-shape bg-gradient-secondary shadow-secondary text-center rounded-circle">
-                                    <i class="fab fa-github text-lg opacity-10" aria-hidden="true"></i>
+                                    <i class="fas fa-sync-alt text-lg opacity-10" aria-hidden="true"></i>
                                 </div>
                             </div>
                         </div>
@@ -169,19 +169,19 @@
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h6>Aggiornamenti Disponibili</h6>
                             <div class="btn-group" role="group">
-                                <a href="{{ route('acs.github-updates.index', ['status' => 'all']) }}" 
+                                <a href="{{ route('acs.updates.index', ['status' => 'all']) }}" 
                                    class="btn btn-sm {{ $status === 'all' ? 'btn-dark' : 'btn-outline-dark' }}">
                                     Tutti
                                 </a>
-                                <a href="{{ route('acs.github-updates.index', ['status' => 'pending']) }}" 
+                                <a href="{{ route('acs.updates.index', ['status' => 'pending']) }}" 
                                    class="btn btn-sm {{ $status === 'pending' ? 'btn-warning' : 'btn-outline-warning' }}">
                                     In Attesa
                                 </a>
-                                <a href="{{ route('acs.github-updates.index', ['status' => 'approved']) }}" 
+                                <a href="{{ route('acs.updates.index', ['status' => 'approved']) }}" 
                                    class="btn btn-sm {{ $status === 'approved' ? 'btn-success' : 'btn-outline-success' }}">
                                     Approvati
                                 </a>
-                                <a href="{{ route('acs.github-updates.index', ['status' => 'rejected']) }}" 
+                                <a href="{{ route('acs.updates.index', ['status' => 'rejected']) }}" 
                                    class="btn btn-sm {{ $status === 'rejected' ? 'btn-danger' : 'btn-outline-danger' }}">
                                     Rigettati
                                 </a>
@@ -273,7 +273,7 @@
                                                     </span>
                                                 </td>
                                                 <td class="align-middle text-center">
-                                                    <a href="{{ route('acs.github-updates.show', $update->id) }}" 
+                                                    <a href="{{ route('acs.updates.show', $update->id) }}" 
                                                        class="btn btn-sm btn-outline-primary mb-0"
                                                        data-bs-toggle="tooltip" 
                                                        title="Visualizza Dettagli">
@@ -320,5 +320,5 @@
 @endsection
 
 @push('js')
-    <script src="{{ asset('assets/js/github-updates.js') }}"></script>
+    <script src="{{ asset('assets/js/updates.js') }}"></script>
 @endpush
