@@ -188,6 +188,16 @@ Route::prefix('acs')->name('acs.')->middleware('auth')->group(function () {
     Route::post('/system-updates/run', [\App\Http\Controllers\SystemUpdateController::class, 'runUpdate'])->name('system-updates.run');
     Route::post('/stb/{deviceId}/configure', [AcsController::class, 'stbConfigure'])->name('stb.configure');
     
+    // GitHub Auto-Update Dashboard
+    Route::get('/github-updates', [\App\Http\Controllers\GitHubUpdateDashboardController::class, 'index'])->name('github-updates.index');
+    Route::get('/github-updates/{id}', [\App\Http\Controllers\GitHubUpdateDashboardController::class, 'show'])->name('github-updates.show');
+    Route::post('/github-updates/check', [\App\Http\Controllers\GitHubUpdateDashboardController::class, 'checkForUpdates'])->name('github-updates.check');
+    Route::post('/github-updates/{id}/approve', [\App\Http\Controllers\GitHubUpdateDashboardController::class, 'approve'])->name('github-updates.approve');
+    Route::post('/github-updates/{id}/reject', [\App\Http\Controllers\GitHubUpdateDashboardController::class, 'reject'])->name('github-updates.reject');
+    Route::post('/github-updates/{id}/schedule', [\App\Http\Controllers\GitHubUpdateDashboardController::class, 'schedule'])->name('github-updates.schedule');
+    Route::post('/github-updates/{id}/apply', [\App\Http\Controllers\GitHubUpdateDashboardController::class, 'apply'])->name('github-updates.apply');
+    Route::get('/github-updates/{id}/validate', [\App\Http\Controllers\GitHubUpdateDashboardController::class, 'validate'])->name('github-updates.validate');
+    
     // Parameter Discovery (TR-111)
     Route::get('/parameters', [AcsController::class, 'parameters'])->name('parameters');
     Route::get('/parameters/{deviceId}', [AcsController::class, 'parametersDevice'])->name('parameters.device');

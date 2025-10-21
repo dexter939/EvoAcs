@@ -169,19 +169,19 @@
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h6>Aggiornamenti Disponibili</h6>
                             <div class="btn-group" role="group">
-                                <a href="{{ route('github-updates.index', ['status' => 'all']) }}" 
+                                <a href="{{ route('acs.github-updates.index', ['status' => 'all']) }}" 
                                    class="btn btn-sm {{ $status === 'all' ? 'btn-dark' : 'btn-outline-dark' }}">
                                     Tutti
                                 </a>
-                                <a href="{{ route('github-updates.index', ['status' => 'pending']) }}" 
+                                <a href="{{ route('acs.github-updates.index', ['status' => 'pending']) }}" 
                                    class="btn btn-sm {{ $status === 'pending' ? 'btn-warning' : 'btn-outline-warning' }}">
                                     In Attesa
                                 </a>
-                                <a href="{{ route('github-updates.index', ['status' => 'approved']) }}" 
+                                <a href="{{ route('acs.github-updates.index', ['status' => 'approved']) }}" 
                                    class="btn btn-sm {{ $status === 'approved' ? 'btn-success' : 'btn-outline-success' }}">
                                     Approvati
                                 </a>
-                                <a href="{{ route('github-updates.index', ['status' => 'rejected']) }}" 
+                                <a href="{{ route('acs.github-updates.index', ['status' => 'rejected']) }}" 
                                    class="btn btn-sm {{ $status === 'rejected' ? 'btn-danger' : 'btn-outline-danger' }}">
                                     Rigettati
                                 </a>
@@ -273,7 +273,7 @@
                                                     </span>
                                                 </td>
                                                 <td class="align-middle text-center">
-                                                    <a href="{{ route('github-updates.show', $update->id) }}" 
+                                                    <a href="{{ route('acs.github-updates.show', $update->id) }}" 
                                                        class="btn btn-sm btn-outline-primary mb-0"
                                                        data-bs-toggle="tooltip" 
                                                        title="Visualizza Dettagli">

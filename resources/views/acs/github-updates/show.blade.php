@@ -6,7 +6,7 @@
     <div class="container-fluid py-4">
         <div class="row mb-4">
             <div class="col-12">
-                <a href="{{ route('github-updates.index') }}" class="btn btn-sm btn-outline-secondary mb-0">
+                <a href="{{ route('acs.github-updates.index') }}" class="btn btn-sm btn-outline-secondary mb-0">
                     <i class="fas fa-arrow-left me-1"></i> Torna alla Lista
                 </a>
             </div>

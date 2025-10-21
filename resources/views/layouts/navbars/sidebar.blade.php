@@ -128,6 +128,15 @@
             </li>
             
             <li class="nav-item">
+                <a class="nav-link {{ Request::is('acs/github-updates*') ? 'active' : '' }}" href="{{ route('acs.github-updates.index') }}">
+                    <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
+                        <i class="fab fa-github text-dark text-sm opacity-10"></i>
+                    </div>
+                    <span class="nav-link-text ms-1">GitHub Updates</span>
+                </a>
+            </li>
+            
+            <li class="nav-item">
                 <a class="nav-link {{ Request::is('acs/profiles*') ? 'active' : '' }}" href="{{ route('acs.profiles') }}">
                     <div class="icon icon-shape icon-sm shadow border-radius-md bg-white text-center me-2 d-flex align-items-center justify-content-center">
                         <i class="fas fa-file-code text-dark text-sm opacity-10"></i>
