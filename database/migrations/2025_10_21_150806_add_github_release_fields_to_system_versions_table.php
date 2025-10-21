@@ -59,19 +59,21 @@ return new class extends Migration
             }
         });
 
-        Schema::table('system_versions', function (Blueprint $table) {
-            $indexName = 'system_versions_approval_status_index';
-            $indexes = DB::select("SELECT indexname FROM pg_indexes WHERE tablename = 'system_versions' AND indexname = ?", [$indexName]);
-            if (empty($indexes)) {
+        try {
+            Schema::table('system_versions', function (Blueprint $table) {
                 $table->index('approval_status');
-            }
-            
-            $indexName = 'system_versions_github_release_tag_index';
-            $indexes = DB::select("SELECT indexname FROM pg_indexes WHERE tablename = 'system_versions' AND indexname = ?", [$indexName]);
-            if (empty($indexes)) {
+            });
+        } catch (\Exception $e) {
+            // Index already exists, ignore
+        }
+        
+        try {
+            Schema::table('system_versions', function (Blueprint $table) {
                 $table->index('github_release_tag');
-            }
-        });
+            });
+        } catch (\Exception $e) {
+            // Index already exists, ignore
+        }
     }
 
     public function down(): void
