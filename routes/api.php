@@ -32,6 +32,14 @@ Route::prefix('v1')->middleware(\App\Http\Middleware\ApiKeyAuth::class)->group(f
     Route::get('system/history', [\App\Http\Controllers\SystemUpdateController::class, 'history']);
     Route::post('system/update', [\App\Http\Controllers\SystemUpdateController::class, 'runUpdate']);
     
+    // GitHub Release Update Management
+    Route::get('system/updates/pending', [\App\Http\Controllers\SystemUpdateController::class, 'pendingUpdates']);
+    Route::post('system/updates/{id}/approve', [\App\Http\Controllers\SystemUpdateController::class, 'approveUpdate']);
+    Route::post('system/updates/{id}/reject', [\App\Http\Controllers\SystemUpdateController::class, 'rejectUpdate']);
+    Route::post('system/updates/{id}/schedule', [\App\Http\Controllers\SystemUpdateController::class, 'scheduleUpdate']);
+    Route::post('system/updates/{id}/apply', [\App\Http\Controllers\SystemUpdateController::class, 'applyUpdate']);
+    Route::get('system/updates/{id}/validate', [\App\Http\Controllers\SystemUpdateController::class, 'validateStagedUpdate']);
+    
     Route::apiResource('devices', DeviceController::class);
     Route::post('devices/{device}/provision', [ProvisioningController::class, 'provisionDevice']);
     Route::post('devices/{device}/parameters/get', [ProvisioningController::class, 'getParameters']);
