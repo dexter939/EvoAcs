@@ -41,4 +41,9 @@ return [
         'organization' => env('OPENAI_ORGANIZATION'),
     ],
 
+    'github' => [
+        'owner' => env('GITHUB_REPO_OWNER', 'your-org'),
+        'repo' => env('GITHUB_REPO_NAME', 'acs'),
+    ],
+
 ];

@@ -11,3 +11,10 @@ Artisan::command('inspire', function () {
 Schedule::command('metrics:collect')->everyFiveMinutes()->withoutOverlapping();
 
 Schedule::command('horizon:snapshot')->everyFiveMinutes();
+
+Schedule::command('system:check-updates --auto-stage')
+    ->weekly()
+    ->mondays()
+    ->at('03:00')
+    ->withoutOverlapping()
+    ->onOneServer();
