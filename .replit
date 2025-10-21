@@ -127,5 +127,5 @@ externalPort = 8080
 
 [deployment]
 deploymentTarget = "vm"
-run = ["./scripts/replit/run.sh"]
-build = ["./scripts/replit/build.sh"]
+run = "./scripts/replit/run.sh"
+build = "./scripts/replit/build.sh"
