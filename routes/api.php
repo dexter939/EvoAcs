@@ -15,8 +15,16 @@ use App\Http\Controllers\Api\IotDeviceController;
 use App\Http\Controllers\Api\FemtocellController;
 use App\Http\Controllers\Api\StbServiceController;
 use App\Http\Controllers\Api\TR181Controller;
+use App\Http\Controllers\Api\TelemetryController;
 
 Route::prefix('v1')->middleware(\App\Http\Middleware\ApiKeyAuth::class)->group(function () {
+    
+    // Telemetry & Monitoring APIs
+    Route::get('telemetry/current', [TelemetryController::class, 'current']);
+    Route::get('telemetry/history', [TelemetryController::class, 'history']);
+    Route::get('telemetry/summary', [TelemetryController::class, 'summary']);
+    Route::get('telemetry/health', [TelemetryController::class, 'health']);
+    
     Route::apiResource('devices', DeviceController::class);
     Route::post('devices/{device}/provision', [ProvisioningController::class, 'provisionDevice']);
     Route::post('devices/{device}/parameters/get', [ProvisioningController::class, 'getParameters']);
