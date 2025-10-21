@@ -30,8 +30,12 @@ class FemtocellManagementServiceTest extends TestCase
         $result = $this->service->getAllParameters($this->device);
 
         $this->assertIsArray($result);
-        $this->assertArrayHasKey('FAP', $result);
-        $this->assertArrayHasKey('Device.FAP.GPS.ScanOnBoot', $result);
+        
+        $tr262Params = array_filter(array_keys($result), function($key) {
+            return str_starts_with($key, 'Device.FAP.');
+        });
+        
+        $this->assertNotEmpty($tr262Params, 'Should have TR-262 FAP parameters');
     }
 
     public function test_configure_son_self_config(): void

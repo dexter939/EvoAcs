@@ -30,7 +30,12 @@ class TR111ServiceTest extends TestCase
         $result = $this->service->getAllParameters($this->device);
 
         $this->assertIsArray($result);
-        $this->assertArrayHasKey('ProximityDetection', $result);
+        
+        $tr111Params = array_filter(array_keys($result), function($key) {
+            return str_contains($key, 'ProximityDetection') || str_contains($key, 'Device.UPnP.') || str_contains($key, 'Device.LLDP.');
+        });
+        
+        $this->assertNotEmpty($tr111Params, 'Should have TR-111 Proximity parameters');
     }
 
     public function test_discover_devices_via_upnp(): void

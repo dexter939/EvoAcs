@@ -32,8 +32,8 @@ class TR157ServiceTest extends TestCase
         $result = $this->service->getAllParameters($this->device);
 
         $this->assertIsArray($result);
-        $this->assertArrayHasKey('SoftwareModules', $result);
         $this->assertArrayHasKey('Device.SoftwareModules.DeploymentUnitNumberOfEntries', $result);
+        $this->assertArrayHasKey('Device.SoftwareModules.ExecutionUnitNumberOfEntries', $result);
     }
 
     public function test_auto_seeds_deployment_units_for_new_device(): void

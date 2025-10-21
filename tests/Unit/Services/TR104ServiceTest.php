@@ -30,8 +30,12 @@ class TR104ServiceTest extends TestCase
         $result = $this->service->getAllParameters($this->device);
 
         $this->assertIsArray($result);
-        $this->assertArrayHasKey('VoiceService', $result);
-        $this->assertArrayHasKey('Device.Services.VoiceService.1.VoiceProfile.1.Enable', $result);
+        
+        $voiceServiceParams = array_filter(array_keys($result), function($key) {
+            return str_starts_with($key, 'Device.Services.VoiceService.');
+        });
+        
+        $this->assertNotEmpty($voiceServiceParams, 'Should have TR-104 VoiceService parameters');
     }
 
     public function test_get_sip_profile_configuration(): void

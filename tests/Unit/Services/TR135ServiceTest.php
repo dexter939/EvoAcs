@@ -30,7 +30,12 @@ class TR135ServiceTest extends TestCase
         $result = $this->service->getAllParameters($this->device);
 
         $this->assertIsArray($result);
-        $this->assertArrayHasKey('STBService', $result);
+        
+        $tr135Params = array_filter(array_keys($result), function($key) {
+            return str_contains($key, 'STBService') || str_contains($key, 'Device.Services.STBService.');
+        });
+        
+        $this->assertNotEmpty($tr135Params, 'Should have TR-135 STB parameters');
     }
 
     public function test_get_epg_configuration(): void

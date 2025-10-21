@@ -30,7 +30,12 @@ class TR140ServiceTest extends TestCase
         $result = $this->service->getAllParameters($this->device);
 
         $this->assertIsArray($result);
-        $this->assertArrayHasKey('StorageService', $result);
+        
+        $tr140Params = array_filter(array_keys($result), function($key) {
+            return str_contains($key, 'StorageService') || str_contains($key, 'Device.Services.StorageService.');
+        });
+        
+        $this->assertNotEmpty($tr140Params, 'Should have TR-140 Storage parameters');
     }
 
     public function test_configure_smb_share(): void

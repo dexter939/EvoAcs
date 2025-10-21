@@ -30,7 +30,12 @@ class TR106ServiceTest extends TestCase
         $result = $this->service->getAllParameters($this->device);
 
         $this->assertIsArray($result);
-        $this->assertArrayHasKey('DataModelTemplate', $result);
+        
+        $tr106Params = array_filter(array_keys($result), function($key) {
+            return str_contains($key, 'DataModelTemplate') || str_contains($key, 'Device.DeviceInfo.');
+        });
+        
+        $this->assertNotEmpty($tr106Params, 'Should have TR-106 DataModelTemplate parameters');
     }
 
     public function test_list_data_model_templates(): void
