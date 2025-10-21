@@ -1,10 +1,11 @@
-modules = ["php-8.3", "postgresql-16"]
+modules = ["php-8.3", "postgresql-16", "python-3.11"]
 [agent]
 expertMode = true
+integrations = ["github:1.0.0"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["php83", "php83Packages.composer", "php83Extensions.pdo_mysql", "php83Extensions.soap", "php83Extensions.redis", "protobuf", "prosody"]
+packages = ["php83", "php83Extensions.pdo_mysql", "php83Extensions.redis", "php83Extensions.soap", "php83Packages.composer", "prosody", "protobuf"]
 
 [workflows]
 runButton = "Project"

@@ -22,11 +22,23 @@ class SystemVersion extends Model
         'rollback_version',
         'duration_seconds',
         'is_current',
+        'github_release_url',
+        'github_release_tag',
+        'download_path',
+        'package_checksum',
+        'approval_status',
+        'approved_by',
+        'approved_at',
+        'scheduled_at',
+        'changelog',
+        'release_notes',
     ];
 
     protected $casts = [
         'deployed_at' => 'datetime',
         'completed_at' => 'datetime',
+        'approved_at' => 'datetime',
+        'scheduled_at' => 'datetime',
         'migrations_run' => 'array',
         'health_check_results' => 'array',
         'is_current' => 'boolean',
@@ -160,5 +172,48 @@ class SystemVersion extends Model
     public function scopeForEnvironment($query, string $environment)
     {
         return $query->where('environment', $environment);
+    }
+
+    public function scopePendingApproval($query)
+    {
+        return $query->where('approval_status', 'pending');
+    }
+
+    public function scopeApproved($query)
+    {
+        return $query->where('approval_status', 'approved');
+    }
+
+    public function approve(string $approvedBy): self
+    {
+        $this->update([
+            'approval_status' => 'approved',
+            'approved_by' => $approvedBy,
+            'approved_at' => now(),
+        ]);
+
+        return $this;
+    }
+
+    public function reject(string $rejectedBy, ?string $reason = null): self
+    {
+        $this->update([
+            'approval_status' => 'rejected',
+            'approved_by' => $rejectedBy,
+            'approved_at' => now(),
+            'deployment_notes' => $reason ? "Rejected: {$reason}" : 'Rejected',
+        ]);
+
+        return $this;
+    }
+
+    public function scheduleDeployment(\DateTime $scheduledAt): self
+    {
+        $this->update([
+            'approval_status' => 'scheduled',
+            'scheduled_at' => $scheduledAt,
+        ]);
+
+        return $this;
     }
 }
