@@ -9,7 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('file_servers', function (Blueprint $table) {
-            $table->string('server_instance', 10)->nullable()->after('storage_service_id');
+            if (!Schema::hasColumn('file_servers', 'server_instance')) {
+                $table->string('server_instance', 10)->nullable()->after('storage_service_id');
+            }
         });
     }
 
