@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\LanDeviceController;
 use App\Http\Controllers\Api\IotDeviceController;
 use App\Http\Controllers\Api\FemtocellController;
 use App\Http\Controllers\Api\StbServiceController;
+use App\Http\Controllers\Api\TR181Controller;
 
 Route::prefix('v1')->middleware(\App\Http\Middleware\ApiKeyAuth::class)->group(function () {
     Route::apiResource('devices', DeviceController::class);
@@ -96,4 +97,18 @@ Route::prefix('v1')->middleware(\App\Http\Middleware\ApiKeyAuth::class)->group(f
     Route::post('devices/{device}/stb-services', [StbServiceController::class, 'provisionService']);
     Route::post('stb-services/{service}/sessions', [StbServiceController::class, 'startSession']);
     Route::patch('streaming-sessions/{session}/qos', [StbServiceController::class, 'updateQos']);
+    
+    // TR-181 Device:2 Data Model - Complete Implementation
+    Route::get('devices/{device}/tr181/parameters', [TR181Controller::class, 'getAllParameters']);
+    Route::post('devices/{device}/tr181/parameters', [TR181Controller::class, 'setParameters']);
+    Route::get('devices/{device}/tr181/parameter', [TR181Controller::class, 'getParameter']);
+    Route::get('devices/{device}/tr181/{namespace}', [TR181Controller::class, 'getNamespace']);
+    Route::get('devices/{device}/tr181/device-info', [TR181Controller::class, 'getDeviceInfo']);
+    Route::get('devices/{device}/tr181/management-server', [TR181Controller::class, 'getManagementServer']);
+    Route::put('devices/{device}/tr181/management-server', [TR181Controller::class, 'updateManagementServer']);
+    Route::get('devices/{device}/tr181/wifi', [TR181Controller::class, 'getWiFi']);
+    Route::get('devices/{device}/tr181/lan', [TR181Controller::class, 'getLAN']);
+    Route::get('devices/{device}/tr181/hosts', [TR181Controller::class, 'getHosts']);
+    Route::get('devices/{device}/tr181/dhcp', [TR181Controller::class, 'getDHCP']);
+    Route::get('tr181/validate', [TR181Controller::class, 'validateParameter']);
 });
