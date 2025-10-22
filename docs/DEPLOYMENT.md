@@ -84,7 +84,7 @@ sudo chown www-data:www-data /var/www/acs
 
 # Clone repository
 cd /var/www/acs
-git clone https://github.com/your-org/acs-system.git .
+git clone https://github.com/dexter939/EvoAcs.git .
 
 # Install dependencies
 composer install --no-dev --optimize-autoloader
@@ -420,7 +420,7 @@ upstream acs_backend {
 ```bash
 # Set environment variables
 export DEPLOY_PATH=/var/www/acs
-export REPO_URL=https://github.com/your-org/acs-system.git
+export REPO_URL=https://github.com/dexter939/EvoAcs.git
 export BRANCH=main
 
 # Run deployment

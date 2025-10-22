@@ -108,8 +108,8 @@ Configura le variabili d'ambiente:
 
 ```bash
 # .env
-GITHUB_REPO_OWNER=your-organization
-GITHUB_REPO_NAME=acs
+GITHUB_REPO_OWNER=dexter939
+GITHUB_REPO_NAME=EvoAcs
 ```
 
 ### 2. Connessione GitHub

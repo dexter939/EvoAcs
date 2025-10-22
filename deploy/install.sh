@@ -17,7 +17,7 @@ NC='\033[0m' # No Color
 # Configuration
 ACS_USER="acs"
 ACS_HOME="/opt/acs"
-ACS_REPO="https://github.com/YOUR_USERNAME/acs-system.git"
+ACS_REPO="https://github.com/dexter939/EvoAcs.git"
 PROSODY_PORT=6000
 PHP_VERSION="8.2"
 

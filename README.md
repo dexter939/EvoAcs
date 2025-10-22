@@ -43,8 +43,8 @@
 
 #### 1. Clone & Install Dependencies
 ```bash
-git clone https://github.com/your-org/acs-system.git
-cd acs-system
+git clone https://github.com/dexter939/EvoAcs.git
+cd EvoAcs
 composer install
 ```
 

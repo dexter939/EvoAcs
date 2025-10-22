@@ -1,6 +1,6 @@
 [Unit]
 Description=ACS MQTT Subscriber - TR-369 USP Device Communication
-Documentation=https://github.com/your-org/acs-system
+Documentation=https://github.com/dexter939/EvoAcs
 After=network.target postgresql.service redis.service
 Requires=network.target
 

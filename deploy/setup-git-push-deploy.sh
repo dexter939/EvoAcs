@@ -8,7 +8,7 @@ set -e
 
 PRODUCTION_HOST="${1:-your-server.com}"
 PRODUCTION_USER="root"
-GITHUB_REPO="${2:-https://github.com/YOUR_USERNAME/acs-system.git}"
+GITHUB_REPO="${2:-https://github.com/dexter939/EvoAcs.git}"
 
 echo "╔════════════════════════════════════════════════════════════╗"
 echo "║    Setup Automatic Deployment via Git Webhooks            ║"

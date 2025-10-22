@@ -1,6 +1,6 @@
 [Unit]
 Description=ACS WebSocket Server - TR-369 USP Direct Connections
-Documentation=https://github.com/your-org/acs-system
+Documentation=https://github.com/dexter939/EvoAcs
 After=network.target redis.service
 Requires=network.target
 
