@@ -255,9 +255,8 @@ clone_repository() {
     print_info "Clonazione repository applicazione..."
     
     if [ -z "$REPO_URL" ]; then
-        print_error "Variabile REPO_URL non impostata"
-        echo "Esegui: export REPO_URL='https://github.com/username/acs-repo.git'"
-        exit 1
+        REPO_URL="https://github.com/dexter939/EvoAcs.git"
+        print_info "Usando repository default: $REPO_URL"
     fi
     
     # Rimuovi directory esistente se presente

@@ -36,8 +36,8 @@ sudo apt update && sudo apt upgrade -y
 # Installa git (se non presente)
 sudo apt install -y git
 
-# Imposta l'URL del repository
-export REPO_URL='https://github.com/your-username/acs-repo.git'
+# Imposta l'URL del repository (opzionale, usa default se omesso)
+export REPO_URL='https://github.com/dexter939/EvoAcs.git'
 
 # (Opzionale) Imposta dominio personalizzato
 export DOMAIN='acs.yourdomain.com'
@@ -50,7 +50,7 @@ export DB_PASSWORD='your-secure-password'
 
 ```bash
 # Download dello script di installazione
-wget https://raw.githubusercontent.com/your-username/acs-repo/main/install.sh
+wget https://raw.githubusercontent.com/dexter939/EvoAcs/main/install.sh
 
 # Rendi eseguibile lo script
 chmod +x install.sh
@@ -142,7 +142,7 @@ EOF
 sudo useradd -r -m -s /bin/bash acs
 
 # Clone repository
-sudo git clone https://github.com/your-username/acs-repo.git /opt/acs
+sudo git clone https://github.com/dexter939/EvoAcs.git /opt/acs
 sudo chown -R acs:acs /opt/acs
 ```
 
@@ -450,8 +450,8 @@ sudo supervisorctl restart all
 ## 📞 Supporto
 
 Per problemi o domande:
-- Repository: https://github.com/your-username/acs-repo
-- Issues: https://github.com/your-username/acs-repo/issues
+- Repository: https://github.com/dexter939/EvoAcs
+- Issues: https://github.com/dexter939/EvoAcs/issues
 
 ## 📄 Licenza
 
